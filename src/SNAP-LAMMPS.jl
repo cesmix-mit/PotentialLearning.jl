@@ -10,7 +10,8 @@ mutable struct SNAP_LAMMPS
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
     
-    SNAP_LAMMPS(path, ntypes, twojmax, no_atoms_per_type, no_atomic_conf, rows, potential_energy_per_conf) = 
+    SNAP_LAMMPS(path, ntypes, twojmax, no_atoms_per_type, no_atomic_conf,
+                rows, potential_energy_per_conf) = 
     begin
         no_atoms_per_conf = sum(no_atoms_per_type)
         J = twojmax / 2.0
@@ -33,32 +34,22 @@ function calc_A(path::String, p::SNAP_LAMMPS)
 
         A = Array{Float64}(undef, p.rows, p.cols) # bispectrum is 2*(ncoeff - 1) + 2
 
-        for m in 1:p.rows
-            read_data_str = "read_data " * joinpath(path, string(m), "DATA")
-
-            # ToDo: This needs to be in a conf file
-            command(lmp, "units metal")
-            command(lmp, "boundary p p p")
-            command(lmp, "atom_style atomic")
-            command(lmp, "atom_modify map array")
-            command(lmp, read_data_str)
-            command(lmp, "pair_style snap")
-            command(lmp, "pair_coeff * * GaN.snapcoeff GaN.snapparam Ga N")
-            command(lmp, "compute PE all pe")
-            command(lmp, "compute S all pressure thermo_temp")
-            command(lmp, "compute SNA all sna/atom 3.5 0.99363 6 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
-            command(lmp, "compute SNAD all snad/atom 3.5 0.99363 6 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
-            command(lmp, "compute SNAV all snav/atom 3.5 0.99363 6 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
-            command(lmp, "thermo_style custom pe")
-            command(lmp, "dump 2 all custom 100 dump.forces fx fy fz")
-            command(lmp, "run 0")
+        for j in 1:p.rows
+            open(string(path, "/GaN.commands")) do f 
+                while !eof(f) 
+                    line = replace(replace(readline(f), "\$PATH" => path),
+                                   "\$ATOMICCONF" => string(j))
+                    println(line)
+                    command(lmp, line)
+                end
+            end
 
             nlocal = extract_global(lmp, "nlocal")
 
             types = extract_atom(lmp, "type", LAMMPS.API.LAMMPS_INT)
             ids = extract_atom(lmp, "id", LAMMPS.API.LAMMPS_INT)
 
-            @info "Progress" m nlocal
+            @info "Progress" j nlocal
 
             ###
             # Energy
@@ -85,7 +76,7 @@ function calc_A(path::String, p::SNAP_LAMMPS)
                 end
             end
 
-            A[m, :] = row
+            A[j, :] = row
 
             command(lmp, "clear")
         end
@@ -94,34 +85,24 @@ function calc_A(path::String, p::SNAP_LAMMPS)
     return A
 end
 
-function potential_energy(path::String, p::SNAP_LAMMPS)
+function potential_energy(path::String, j::Int64, p::SNAP_LAMMPS)
     ## Calculate b
-    lmp = LMP(["-screen","none"]) 
-    read_data_str = string("read_data ", path)
+    lmp = LMP(["-screen","none"])
+    open(string(path, "/GaN.commands")) do f 
+        while !eof(f) 
+            line = replace(replace(readline(f), "\$PATH" => path),
+                          "\$ATOMICCONF" => string(j))
+            println(line)
+            command(lmp, line)
+        end
+    end
     
-    # ToDo: This needs to be in a conf file
-    command(lmp, "units metal")
-    command(lmp, "boundary p p p")
-    command(lmp, "atom_style atomic")
-    command(lmp, "atom_modify map array")
-    command(lmp, read_data_str)
-    command(lmp, "pair_style snap")
-    command(lmp, "pair_coeff * * GaN.snapcoeff GaN.snapparam Ga N")
-    command(lmp, "compute PE all pe")
-    command(lmp, "compute S all pressure thermo_temp")
-    command(lmp, "compute SNA all sna/atom 3.5 0.99363 6 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
-    command(lmp, "compute SNAD all snad/atom 3.5 0.99363 6 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
-    command(lmp, "compute SNAV all snav/atom 3.5 0.99363 6 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
-    command(lmp, "thermo_style custom pe")
-    command(lmp, "dump 2 all custom 100 dump.forces fx fy fz")
-    command(lmp, "run 0")
     nlocal = extract_global(lmp, "nlocal")
     types = extract_atom(lmp, "type", LAMMPS.API.LAMMPS_INT)
     ids = extract_atom(lmp, "id", LAMMPS.API.LAMMPS_INT)
     bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
                                      LAMMPS.API.LMP_TYPE_ARRAY)
-                                     
-                                     
+    
     for no_atoms in p.no_atoms_per_type
         push!(row, no_atoms)
         for k in 1:(p.ncoeff-1)

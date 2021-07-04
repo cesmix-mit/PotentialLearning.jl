@@ -30,7 +30,7 @@ function run()
     # Currently this function is hardcoded to run a SNAP-LAMMPS example
 
     # Load atomic configurations ###############################################
-    path = "GaNData/"
+    path = "../examples/GaNData/"
     no_Ga = 96
     no_N = 96
     no_atoms_per_type = [no_Ga, no_N]
@@ -78,7 +78,7 @@ function run()
     end
     
     # Calculate force ##########################################################
-    #f = p.get_forces()
+    # f = p.get_forces()
     
     return p
 end

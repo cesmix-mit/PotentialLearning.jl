@@ -3,7 +3,7 @@ function load_positions_per_conf(path, no_atoms_per_conf, no_atomic_conf)
     positions_per_conf = []
     for j = 1:no_atomic_conf
         rs = []
-        open(string(path, string(j), "/DATA")) do f
+        open(string(path, "/DATA/", string(j), "/DATA")) do f
             for i = 1:23
                 readline(f)
             end
