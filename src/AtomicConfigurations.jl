@@ -1,5 +1,6 @@
 # Read atomic positions per configuration
 function load_positions_per_conf(path, no_atoms_per_conf, no_atomic_conf)
+    @show no_atoms_per_conf, no_atomic_conf
     positions_per_conf = []
     for j = 1:no_atomic_conf
         rs = []

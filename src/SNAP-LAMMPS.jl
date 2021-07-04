@@ -10,9 +10,14 @@ mutable struct SNAP_LAMMPS
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
     
-    SNAP_LAMMPS(path, ntypes, twojmax, no_atoms_per_type, no_atomic_conf,
-                rows, potential_energy_per_conf) = 
+    SNAP_LAMMPS(path, params, potential_energy_per_conf) = 
     begin
+        ntypes = params["ntypes"]
+        twojmax = params["twojmax"]
+        no_atoms_per_type = params["no_atoms_per_type"]
+        no_atomic_conf = params["no_atomic_conf"]
+        rows = params["rows"]
+    
         no_atoms_per_conf = sum(no_atoms_per_type)
         J = twojmax / 2.0
         ncoeff = round(Int, (J + 1) * (J + 2) * (( J + (1.5)) / 3. ) + 1)
@@ -117,10 +122,10 @@ function potential_energy(path::String, j::Int64, p::SNAP_LAMMPS)
     E_tot_acc = 0.0
     for (i, no_atoms) in enumerate(p.no_atoms_per_type)
         for n in 1:no_atoms
-            E_atom_acc = β[1]
+            E_atom_acc = p.β[1]
             for k in ncoeff*(i-1)+2:i*ncoeff
                 k2 = k - 1
-                E_atom_acc += β[k] * bs[k2, n]
+                E_atom_acc += p.β[k] * bs[k2, n]
             end
             E_tot_acc += E_atom_acc
         end

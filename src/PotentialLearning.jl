@@ -26,60 +26,62 @@ function fit(p)
     p.β = p.A \ p.b
 end
 
-#function load_conf_params(path)
-#    no_Ga = 96
-#    no_N = 96
-#    no_atoms_per_type = [no_Ga, no_N]
-#    no_atoms_per_conf = sum(no_atoms_per_type)
-#    no_atomic_conf = 61
-#    positions_per_conf = load_positions_per_conf(path, no_atoms_per_conf, no_atomic_conf)
-#    rcut = 3.5
-#    ntypes = 2
-#    twojmax = 5
-#    rows = 48
-#end
+function load_conf_params(path)
+    @show path
+    params = Dict()
+    open(string(path, "/PotentialLearning.conf")) do f
+        while !eof(f)
+            line = split(readline(f))
+            lhs = line[1]
+            if lhs == "rcut"
+                rhs = parse(Float64, line[2])
+            elseif lhs == "DFT_model"
+                rhs = line[2]
+            elseif length(line[2:end]) == 1
+                rhs = parse(Int64, line[2])
+            else
+                rhs = parse.(Int64, line[2:end])
+            end
+            params[lhs] = rhs
+        end
+    end 
+    params["positions_per_conf"] = load_positions_per_conf(path,
+                                                    params["no_atoms_per_conf"],
+                                                    params["no_atomic_conf"])
+    return params
+end
 
 function run(path)
     # Currently this function is hardcoded to run a SNAP-LAMMPS example
 
     # Load atomic configurations ###############################################
-    #params = load_conf_params(path)
-    no_Ga = 96
-    no_N = 96
-    no_atoms_per_type = [no_Ga, no_N]
-    no_atoms_per_conf = sum(no_atoms_per_type)
-    no_atomic_conf = 61
-    positions_per_conf = load_positions_per_conf(path, no_atoms_per_conf, no_atomic_conf)
-    rcut = 3.5
-    ntypes = 2
-    twojmax = 5
-    rows = 48
+    params = load_conf_params(path)
     
     # Get DFT data #############################################################
-    #dft_data = load_dft_data(path, params["dft_model"])
-    dft_data = load_GaN(path)
+    dft_data = load_dft_data(path, params["DFT_model"])
     
     # Calculate potential energy per configuration (vector b)
     potential_energy_per_conf = 
-            [potential_energy(positions_per_conf[i], rcut, no_atoms_per_conf, dft_data) 
-             for i = 1:rows]
+            [potential_energy(params["positions_per_conf"][j], params["rcut"],
+                              params["no_atoms_per_conf"], dft_data) 
+             for j = 1:params["rows"]]
     
     # Create potential to fit ##################################################
-    p = SNAP_LAMMPS(path, ntypes, twojmax, no_atoms_per_type, no_atomic_conf,
-                    rows, potential_energy_per_conf)
+    p = SNAP_LAMMPS(path, params, potential_energy_per_conf)
     
     # Potential Learning #######################################################
     fit(p)
     
     # Check Potential ##########################################################
     @show norm(p.A * p.β - p.b)
-    @printf("Potential Energy, Fitted Potential Energy, Error (%%)\n")
-    for j = no_Ga+1:no_atomic_conf
-        E_tot = potential_energy(positions_per_conf[j], rcut, no_atoms_per_conf, gan)
-        E_tot_fit = potential_energy(path, β, ncoeff, N1, N)
-        @printf("%0.2f, %0.2f, %0.2f\n", E_tot, E_tot_fit,
-                abs(E_tot - E_tot_fit) / E_tot * 100.)
-    end
+#    @printf("Potential Energy, Fitted Potential Energy, Error (%%)\n")
+#    for j = params["rows"]+1:params["no_atomic_conf"]
+#        E_tot = potential_energy(params["positions_per_conf"][j],
+#                                 params["rcut"], params["no_atoms_per_conf"], dft_data)
+#        E_tot_fit = potential_energy(path, p.β, p.ncoeff, pparams["no_atoms_per_conf"])
+#        @printf("%0.2f, %0.2f, %0.2f\n", E_tot, E_tot_fit,
+#                abs(E_tot - E_tot_fit) / E_tot * 100.)
+#    end
     
     # Calculate force ##########################################################
     # f = p.get_forces()

@@ -60,7 +60,8 @@ potential_energy(i, j, r::Point, p::GaN) =
         return potential_energy(r, p.c) + potential_energy(r, p.bm_Ga_N)
     end
     
-function load_GaN(path)
+# ToDo: make this function more general, use DFT_model
+function load_dft_data(path, DFT_model)
     params = Dict()
     open(string(path, "/GaN.params")) do f
         while !eof(f)
