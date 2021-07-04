@@ -39,7 +39,7 @@ function calc_A(path::String, p::SNAP_LAMMPS)
                 while !eof(f) 
                     line = replace(replace(readline(f), "\$PATH" => path),
                                    "\$ATOMICCONF" => string(j))
-                    println(line)
+                    @info line
                     command(lmp, line)
                 end
             end
