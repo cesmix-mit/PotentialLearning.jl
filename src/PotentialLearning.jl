@@ -13,7 +13,7 @@
 module PotentialLearning
 
 include("Utils.jl")
-include("AtomicConfigurations.jl")
+include("InputLoading.jl")
 include("EmpiricalPotentials.jl")
 include("SNAP-LAMMPS.jl")
 
