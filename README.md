@@ -1,6 +1,6 @@
 # [WIP] PotentialLearning.jl: The Julia Library of Molecular Dynamics Potentials
 
-In this project, we aim to develop an open-source code for active training, fast calculation, and uncertainty quantification of molecular dynamics potentials for atomistic simulations of materials. 
+We aim to develop an Open Source code for active training, fast calculation, and uncertainty quantification of molecular dynamics potentials for atomistic simulations of materials. 
 
 ## Upcoming features
 - Surrogate DFT data generation
@@ -21,28 +21,23 @@ To install PotentialLearning.jl in Julia follow the next steps:
 ## How to setup and run your experiment
 
 Load learning parameters, DFT data, and potential.
-```
-    # Load learning parameters
+```julia
     path = "../examples/GaN-SNAP-LAMMPS/"
     learning_params = load_learning_params(path)
     
-    # Load DFT data
     dft_training_data, dft_validation_data = load_dft_data(learning_params)
     
-    # Load potential
     p_snap = SNAP_LAMMPS(learning_params)
 ```
 
-Fit the potential against the DFT data using the learning parameters.
-```
-    # Learn potential, forces, and stresses
+Fit the potential, forces, and stresses against the DFT data using the learning parameters.
+```julia
     learn(p_snap, dft_training_data, learning_params)
 
 ```
 
-Validation of the trained potential, forces, and stresses
-```
-    # Validate potential, forces, and stresses
+Validate trained potential, forces, and stresses
+```julia
     rel_error = validate(p_snap, dft_validation_data, learning_params)
     
 ```
