@@ -3,15 +3,18 @@ using LAMMPS
 mutable struct SNAP_LAMMPS
     β::Vector{Float64}
     A::Matrix{Float64}
-    b::Vector{Float64}
+    b::Vector{Float64} # = dft_validation_data = potential_energy_per_conf
+
     rows::Int64
     cols::Int64
     ncoeff::Int64
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
     
-    SNAP_LAMMPS(path, params, potential_energy_per_conf) = 
+    #SNAP_LAMMPS(params::Dict, dft_train_data::Vector{Float64}) = 
+    SNAP_LAMMPS(params::Dict) = 
     begin
+        path = params["path"]
         ntypes = params["ntypes"]
         twojmax = params["twojmax"]
         no_atoms_per_type = params["no_atoms_per_type"]
@@ -24,7 +27,7 @@ mutable struct SNAP_LAMMPS
         cols = 2 * ncoeff
         β = []
         A = Matrix{Float64}(undef, 0, 0)
-        b = potential_energy_per_conf
+        b = [] #b = dft_training_data
         p = new(β, A, b, rows, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
         p.A = calc_A(path, p)
         return p
@@ -91,7 +94,7 @@ function calc_A(path::String, p::SNAP_LAMMPS)
 end
 
 function potential_energy(path::String, j::Int64, p::SNAP_LAMMPS)
-    ## Calculate b
+    # Calculate b
     lmp = LMP(["-screen","none"])
     open(string(path, "/GaN.commands")) do f 
         while !eof(f) 
@@ -136,10 +139,10 @@ function potential_energy(path::String, j::Int64, p::SNAP_LAMMPS)
 end
 
 # Calculates the potential energy of a particular atomic configuration
-function potential_energy(rs, rcut, no_atoms_per_conf, p)
+function potential_energy(rs::Vector{Position}, rcut::Float64, p)
     acc = 0.0
-    for i = 1:no_atoms_per_conf
-        for j = i:no_atoms_per_conf
+    for i = 1:length(rs)
+        for j = i:length(rs)
             r_diff = rs[i] - rs[j]
             if norm(r_diff) <= rcut && norm(r_diff) > 0.0
                 acc += potential_energy(i, j, r_diff, p)

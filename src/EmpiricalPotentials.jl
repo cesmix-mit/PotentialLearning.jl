@@ -1,4 +1,21 @@
 ################################################################################
+# Dispatch function
+################################################################################
+using Match
+
+function load_potential(path::String, model)
+    potential =
+        @match model begin
+            "LennardJones"  => load_LennardJones(path)
+            "BornMayer"     => load_BornMayer(path)
+            "GaN"           => load_GaN(path)
+            _               => []
+        end    
+    return potential
+end
+
+
+################################################################################
 # Lennard-Jones Potential
 ################################################################################
 
@@ -7,9 +24,13 @@ struct LennardJones
     σ::Float64
 end
 
-potential_energy(r::Point, p::LennardJones) =
+potential_energy(r::Position, p::LennardJones) =
     4.0 * p.ε * ((p.σ / norm(r))^12 - (p.σ / norm(r))^6)
 
+function load_LennardJones(path)
+    #ToDO
+    return LennardJones(1.0, 1.0)
+end
 
 ################################################################################
 # Born-Mayer Potential
@@ -20,8 +41,12 @@ struct BornMayer
     ρ::Float64
 end
 
-potential_energy(r::Point, p::BornMayer) = p.A * exp(-norm(r) / p.ρ)
+potential_energy(r::Position, p::BornMayer) = p.A * exp(-norm(r) / p.ρ)
 
+function load_BornMayer(path)
+    #ToDO
+    return BornMayer(1.0, 1.0)
+end
 
 ################################################################################
 # Coulomb Potential
@@ -33,9 +58,13 @@ struct Coulomb
     ε0::Float64
 end
 
-potential_energy(r::Point, p::Coulomb) =
+potential_energy(r::Position, p::Coulomb) =
     p.q_1 * p.q_2 / (4.0 * π * p.ε0 * norm(r))
 
+function load_Coulomb(path)
+    #ToDO
+    return Coulomb(1.0, 1.0, 1.0)
+end
 
 ################################################################################
 # GaN Potential. 
@@ -51,7 +80,7 @@ struct GaN
     no_N::Int64
 end
 
-potential_energy(i, j, r::Point, p::GaN) =
+potential_energy(i::Int64, j::Int64, r::Position, p::GaN) =
     if i <= p.no_Ga && j <= p.no_N # Ga-Ga interaction
         return potential_energy(r, p.c) + potential_energy(r, p.lj_Ga_Ga)
     elseif i > p.no_Ga && j > p.no_N # N-N interaction
@@ -61,7 +90,7 @@ potential_energy(i, j, r::Point, p::GaN) =
     end
     
 # ToDo: make this function more general, use DFT_model
-function load_dft_data(path, DFT_model)
+function load_GaN(path)
     params = Dict()
     open(string(path, "/GaN.params")) do f
         while !eof(f)
@@ -76,8 +105,4 @@ function load_dft_data(path, DFT_model)
     gan = GaN(lj_Ga_Ga, lj_N_N, bm_Ga_N, c, params["no_Ga"], params["no_N"])
     return gan
 end
-
-
-
-
 

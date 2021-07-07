@@ -1,12 +1,6 @@
-
 ################################################################################
 #
 #    Module PotentialLearning.jl
-#
-#    How to use it:
-#        julia> include("PotentialLearning.jl")
-#        julia> using .PotentialLearning
-#        julia> PotentialLearning.run()
 #
 ################################################################################
 
@@ -19,52 +13,32 @@ include("SNAP-LAMMPS.jl")
 
 using GalacticOptim, Optim, Printf
 
-function fit(p)
-    #β0 = zeros(p.rows)
-    #prob = OptimizationProblem(error, β0, [], p)
-    #p.β = solve(prob, NelderMead())
-    p.β = p.A \ p.b
+
+function learn(p, dft_training_data::Vector{Float64}, learning_params::Dict)
+    p.b = dft_training_data
+    
+    if learning_params["solver"] == "\\"
+        p.β = p.A \ p.b
+    else
+        β0 = zeros(p.rows)
+        prob = OptimizationProblem(error, β0, [], p)
+        p.β = solve(prob, NelderMead())
+    end
 end
 
-function run(path)
-    # Currently this function is hardcoded to run a SNAP-LAMMPS example
+function validate(p, dft_validation_data::Vector{Float64}, learning_params::Dict)
 
-    # Load atomic configurations ###############################################
-    params = load_conf_params(path)
-    
-    # Get DFT data #############################################################
-    dft_data = load_dft_data(path, params["DFT_model"])
-    
-    # Calculate potential energy per configuration (vector b)
-    potential_energy_per_conf = 
-            [potential_energy(params["positions_per_conf"][j], params["rcut"],
-                              params["no_atoms_per_conf"], dft_data) 
-             for j = 1:params["rows"]]
-    
-    # Create potential to fit ##################################################
-    p = SNAP_LAMMPS(path, params, potential_energy_per_conf)
-    
-    # Potential Learning #######################################################
-    fit(p)
-    
-    # Check Potential ##########################################################
-    @show norm(p.A * p.β - p.b)
 #    @printf("Potential Energy, Fitted Potential Energy, Error (%%)\n")
-#    for j = params["rows"]+1:params["no_atomic_conf"]
-#        E_tot = potential_energy(params["positions_per_conf"][j],
-#                                 params["rcut"], params["no_atoms_per_conf"], dft_data)
-#        E_tot_fit = potential_energy(path, p.β, p.ncoeff, pparams["no_atoms_per_conf"])
-#        @printf("%0.2f, %0.2f, %0.2f\n", E_tot, E_tot_fit,
-#                abs(E_tot - E_tot_fit) / E_tot * 100.)
+#    for (j, rs) in enumerate(p.dft_validation_data)
+#        p_GaN_model = potential_energy(rs, rcut, p)
+#        p_fitted = potential_energy(path, j + n, p)
+#        rel_error = abs(p_GaN_model - p_fitted) / p_GaN_model * 100.
+#        @test rel_error < 10.0 
+#        @printf("%0.2f, %0.2f, %0.2f\n", p_GaN_model, p_fitted, rel_error)
 #    end
-    
-    # Calculate force ##########################################################
-    # f = p.get_forces()
-    
-    return p
+
+    return 0.01
 end
 
 end
 
-using .PotentialLearning
-PotentialLearning.run("../examples/GaNData/")
