@@ -2,23 +2,23 @@
 
 We aim to develop an Open Source code for active training, fast calculation, and uncertainty quantification of molecular dynamics potentials for atomistic simulations of materials. 
 
-## Upcoming features
+## Features under development...
 - Surrogate DFT data generation
+  - Gallium nitride model
 - Integration with GalacticOptim.jl to perform the optimization process
 - Integration with LAMMPS.jl to access the SNAP implementation of LAMMPS
 - Implementation of a pure Julia version of SNAP
   - GPU implementation using KernelAbstractions.jl
 - Uncertainty quantification of trained potentials
-- Open Source
 
-## Installation instructions
+## Installation instructions...
 
 To install PotentialLearning.jl in Julia follow the next steps:
 
 1. Type `julia` in your terminal and press `]`
 2. `] add PotentialLearning.jl`
 
-## How to setup and run your experiment
+## How to setup and run your experiment...
 
 Load learning parameters, DFT data, and potential.
 ```julia
