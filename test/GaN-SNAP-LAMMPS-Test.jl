@@ -28,11 +28,3 @@ include("../src/SNAP-LAMMPS.jl")
 
 end
 
-
-
-
-
-    # Print learned parameters
-    #@show p_snap.\beta
-
-

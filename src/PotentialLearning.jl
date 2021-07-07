@@ -27,17 +27,17 @@ function learn(p, dft_training_data::Vector{Float64}, learning_params::Dict)
 end
 
 function validate(p, dft_validation_data::Vector{Float64}, learning_params::Dict)
-
-#    @printf("Potential Energy, Fitted Potential Energy, Error (%%)\n")
-#    for (j, rs) in enumerate(p.dft_validation_data)
-#        p_GaN_model = potential_energy(rs, rcut, p)
-#        p_fitted = potential_energy(path, j + n, p)
-#        rel_error = abs(p_GaN_model - p_fitted) / p_GaN_model * 100.
-#        @test rel_error < 10.0 
-#        @printf("%0.2f, %0.2f, %0.2f\n", p_GaN_model, p_fitted, rel_error)
-#    end
-
-    return 0.01
+    rcut = learning_params["rcut"]
+    rows = learning_params["rows"]
+    rel_errors = []
+    @printf("Potential Energy, Fitted Potential Energy, Relative Error\n")
+    for (j, p_dft) in enumerate(dft_validation_data)
+        p_fitted = potential_energy(learning_params, j + rows, p)
+        rel_error = abs(p_dft - p_fitted) / p_dft
+        push!(rel_errors, rel_error)
+        @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)
+    end
+    return maximum(rel_errors)
 end
 
 end

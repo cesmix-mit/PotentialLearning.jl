@@ -93,14 +93,15 @@ function calc_A(path::String, p::SNAP_LAMMPS)
     return A
 end
 
-function potential_energy(path::String, j::Int64, p::SNAP_LAMMPS)
+function potential_energy(learning_params::Dict, j::Int64, p)
     # Calculate b
+    path = learning_params["path"]
+    
     lmp = LMP(["-screen","none"])
     open(string(path, "/GaN.commands")) do f 
         while !eof(f) 
             line = replace(replace(readline(f), "\$PATH" => path),
                           "\$ATOMICCONF" => string(j))
-            println(line)
             command(lmp, line)
         end
     end
@@ -110,24 +111,13 @@ function potential_energy(path::String, j::Int64, p::SNAP_LAMMPS)
     ids = extract_atom(lmp, "id", LAMMPS.API.LAMMPS_INT)
     bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
                                      LAMMPS.API.LMP_TYPE_ARRAY)
-    
-    for no_atoms in p.no_atoms_per_type
-        push!(row, no_atoms)
-        for k in 1:(p.ncoeff-1)
-            acc = 0.0
-            for n in 1:no_atoms
-                acc += bs[k, n]
-            end
-            push!(row, acc)
-        end
-    end
 
     E_tot_acc = 0.0
     for (i, no_atoms) in enumerate(p.no_atoms_per_type)
         for n in 1:no_atoms
-            E_atom_acc = p.β[1]
-            for k in ncoeff*(i-1)+2:i*ncoeff
-                k2 = k - 1
+            E_atom_acc = p.β[p.ncoeff*(i-1)+1]
+            for k in p.ncoeff*(i-1)+2:i*p.ncoeff
+                k2 = k - p.ncoeff * (i - 1) - 1
                 E_atom_acc += p.β[k] * bs[k2, n]
             end
             E_tot_acc += E_atom_acc
