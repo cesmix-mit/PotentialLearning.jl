@@ -1,6 +1,6 @@
 # [WIP] PotentialLearning.jl: The Julia Library of Molecular Dynamics Potentials
 
-We aim to develop an Open Source code for active training, fast calculation, and uncertainty quantification of molecular dynamics potentials for atomistic simulations of materials. 
+We aim to develop an Open Source code for active training and fast calculation of molecular dynamics potentials for atomistic simulations of materials. 
 
 ## Features under development...
 - Surrogate DFT data generation
