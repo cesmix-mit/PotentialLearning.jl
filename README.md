@@ -9,7 +9,6 @@ We aim to develop an Open Source code for active training, fast calculation, and
 - Integration with LAMMPS.jl to access the SNAP implementation of LAMMPS
 - Implementation of a pure Julia version of SNAP
   - GPU implementation using KernelAbstractions.jl
-- Uncertainty quantification of trained potentials
 
 ## Installation instructions...
 
