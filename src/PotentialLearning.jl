@@ -15,7 +15,11 @@ include("InputLoading.jl")
 include("EmpiricalPotentials.jl")
 include("SNAP-LAMMPS.jl")
 
-function learn(p, dft_training_data::Vector{Float64}, learning_params::Dict)
+"""
+    Fit the potentials, forces, and stresses against the DFT data using
+    the learning parameters.
+"""
+function learn(p::Potential, dft_training_data::Vector{Float64}, learning_params::Dict)
     p.b = dft_training_data
     
     if learning_params["solver"] == "\\"
@@ -27,7 +31,10 @@ function learn(p, dft_training_data::Vector{Float64}, learning_params::Dict)
     end
 end
 
-function validate(p, dft_validation_data::Vector{Float64}, learning_params::Dict)
+"""
+    Validate trained potentials, forces, and stresses.
+"""
+function validate(p::Potential, dft_validation_data::Vector{Float64}, learning_params::Dict)
     rcut = learning_params["rcut"]
     rows = learning_params["rows"]
     rel_errors = []

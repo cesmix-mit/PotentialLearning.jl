@@ -1,6 +1,8 @@
-# Load configuration parameters
+
+"""
+    Load configuration parameters
+"""
 function load_learning_params(path::String)
-    @show path
     params = Dict()
     params["path"] = path
     open(string(path, "/PotentialLearning.conf")) do f
@@ -25,7 +27,9 @@ function load_learning_params(path::String)
     return params
 end
 
-# Load atomic positions per configuration
+"""
+    Load atomic positions per configuration
+"""
 function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
                                  no_conf_init::Int64, no_conf_end::Int64)
     positions_per_conf = []
@@ -48,8 +52,11 @@ function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
     return positions_per_conf
 end
 
-# Get DFT data 
-# ToDo: should also load actual DFT data instead of loading only surrogate data.
+
+"""
+    Get DFT data 
+    ToDo: should also load actual DFT data instead of loading only surrogate data.
+"""
 function load_dft_data(params::Dict)
 
     path = params["path"]
@@ -58,8 +65,9 @@ function load_dft_data(params::Dict)
     positions_per_conf = params["positions_per_conf"]
     rcut = params["rcut"]
     
-    # Load a potential model (E.g. GaN model)
-    dft_potential = load_potential(path, params["DFT_model"])
+    # Load a potential model (E.g. GaN)
+    dft_model = Symbol(params["DFT_model"])
+    dft_potential = @eval $dft_model($params)
     
     # Calculate potential energy per configuration (vector b) using the potential model
     dft_training_data =  [potential_energy(positions_per_conf[j], rcut, dft_potential) 

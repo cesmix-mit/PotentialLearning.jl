@@ -1,7 +1,13 @@
 using LAMMPS
 using LinearAlgebra:norm
 
-mutable struct SNAP_LAMMPS
+
+"""
+    Wrapper of the SNAP implementation of LAMMPS, built with LAMMPS.jl
+    Mathematical formulation: A. P. Thompson et al.
+                              http://dx.doi.org/10.1016/j.jcp.2014.12.018
+"""
+mutable struct SNAP_LAMMPS <: Potential
     β::Vector{Float64}
     A::Matrix{Float64}
     b::Vector{Float64} # = dft_validation_data = potential_energy_per_conf
@@ -12,29 +18,42 @@ mutable struct SNAP_LAMMPS
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
     
-    function SNAP_LAMMPS(params::Dict)
-        path = params["path"]
-        ntypes = params["ntypes"]
-        twojmax = params["twojmax"]
-        no_atoms_per_type = params["no_atoms_per_type"]
-        no_atomic_conf = params["no_atomic_conf"]
-        rows = params["rows"]
-    
-        no_atoms_per_conf = sum(no_atoms_per_type)
-        J = twojmax / 2.0
-        ncoeff = round(Int, (J + 1) * (J + 2) * (( J + (1.5)) / 3. ) + 1)
-        cols = 2 * ncoeff
-        β = []
-        A = Matrix{Float64}(undef, 0, 0)
-        b = [] #b = dft_training_data
-        p = new(β, A, b, rows, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
-        p.A = calc_A(path, p)
-        return p
-    end
 end
 
-error(β::Vector{Float64}, p, s::SNAP_LAMMPS) = norm(s.A * s.β - s.b)
+"""
+    Creation of a SNAP_LAMMPS instance based on the configuration parameters
+"""
+function SNAP_LAMMPS(params::Dict)
+    path = params["path"]
+    ntypes = params["ntypes"]
+    twojmax = params["twojmax"]
+    no_atoms_per_type = params["no_atoms_per_type"]
+    no_atomic_conf = params["no_atomic_conf"]
+    rows = params["rows"]
 
+    no_atoms_per_conf = sum(no_atoms_per_type)
+    J = twojmax / 2.0
+    ncoeff = round(Int, (J + 1) * (J + 2) * (( J + (1.5)) / 3. ) + 1)
+    cols = 2 * ncoeff
+    β = []
+    A = Matrix{Float64}(undef, 0, 0)
+    b = [] #b = dft_training_data
+    p = SNAP_LAMMPS(β, A, b, rows, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
+    p.A = calc_A(path, p)
+    return p
+end
+
+"""
+    Error function to perform the learning process (Eq. 14)
+    ToDO: make this function compatible with GalacticOptim.jl
+"""
+function error(β::Vector{Float64}, p, s::SNAP_LAMMPS)
+    return norm(s.A * s.β - s.b)
+end
+
+"""
+    Calculation of the A matrix of SNAP (Eq. 13)
+"""
 function calc_A(path::String, p::SNAP_LAMMPS)
     
     A = LMP(["-screen","none"]) do lmp
@@ -92,7 +111,11 @@ function calc_A(path::String, p::SNAP_LAMMPS)
     return A
 end
 
-function potential_energy(learning_params::Dict, j::Int64, p)
+"""
+    Calculation of the potential energy of the atomic configuration j (Eq. 10)
+    This calculation requires accessing the SNAP implementation of LAMMPS.
+"""
+function potential_energy(learning_params::Dict, j::Int64, p::Potential)
     # Calculate b
     path = learning_params["path"]
     
@@ -127,15 +150,19 @@ function potential_energy(learning_params::Dict, j::Int64, p)
     return E_tot_acc
 end
 
-# Calculates the potential energy of a particular atomic configuration
-function potential_energy(rs::Vector{Position}, rcut::Float64, p)
+"""
+    Calculation of the potential energy of a particular atomic configuration.
+    It is based on the atomic positions of the configuration, the rcut, and a
+    particular potential.
+"""
+function potential_energy(atomic_positions::Vector{Position}, rcut::Float64, p::Potential)
     acc = 0.0
-    for i = 1:length(rs)
-        for j = i:length(rs)
-            r_diff = rs[i] - rs[j]
+    for i = 1:length(atomic_positions)
+        for j = i:length(atomic_positions)
+            r_diff = (atomic_positions[i] - atomic_positions[j])
             if norm(r_diff) <= rcut && norm(r_diff) > 0.0
                 acc += potential_energy(i, j, r_diff, p)
-            end  
+            end
         end
     end
     return acc

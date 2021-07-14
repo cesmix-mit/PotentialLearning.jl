@@ -1,77 +1,65 @@
-################################################################################
-# Dispatch function
-################################################################################
-using Match
+"""
+    Lennard-Jones Potential
+"""
 
-function load_potential(path::String, model)
-    potential =
-        @match model begin
-            "LennardJones"  => load_LennardJones(path)
-            "BornMayer"     => load_BornMayer(path)
-            "GaN"           => load_GaN(path)
-            _               => []
-        end    
-    return potential
-end
-
-
-################################################################################
-# Lennard-Jones Potential
-################################################################################
-
-struct LennardJones
+struct LennardJones <: Potential
     ε::Float64
     σ::Float64
 end
 
-potential_energy(r::Position, p::LennardJones) =
-    4.0 * p.ε * ((p.σ / norm(r))^12 - (p.σ / norm(r))^6)
-
-function load_LennardJones(path)
+function LennardJones(params::Dict)
     #ToDO
     return LennardJones(1.0, 1.0)
 end
 
-################################################################################
-# Born-Mayer Potential
-################################################################################
+function potential_energy(r::Position, p::LennardJones)
+    return 4.0 * p.ε * ((p.σ / norm(r))^12 - (p.σ / norm(r))^6)
+end
 
-struct BornMayer
+
+"""
+    Born-Mayer Potential
+"""
+
+struct BornMayer <: Potential
     A::Float64
     ρ::Float64
 end
 
-potential_energy(r::Position, p::BornMayer) = p.A * exp(-norm(r) / p.ρ)
-
-function load_BornMayer(path)
+function BornMayer(params::Dict)
     #ToDO
     return BornMayer(1.0, 1.0)
 end
 
-################################################################################
-# Coulomb Potential
-################################################################################
+function potential_energy(r::Position, p::BornMayer)
+    return p.A * exp(-norm(r) / p.ρ)
+end
 
-struct Coulomb
+"""
+    Coulomb Potential
+"""
+
+struct Coulomb <: Potential
     q_1::Float64
     q_2::Float64
     ε0::Float64
 end
 
-potential_energy(r::Position, p::Coulomb) =
-    p.q_1 * p.q_2 / (4.0 * π * p.ε0 * norm(r))
-
-function load_Coulomb(path)
+function Coulomb(params::Dict)
     #ToDO
     return Coulomb(1.0, 1.0, 1.0)
 end
 
-################################################################################
-# GaN Potential. 
-# See https://iopscience.iop.org/article/10.1088/1361-648X/ab6cbe
-################################################################################
+function potential_energy(r::Position, p::Coulomb)
+    return p.q_1 * p.q_2 / (4.0 * π * p.ε0 * norm(r))
+end
 
-struct GaN
+"""
+    GaN Potential
+    See https://iopscience.iop.org/article/10.1088/1361-648X/ab6cbe
+"""
+
+struct GaN <: Potential
     lj_Ga_Ga::LennardJones
     lj_N_N::LennardJones
     bm_Ga_N::BornMayer
@@ -80,7 +68,26 @@ struct GaN
     no_N::Int64
 end
 
-potential_energy(i::Int64, j::Int64, r::Position, p::GaN) =
+function GaN(params::Dict)
+    # Read parameters from a configuration file
+    GaN_params = Dict()
+    path = params["path"]
+    open(string(path, "/GaN.params")) do f
+        while !eof(f)
+            line = split(readline(f))
+            GaN_params[line[1]] = parse(Float64, line[2])
+        end
+    end 
+    # Creates the GaN model
+    lj_Ga_Ga = LennardJones(GaN_params["ε_Ga_Ga"], GaN_params["σ_Ga_Ga"])
+    lj_N_N = LennardJones(GaN_params["ε_N_N"], GaN_params["σ_N_N"])
+    bm_Ga_N = BornMayer(GaN_params["A_Ga_N"], GaN_params["ρ_Ga_N"])
+    c = Coulomb(GaN_params["q_Ga"], GaN_params["q_N"], GaN_params["ε0"])
+    gan = GaN(lj_Ga_Ga, lj_N_N, bm_Ga_N, c, GaN_params["no_Ga"], GaN_params["no_N"])
+    return gan
+end
+
+function potential_energy(i::Int64, j::Int64, r::Position, p::GaN)
     if i <= p.no_Ga && j <= p.no_N # Ga-Ga interaction
         return potential_energy(r, p.c) + potential_energy(r, p.lj_Ga_Ga)
     elseif i > p.no_Ga && j > p.no_N # N-N interaction
@@ -88,21 +95,7 @@ potential_energy(i::Int64, j::Int64, r::Position, p::GaN) =
     else # Ga-N or N-Ga interaction
         return potential_energy(r, p.c) + potential_energy(r, p.bm_Ga_N)
     end
-    
-# ToDo: make this function more general, use DFT_model
-function load_GaN(path)
-    params = Dict()
-    open(string(path, "/GaN.params")) do f
-        while !eof(f)
-            line = split(readline(f))
-            params[line[1]] = parse(Float64, line[2])
-        end
-    end 
-    lj_Ga_Ga = LennardJones(params["ε_Ga_Ga"], params["σ_Ga_Ga"])
-    lj_N_N = LennardJones(params["ε_N_N"], params["σ_N_N"])
-    bm_Ga_N = BornMayer(params["A_Ga_N"], params["ρ_Ga_N"])
-    c = Coulomb(params["q_Ga"], params["q_N"], params["ε0"])
-    gan = GaN(lj_Ga_Ga, lj_N_N, bm_Ga_N, c, params["no_Ga"], params["no_N"])
-    return gan
 end
+
+
 
