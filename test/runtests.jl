@@ -1,6 +1,5 @@
-using PotentialLearning
+include("../src/PotentialLearning.jl")
+using .PotentialLearning: load_learning_params, load_dft_data, learn, validate
 using Test
 
-@testset "PotentialLearning.jl" begin
-    # Write your tests here.
-end
+include("GaN-SNAP-LAMMPS-Test.jl")

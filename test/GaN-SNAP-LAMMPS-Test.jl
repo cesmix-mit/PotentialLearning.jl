@@ -1,7 +1,3 @@
-include("../src/PotentialLearning.jl")
-using .PotentialLearning:load_learning_params, load_dft_data, learn, validate
-using LinearAlgebra: norm
-using Printf
 using Test
 
 include("../src/Utils.jl")
@@ -17,13 +13,13 @@ include("../src/SNAP-LAMMPS.jl")
     dft_training_data, dft_validation_data = load_dft_data(learning_params)
     
     # Load potential
-    p_snap = SNAP_LAMMPS(learning_params)
+    snap = SNAP_LAMMPS(learning_params)
     
     # Learn potential, forces, and stresses
-    learn(p_snap, dft_training_data, learning_params)
+    learn(snap, dft_training_data, learning_params)
     
     # Validate potential, forces, and stresses
-    rel_error = validate(p_snap, dft_validation_data, learning_params)
+    rel_error = validate(snap, dft_validation_data, learning_params)
     @test rel_error < 0.1
 
 end

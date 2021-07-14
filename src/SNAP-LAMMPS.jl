@@ -1,4 +1,5 @@
 using LAMMPS
+using LinearAlgebra:norm
 
 mutable struct SNAP_LAMMPS
     β::Vector{Float64}
@@ -11,9 +12,7 @@ mutable struct SNAP_LAMMPS
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
     
-    #SNAP_LAMMPS(params::Dict, dft_train_data::Vector{Float64}) = 
-    SNAP_LAMMPS(params::Dict) = 
-    begin
+    function SNAP_LAMMPS(params::Dict)
         path = params["path"]
         ntypes = params["ntypes"]
         twojmax = params["twojmax"]
