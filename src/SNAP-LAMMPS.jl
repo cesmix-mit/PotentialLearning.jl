@@ -8,16 +8,14 @@ using LinearAlgebra:norm
                               http://dx.doi.org/10.1016/j.jcp.2014.12.018
 """
 mutable struct SNAP_LAMMPS <: Potential
-    β::Vector{Float64}
-    A::Matrix{Float64}
-    b::Vector{Float64} # = dft_validation_data = potential_energy_per_conf
-
+    β::Vector{Float64} # SNAP parameters to be fitted
+    A::Matrix{Float64} # Matrix of potentials, forces, and stresses
+    b::Vector{Float64} # = dft_training_data = potentials, forces, and stresses
     rows::Int64
     cols::Int64
     ncoeff::Int64
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
-    
 end
 
 """
@@ -112,12 +110,12 @@ function calc_A(path::String, p::SNAP_LAMMPS)
 end
 
 """
-    Calculation of the potential energy of the atomic configuration j (Eq. 10)
+    Calculation of the potential energy of a particular atomic configuration (j).
     This calculation requires accessing the SNAP implementation of LAMMPS.
 """
-function potential_energy(learning_params::Dict, j::Int64, p::Potential)
+function potential_energy(params::Dict, j::Int64, p::Potential)
     # Calculate b
-    path = learning_params["path"]
+    path = params["path"]
     
     lmp = LMP(["-screen","none"])
     open(string(path, "/GaN.commands")) do f 

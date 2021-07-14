@@ -2,7 +2,7 @@
 """
     Load configuration parameters
 """
-function load_learning_params(path::String)
+function load_conf_params(path::String)
     params = Dict()
     params["path"] = path
     open(string(path, "/PotentialLearning.conf")) do f

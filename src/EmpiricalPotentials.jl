@@ -1,3 +1,8 @@
+using Base: Float64
+using StaticArrays
+const Position = SVector{3, Float64}
+abstract type Potential end
+
 """
     Lennard-Jones Potential
 """
@@ -35,6 +40,7 @@ function potential_energy(r::Position, p::BornMayer)
     return p.A * exp(-norm(r) / p.ρ)
 end
 
+
 """
     Coulomb Potential
 """
@@ -53,6 +59,7 @@ end
 function potential_energy(r::Position, p::Coulomb)
     return p.q_1 * p.q_2 / (4.0 * π * p.ε0 * norm(r))
 end
+
 
 """
     GaN Potential

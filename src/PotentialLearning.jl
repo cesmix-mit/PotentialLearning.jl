@@ -8,21 +8,21 @@ module PotentialLearning
 
 using GalacticOptim, Optim, Printf
 
-export load_learning_params, load_dft_data, learn, validate, SNAP_LAMMPS
+export load_conf_params, load_dft_data, learn, validate, SNAP_LAMMPS
 
-include("Utils.jl")
-include("InputLoading.jl")
 include("EmpiricalPotentials.jl")
 include("SNAP-LAMMPS.jl")
+include("InputLoading.jl")
+
 
 """
     Fit the potentials, forces, and stresses against the DFT data using
-    the learning parameters.
+    the configuration parameters.
 """
-function learn(p::Potential, dft_training_data::Vector{Float64}, learning_params::Dict)
+function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
     p.b = dft_training_data
     
-    if learning_params["solver"] == "\\"
+    if params["solver"] == "\\"
         p.β = p.A \ p.b
     else
         β0 = zeros(p.rows)
@@ -34,13 +34,13 @@ end
 """
     Validate trained potentials, forces, and stresses.
 """
-function validate(p::Potential, dft_validation_data::Vector{Float64}, learning_params::Dict)
-    rcut = learning_params["rcut"]
-    rows = learning_params["rows"]
+function validate(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
+    rcut = params["rcut"]
+    rows = params["rows"]
     rel_errors = []
     @printf("Potential Energy, Fitted Potential Energy, Relative Error\n")
     for (j, p_dft) in enumerate(dft_validation_data)
-        p_fitted = potential_energy(learning_params, j + rows, p)
+        p_fitted = potential_energy(params, j + rows, p)
         rel_error = abs(p_dft - p_fitted) / p_dft
         push!(rel_errors, rel_error)
         @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)
