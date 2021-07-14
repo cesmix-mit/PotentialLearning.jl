@@ -8,7 +8,7 @@ module PotentialLearning
 
 using GalacticOptim, Optim, Printf
 
-export load_learning_params, load_dft_data, learn, validate
+export load_learning_params, load_dft_data, learn, validate, SNAP_LAMMPS
 
 include("Utils.jl")
 include("InputLoading.jl")
