@@ -17,27 +17,29 @@ To install PotentialLearning.jl in Julia follow the next steps:
 1. Type `julia` in your terminal and press `]`
 2. `] add PotentialLearning.jl`
 
+  Note: this package is not currenlty registered
+
 ## How to setup and run your experiment...
 
-Load learning parameters, DFT data, and potential.
+Load configuration parameters, DFT data, and potential.
 ```julia
     path = "../examples/GaN-SNAP-LAMMPS/"
-    learning_params = load_learning_params(path)
+    params = load_conf_params(path)
     
-    dft_training_data, dft_validation_data = load_dft_data(learning_params)
+    dft_training_data, dft_validation_data = load_dft_data(params)
     
-    p_snap = SNAP_LAMMPS(learning_params)
+    snap = SNAP_LAMMPS(params)
 ```
 
-Fit the potential, forces, and stresses against the DFT data using the learning parameters.
+Fit the potentials, forces, and stresses against the DFT data using the configuration parameters.
 ```julia
-    learn(p_snap, dft_training_data, learning_params)
+    learn(snap, dft_training_data, params)
 
 ```
 
-Validate trained potential, forces, and stresses
+Validate trained potentials, forces, and stresses
 ```julia
-    rel_error = validate(p_snap, dft_validation_data, learning_params)
+    rel_error = validate(snap, dft_validation_data, params)
     
 ```
 
