@@ -16,8 +16,10 @@ include("InputLoading.jl")
 
 
 """
-    Fit the potentials, forces, and stresses against the DFT data using
-    the configuration parameters.
+    learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
+
+Fit the potentials, forces, and stresses against the DFT data using the
+configuration parameters.
 """
 function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
     p.b = dft_training_data
@@ -32,7 +34,9 @@ function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
 end
 
 """
-    Validate trained potentials, forces, and stresses.
+    validate(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
+    
+Validate trained potentials, forces, and stresses.
 """
 function validate(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
     rcut = params["rcut"]

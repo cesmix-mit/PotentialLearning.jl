@@ -1,6 +1,8 @@
 
 """
-    Load configuration parameters
+    load_conf_params(path::String)
+
+Load configuration parameters
 """
 function load_conf_params(path::String)
     params = Dict()
@@ -28,7 +30,10 @@ function load_conf_params(path::String)
 end
 
 """
-    Load atomic positions per configuration
+    load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
+                                 no_conf_init::Int64, no_conf_end::Int64)
+
+Load atomic positions per configuration
 """
 function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
                                  no_conf_init::Int64, no_conf_end::Int64)
@@ -54,11 +59,12 @@ end
 
 
 """
-    Get DFT data 
-    ToDo: should also load actual DFT data instead of loading only surrogate data.
+    load_dft_data(params::Dict)
+
+Load DFT data 
 """
 function load_dft_data(params::Dict)
-
+    # ToDo: should also load actual DFT data instead of loading only surrogate data.
     path = params["path"]
     rows = params["rows"]
     no_atomic_conf = params["no_atomic_conf"]

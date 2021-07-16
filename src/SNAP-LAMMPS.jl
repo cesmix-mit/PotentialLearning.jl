@@ -19,7 +19,9 @@ mutable struct SNAP_LAMMPS <: Potential
 end
 
 """
-    Creation of a SNAP_LAMMPS instance based on the configuration parameters
+    SNAP_LAMMPS(params::Dict)
+
+Creation of a SNAP_LAMMPS instance based on the configuration parameters
 """
 function SNAP_LAMMPS(params::Dict)
     path = params["path"]
@@ -42,15 +44,19 @@ function SNAP_LAMMPS(params::Dict)
 end
 
 """
-    Error function to perform the learning process (Eq. 14)
-    ToDO: make this function compatible with GalacticOptim.jl
+    error(β::Vector{Float64}, p, s::SNAP_LAMMPS)
+
+Error function to perform the learning process (Eq. 14, 10.1016/j.jcp.2014.12.018)
 """
 function error(β::Vector{Float64}, p, s::SNAP_LAMMPS)
+    # ToDO: make this function compatible with GalacticOptim.jl
     return norm(s.A * s.β - s.b)
 end
 
 """
-    Calculation of the A matrix of SNAP (Eq. 13)
+    calc_A(path::String, p::SNAP_LAMMPS)
+
+Calculation of the A matrix of SNAP (Eq. 13, 10.1016/j.jcp.2014.12.018)
 """
 function calc_A(path::String, p::SNAP_LAMMPS)
     
@@ -63,7 +69,7 @@ function calc_A(path::String, p::SNAP_LAMMPS)
                 while !eof(f) 
                     line = replace(replace(readline(f), "\$PATH" => path),
                                    "\$ATOMICCONF" => string(j))
-                    @info line
+                    #@info line
                     command(lmp, line)
                 end
             end
@@ -73,7 +79,7 @@ function calc_A(path::String, p::SNAP_LAMMPS)
             types = extract_atom(lmp, "type", LAMMPS.API.LAMMPS_INT)
             ids = extract_atom(lmp, "id", LAMMPS.API.LAMMPS_INT)
 
-            @info "Progress" j nlocal
+            #@info "Progress" j nlocal
 
             ###
             # Energy
@@ -81,6 +87,11 @@ function calc_A(path::String, p::SNAP_LAMMPS)
 
             bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
                                              LAMMPS.API.LMP_TYPE_ARRAY)
+
+#            snap_all = extract_compute(lmp, "SNAP", 0, 2)
+#            
+#            println("-----------------")
+#            dump(bs)
 
             for i in length(p.no_atoms_per_type)
                 @assert count(==(i), types) == p.no_atoms_per_type[i]
@@ -110,8 +121,10 @@ function calc_A(path::String, p::SNAP_LAMMPS)
 end
 
 """
-    Calculation of the potential energy of a particular atomic configuration (j).
-    This calculation requires accessing the SNAP implementation of LAMMPS.
+    potential_energy(params::Dict, j::Int64, p::Potential)
+
+Calculation of the potential energy of a particular atomic configuration (j).
+This calculation requires accessing the SNAP implementation of LAMMPS.
 """
 function potential_energy(params::Dict, j::Int64, p::Potential)
     # Calculate b
@@ -149,9 +162,11 @@ function potential_energy(params::Dict, j::Int64, p::Potential)
 end
 
 """
-    Calculation of the potential energy of a particular atomic configuration.
-    It is based on the atomic positions of the configuration, the rcut, and a
-    particular potential.
+    potential_energy(atomic_positions::Vector{Position}, rcut::Float64, p::Potential)
+
+Calculation of the potential energy of a particular atomic configuration.
+It is based on the atomic positions of the configuration, the rcut, and a
+particular potential.
 """
 function potential_energy(atomic_positions::Vector{Position}, rcut::Float64, p::Potential)
     acc = 0.0

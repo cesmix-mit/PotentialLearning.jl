@@ -6,7 +6,6 @@ abstract type Potential end
 """
     Lennard-Jones Potential
 """
-
 struct LennardJones <: Potential
     ε::Float64
     σ::Float64
@@ -65,7 +64,6 @@ end
     GaN Potential
     See https://iopscience.iop.org/article/10.1088/1361-648X/ab6cbe
 """
-
 struct GaN <: Potential
     lj_Ga_Ga::LennardJones
     lj_N_N::LennardJones
@@ -75,6 +73,11 @@ struct GaN <: Potential
     no_N::Int64
 end
 
+"""
+    GaN(params::Dict)
+    
+Creates 
+"""
 function GaN(params::Dict)
     # Read parameters from a configuration file
     GaN_params = Dict()
