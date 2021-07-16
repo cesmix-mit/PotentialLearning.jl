@@ -1,8 +1,8 @@
 # [WIP] PotentialLearning.jl: The Julia Library of Molecular Dynamics Potentials
 
-We aim to develop an Open Source code for active training and fast calculation of molecular dynamics potentials for atomistic simulations of materials. 
+An Open Source library for active training and fast calculation of molecular dynamics potentials for atomistic simulations of materials. 
 
-## Features under development...
+## Features under development
 - Surrogate DFT data generation
   - Gallium nitride model
 - Integration with GalacticOptim.jl to perform the optimization process
@@ -10,7 +10,7 @@ We aim to develop an Open Source code for active training and fast calculation o
 - Implementation of a pure Julia version of SNAP
   - GPU implementation using KernelAbstractions.jl
 
-## Installation instructions...
+## Installation instructions
 
 To install PotentialLearning.jl in Julia follow the next steps:
 
@@ -19,7 +19,7 @@ To install PotentialLearning.jl in Julia follow the next steps:
 
   Note: this package is not currenlty registered
 
-## How to setup and run your experiment...
+## How to setup and run your experiment
 
 Load configuration parameters, DFT data, and potential.
 ```julia
@@ -46,3 +46,4 @@ Validate trained potentials, forces, and stresses
 
 [![Build Status](https://github.com/CESMIX-MIT/PotentialLearning.jl/workflows/CI/badge.svg)](https://github.com/CESMIX-MIT/PotentialLearning.jl/actions)
 [![Coverage](https://codecov.io/gh/CESMIX-MIT/PotentialLearning.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/CESMIX-MIT/PotentialLearning.jl)
+
