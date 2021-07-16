@@ -16,8 +16,8 @@ makedocs(
             assets=String[],
         ),
         pages = [
-            "Home" => "index.md"
-            "Functions" => "functions.md"
+            "Home" => "index.md",
+            "Functions" => "functions.md",
         ],
         doctest = true,
         linkcheck = true,
