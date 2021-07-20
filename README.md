@@ -2,48 +2,27 @@
 
 An Open Source library for active training and fast calculation of molecular dynamics potentials for atomistic simulations of materials. 
 
-## Features under development
-- Surrogate DFT data generation
-  - Gallium nitride model
-- Integration with GalacticOptim.jl to perform the optimization process
-- Integration with LAMMPS.jl to access the SNAP implementation of LAMMPS
-- Implementation of a pure Julia version of SNAP
-  - GPU implementation using KernelAbstractions.jl
+<!-- Information badges -->
+<p align="center">
+  <a href="https://mit-license.org">
+    <img alt="MIT license" src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square">
+  </a>
+  <a href="https://github.com/cesmix-mit/PotentialLearning.jl/issues/new">
+    <img alt="Ask us anything" src="https://img.shields.io/badge/Ask%20us-anything-1abc9c.svg?style=flat-square">
+  </a>
+  <a href="https://github.com/cesmix-mit/PotentialLearning.jl/releases">
+    <img alt="GitHub tag (latest SemVer pre-release)" src="https://img.shields.io/github/v/tag/cesmix-mit/PotentialLearning.jl?include_prereleases&label=latest%20version&logo=github&sort=semver&style=flat-square">
+  </a>
+</p>
 
-## Installation instructions
+<!-- CI and documentation badges -->
+<p align="center">
+  <a href="https://cesmix-mit.github.io/PotentialLearning.jl/stable">
+    <img alt="Stable documentation" src="https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square">
+  </a>
+  <a href="https://cesmix-mit.github.io/PotentialLearning.jl/dev">
+    <img alt="Development documentation" src="https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square">
+  </a>
+</p>
 
-To install PotentialLearning.jl in Julia follow the next steps:
-
-1. Type `julia` in your terminal and press `]`
-2. `] add PotentialLearning.jl`
-
-  Note: this package is not currenlty registered
-
-## How to setup and run your experiment
-
-Load configuration parameters, DFT data, and potential.
-```julia
-    path = "../examples/GaN-SNAP-LAMMPS/"
-    params = load_conf_params(path)
-    
-    dft_training_data, dft_validation_data = load_dft_data(params)
-    
-    snap = SNAP_LAMMPS(params)
-```
-
-Fit the potentials, forces, and stresses against the DFT data using the configuration parameters.
-```julia
-    learn(snap, dft_training_data, params)
-
-```
-
-Validate trained potentials, forces, and stresses
-```julia
-    rel_error = validate(snap, dft_validation_data, params)
-    
-```
-
-
-[![Build Status](https://github.com/CESMIX-MIT/PotentialLearning.jl/workflows/CI/badge.svg)](https://github.com/CESMIX-MIT/PotentialLearning.jl/actions)
-[![Coverage](https://codecov.io/gh/CESMIX-MIT/PotentialLearning.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/CESMIX-MIT/PotentialLearning.jl)
-
+Developed as part of [CESMIX](https://cesmix.mit.edu).
