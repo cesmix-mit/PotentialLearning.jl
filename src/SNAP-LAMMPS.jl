@@ -26,6 +26,7 @@ Creation of a SNAP_LAMMPS instance based on the configuration parameters
 function SNAP_LAMMPS(params::Dict)
     path = params["path"]
     ntypes = params["ntypes"]
+    rcut = params["rcut"]
     twojmax = params["twojmax"]
     no_atoms_per_type = params["no_atoms_per_type"]
     no_atomic_conf = params["no_atomic_conf"]
@@ -39,7 +40,7 @@ function SNAP_LAMMPS(params::Dict)
     A = Matrix{Float64}(undef, 0, 0)
     b = [] #b = dft_training_data
     p = SNAP_LAMMPS(β, A, b, rows, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
-    p.A = calc_A(path, p)
+    p.A = calc_A(path, rcut, twojmax, p)
     return p
 end
 
@@ -54,48 +55,49 @@ function error(β::Vector{Float64}, p, s::SNAP_LAMMPS)
 end
 
 """
+    run_snap(lmp, path, rcut, twojmax)
+
+Execution of SNAP, LAMMPS to extract bispectrum components
+"""
+function run_snap(lmp, path::String, rcut::Float64, twojmax::Int64)
+    read_data_str = "read_data " * path
+
+    command(lmp, "log none")
+    command(lmp, "units metal")
+    command(lmp, "boundary p p p")
+    command(lmp, "atom_style atomic")
+    command(lmp, "atom_modify map array")
+    command(lmp, read_data_str)
+    command(lmp, "pair_style zero $rcut")
+    command(lmp, "pair_coeff * *")
+    command(lmp, "compute PE all pe")
+    command(lmp, "compute S all pressure thermo_temp")
+    command(lmp, "compute SNA all sna/atom $rcut 0.99363 $twojmax 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
+    command(lmp, "compute SNAD all snad/atom $rcut 0.99363 $twojmax 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
+    command(lmp, "compute SNAV all snav/atom $rcut 0.99363 $twojmax 0.5 0.5 1.0 0.5 rmin0 0.0 bzeroflag 0 quadraticflag 0 switchflag 1")
+    command(lmp, "thermo_style custom pe")
+    command(lmp, "run 0")
+
+    ## Extract bispectrum
+    bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
+                                     LAMMPS.API.LMP_TYPE_ARRAY)
+    return bs
+end
+
+"""
     calc_A(path::String, p::SNAP_LAMMPS)
 
 Calculation of the A matrix of SNAP (Eq. 13, 10.1016/j.jcp.2014.12.018)
 """
-function calc_A(path::String, p::SNAP_LAMMPS)
+function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
     
     A = LMP(["-screen","none"]) do lmp
 
         A = Array{Float64}(undef, p.rows, p.cols) # bispectrum is 2*(ncoeff - 1) + 2
 
         for j in 1:p.rows
-            open(string(path, "/GaN.commands")) do f 
-                while !eof(f) 
-                    line = replace(replace(readline(f), "\$PATH" => path),
-                                   "\$ATOMICCONF" => string(j))
-                    #@info line
-                    command(lmp, line)
-                end
-            end
-
-            nlocal = extract_global(lmp, "nlocal")
-
-            types = extract_atom(lmp, "type", LAMMPS.API.LAMMPS_INT)
-            ids = extract_atom(lmp, "id", LAMMPS.API.LAMMPS_INT)
-
-            #@info "Progress" j nlocal
-
-            ###
-            # Energy
-            ###
-
-            bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
-                                             LAMMPS.API.LMP_TYPE_ARRAY)
-
-#            snap_all = extract_compute(lmp, "SNAP", 0, 2)
-#            
-#            println("-----------------")
-#            dump(bs)
-
-            for i in length(p.no_atoms_per_type)
-                @assert count(==(i), types) == p.no_atoms_per_type[i]
-            end
+            data = joinpath(path, "DATA", string(j), "DATA")
+            bs = run_snap(lmp, data, rcut, twojmax)
 
             # Make bispectrum sum vector
             row = Float64[]
@@ -129,22 +131,13 @@ This calculation requires accessing the SNAP implementation of LAMMPS.
 function potential_energy(params::Dict, j::Int64, p::Potential)
     # Calculate b
     path = params["path"]
+    rcut = params["rcut"]
+    twojmax = params["twojmax"]
     
+    data = joinpath(path, "DATA", string(j), "DATA")
     lmp = LMP(["-screen","none"])
-    open(string(path, "/GaN.commands")) do f 
-        while !eof(f) 
-            line = replace(replace(readline(f), "\$PATH" => path),
-                          "\$ATOMICCONF" => string(j))
-            command(lmp, line)
-        end
-    end
+    bs = run_snap(lmp, data, rcut, twojmax)
     
-    nlocal = extract_global(lmp, "nlocal")
-    types = extract_atom(lmp, "type", LAMMPS.API.LAMMPS_INT)
-    ids = extract_atom(lmp, "id", LAMMPS.API.LAMMPS_INT)
-    bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
-                                     LAMMPS.API.LMP_TYPE_ARRAY)
-
     E_tot_acc = 0.0
     for (i, no_atoms) in enumerate(p.no_atoms_per_type)
         for n in 1:no_atoms
