@@ -27,7 +27,7 @@ function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
     if params["solver"] == "\\"
         p.β = p.A \ p.b
     else
-        β0 = zeros(p.rows)
+        β0 = zeros(p.no_train_atomic_conf)
         prob = OptimizationProblem(error, β0, [], p)
         p.β = solve(prob, NelderMead())
     end
@@ -40,11 +40,11 @@ Validate trained potentials, forces, and stresses.
 """
 function validate(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
     rcut = params["rcut"]
-    rows = params["rows"]
+    no_train_atomic_conf = params["no_train_atomic_conf"]
     rel_errors = []
     @printf("Potential Energy, Fitted Potential Energy, Relative Error\n")
     for (j, p_dft) in enumerate(dft_validation_data)
-        p_fitted = potential_energy(params, j + rows, p)
+        p_fitted = potential_energy(params, j + no_train_atomic_conf, p)
         rel_error = abs(p_dft - p_fitted) / p_dft
         push!(rel_errors, rel_error)
         @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)

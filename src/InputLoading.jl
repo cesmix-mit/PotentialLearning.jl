@@ -66,7 +66,7 @@ Load DFT data
 function load_dft_data(params::Dict)
     # ToDo: should also load actual DFT data instead of loading only surrogate data.
     path = params["path"]
-    rows = params["rows"]
+    no_train_atomic_conf = params["no_train_atomic_conf"]
     no_atomic_conf = params["no_atomic_conf"]
     positions_per_conf = params["positions_per_conf"]
     rcut = params["rcut"]
@@ -77,10 +77,10 @@ function load_dft_data(params::Dict)
     
     # Calculate potential energy per configuration (vector b) using the potential model
     dft_training_data =  [potential_energy(positions_per_conf[j], rcut, dft_potential) 
-                          for j = 1:rows]
+                          for j = 1:no_train_atomic_conf]
                           
     dft_validation_data =  [potential_energy(positions_per_conf[j], rcut, dft_potential) 
-                            for j = rows+1:no_atomic_conf]
+                            for j = no_train_atomic_conf+1:no_atomic_conf]
     
     return dft_training_data, dft_validation_data
 end

@@ -11,7 +11,7 @@ mutable struct SNAP_LAMMPS <: Potential
     β::Vector{Float64} # SNAP parameters to be fitted
     A::Matrix{Float64} # Matrix of potentials, forces, and stresses
     b::Vector{Float64} # = dft_training_data = potentials, forces, and stresses
-    rows::Int64
+    no_train_atomic_conf::Int64
     cols::Int64
     ncoeff::Int64
     no_atoms_per_conf::Int64
@@ -30,7 +30,7 @@ function SNAP_LAMMPS(params::Dict)
     twojmax = params["twojmax"]
     no_atoms_per_type = params["no_atoms_per_type"]
     no_atomic_conf = params["no_atomic_conf"]
-    rows = params["rows"]
+    no_train_atomic_conf = params["no_train_atomic_conf"]
 
     no_atoms_per_conf = sum(no_atoms_per_type)
     J = twojmax / 2.0
@@ -39,7 +39,7 @@ function SNAP_LAMMPS(params::Dict)
     β = []
     A = Matrix{Float64}(undef, 0, 0)
     b = [] #b = dft_training_data
-    p = SNAP_LAMMPS(β, A, b, rows, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
+    p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
     p.A = calc_A(path, rcut, twojmax, p)
     return p
 end
@@ -79,9 +79,11 @@ function run_snap(lmp, path::String, rcut::Float64, twojmax::Int64)
     command(lmp, "run 0")
 
     ## Extract bispectrum
-    bs = extract_compute(lmp, "SNA", LAMMPS.API.LMP_STYLE_ATOM,
-                                     LAMMPS.API.LMP_TYPE_ARRAY)
-    return bs
+    bs = extract_compute(lmp, "SNA",  LAMMPS.API.LMP_STYLE_ATOM,
+                                      LAMMPS.API.LMP_TYPE_ARRAY)
+    deriv_bs = extract_compute(lmp, "SNAD", LAMMPS.API.LMP_STYLE_ATOM,
+                                            LAMMPS.API.LMP_TYPE_ARRAY)
+    return bs, deriv_bs
 end
 
 """
@@ -93,15 +95,16 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
     
     A = LMP(["-screen","none"]) do lmp
 
-        A = Array{Float64}(undef, p.rows, p.cols) # bispectrum is 2*(ncoeff - 1) + 2
-
-        for j in 1:p.rows
+        A_potential = Array{Float64}(undef, p.no_train_atomic_conf, p.cols)
+        A_forces    = Array{Float64}(undef, 3 * p.no_atoms_per_conf *
+                                            p.no_train_atomic_conf, p.cols)
+        
+        for j in 1:p.no_train_atomic_conf
             data = joinpath(path, "DATA", string(j), "DATA")
-            bs = run_snap(lmp, data, rcut, twojmax)
+            bs, deriv_bs = run_snap(lmp, data, rcut, twojmax)
 
-            # Make bispectrum sum vector
+            # Create a row of the potential energy block
             row = Float64[]
-
             for no_atoms in p.no_atoms_per_type
                 push!(row, no_atoms)
                 for k in 1:(p.ncoeff-1)
@@ -112,12 +115,19 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
                     push!(row, acc)
                 end
             end
-
-            A[j, :] = row
+            A_potential[j, :] = row
+            
+            # Create a set of rows of the force block
+            for c = [1, 2, 3] # component x, y, z
+                for n = 1:p.no_atoms_per_conf
+                    A_forces[j * c * n, :] = [ 0.0; deriv_bs[(c-1) * (p.ncoeff-1) + 1 :  c    * (p.ncoeff-1), n];
+                                               0.0; deriv_bs[(c+2) * (p.ncoeff-1) + 1 : (c+3) * (p.ncoeff-1), n] ]
+                end
+            end
 
             command(lmp, "clear")
         end
-        return A
+        return [A_potential; A_forces]
     end
     return A
 end
@@ -136,7 +146,7 @@ function potential_energy(params::Dict, j::Int64, p::Potential)
     
     data = joinpath(path, "DATA", string(j), "DATA")
     lmp = LMP(["-screen","none"])
-    bs = run_snap(lmp, data, rcut, twojmax)
+    bs, deriv_bs = run_snap(lmp, data, rcut, twojmax)
     
     E_tot_acc = 0.0
     for (i, no_atoms) in enumerate(p.no_atoms_per_type)
