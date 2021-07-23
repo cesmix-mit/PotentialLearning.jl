@@ -13,6 +13,7 @@ mutable struct SNAP_LAMMPS <: Potential
     b::Vector{Float64} # = dft_training_data = potentials, forces, and stresses
     no_train_atomic_conf::Int64
     cols::Int64
+    ntypes::Int64
     ncoeff::Int64
     no_atoms_per_conf::Int64
     no_atoms_per_type::Vector{Int64}
@@ -39,7 +40,7 @@ function SNAP_LAMMPS(params::Dict)
     β = []
     A = Matrix{Float64}(undef, 0, 0)
     b = [] #b = dft_training_data
-    p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ncoeff, no_atoms_per_conf, no_atoms_per_type)
+    p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ntypes, ncoeff, no_atoms_per_conf, no_atoms_per_type)
     p.A = calc_A(path, rcut, twojmax, p)
     return p
 end
@@ -104,7 +105,7 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
             bs, deriv_bs = run_snap(lmp, data, rcut, twojmax)
 
             # Create a row of the potential energy block
-            row = Float64[]
+            row = Vector{Float64}()
             for no_atoms in p.no_atoms_per_type
                 push!(row, no_atoms)
                 for k in 1:(p.ncoeff-1)
@@ -118,10 +119,16 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
             A_potential[j, :] = row
             
             # Create a set of rows of the force block
-            for c = [1, 2, 3] # component x, y, z
-                for n = 1:p.no_atoms_per_conf
-                    A_forces[j * c * n, :] = [ 0.0; deriv_bs[(c-1) * (p.ncoeff-1) + 1 :  c    * (p.ncoeff-1), n];
-                                               0.0; deriv_bs[(c+2) * (p.ncoeff-1) + 1 : (c+3) * (p.ncoeff-1), n] ]
+            k = 1
+            for n = 1:p.no_atoms_per_conf
+                for c = [1, 2, 3] # component x, y, z
+                    row = Vector{Float64}()
+                    for t = 1:p.ntypes # e.g. 2 : Ga and N
+                        offset = (t-1) * (p.ncoeff-1) + (c-1) * p.ntypes * (p.ncoeff-1)
+                        row = [row; [0.0; deriv_bs[1 + offset:(p.ncoeff-1) + offset, n]]]
+                    end
+                    A_forces[k, :] = row
+                    k += 1
                 end
             end
 
@@ -184,5 +191,14 @@ function potential_energy(atomic_positions::Vector{Position}, rcut::Float64, p::
     return acc
 end
 
+function forces(atomic_positions::Vector{Position}, p::Potential)
+    forces = Vector{Force}()
+    for i = 1:length(atomic_positions)
+        ∇potential_energy(r, i, p) = gradient(r -> potential_energy(i, i, r, p), r)[1]
+        f =  -∇potential_energy(atomic_positions[i], i, p)
+        push!(forces, Force(f))
+    end
+    return forces
+end
 
 
