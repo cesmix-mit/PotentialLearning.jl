@@ -119,7 +119,7 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
             A_potential[j, :] = row
             
             # Create a set of rows of the force block
-            k = 1
+            k = (j - 1) * 3 * p.no_atoms_per_conf + 1 
             for n = 1:p.no_atoms_per_conf
                 for c = [1, 2, 3] # component x, y, z
                     row = Vector{Float64}()
@@ -136,6 +136,7 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
         end
         return [A_potential; A_forces]
     end
+    
     return A
 end
 
