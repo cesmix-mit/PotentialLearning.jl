@@ -12,6 +12,8 @@ using Printf
 
 export load_conf_params, load_dft_data, learn, validate_potentials, SNAP_LAMMPS
 
+abstract type PotentialLearningProblem end
+
 include("EmpiricalPotentials.jl")
 include("SNAP-LAMMPS.jl")
 include("InputLoading.jl")
@@ -23,9 +25,7 @@ include("InputLoading.jl")
 Fit the potentials, forces, and stresses against the DFT data using the
 configuration parameters.
 """
-function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
-    p.b = dft_training_data
-    
+function learn(p::PotentialLearningProblem, params::Dict)
     if params["solver"] == "\\"
         p.β = p.A \ p.b
     elseif params["solver"] == "NelderMead"
@@ -38,7 +38,7 @@ function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
         ub0 = ones(length(p.A[1,:]))
         prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [],
                                                   ub = ub0, lb = lb0)
-        p.β = solve(prob, BBO(), maxiters=500)
+        p.β = solve(prob, BBO(); reltol=0.001)
     end
 end
 
@@ -47,7 +47,8 @@ end
     
 Validate trained potentials, forces, and stresses.
 """
-function validate_potentials(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
+function validate_potentials(p::PotentialLearningProblem,
+                             dft_validation_data::Vector{Float64}, params::Dict)
     rcut = params["rcut"]
     no_train_atomic_conf = params["no_train_atomic_conf"]
     no_val_energies = params["no_atomic_conf"] - params["no_train_atomic_conf"]

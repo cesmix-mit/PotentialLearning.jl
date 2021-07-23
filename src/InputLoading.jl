@@ -47,8 +47,8 @@ function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
             for i = 1:no_atoms_per_conf
                 s = split(readline(f))
                 r = Position(parse(Float64, s[3]),
-                          parse(Float64, s[4]),
-                          parse(Float64, s[5]))
+                             parse(Float64, s[4]),
+                             parse(Float64, s[5]))
                 push!(rs, r)
             end
         end

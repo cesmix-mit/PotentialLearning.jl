@@ -3,11 +3,11 @@ using LinearAlgebra:norm
 
 
 """
-    Wrapper of the SNAP implementation of LAMMPS, built with LAMMPS.jl
-    Mathematical formulation: A. P. Thompson et al.
-                              http://dx.doi.org/10.1016/j.jcp.2014.12.018
+    SNAP_LAMMPS is a PotentialLearningProblem. It can be solved by 
+    It is based on the SNAP implementation of LAMMPS, which is accessed through LAMMPS.jl.
+    Mathematical formulation: A. P. Thompson et al. (10.1016/j.jcp.2014.12.018)
 """
-mutable struct SNAP_LAMMPS <: Potential
+mutable struct SNAP_LAMMPS <: PotentialLearningProblem
     β::Vector{Float64} # SNAP parameters to be fitted
     A::Matrix{Float64} # Matrix of potentials, forces, and stresses
     b::Vector{Float64} # = dft_training_data = potentials, forces, and stresses
@@ -20,11 +20,12 @@ mutable struct SNAP_LAMMPS <: Potential
 end
 
 """
-    SNAP_LAMMPS(params::Dict)
+    SNAP_LAMMPS(dft_training_data::Vector{Float64}, params::Dict)
 
-Creation of a SNAP_LAMMPS instance based on the configuration parameters
+Creation of a SNAP_LAMMPS instance based on the DFT training data and the 
+configuration parameters.
 """
-function SNAP_LAMMPS(params::Dict)
+function SNAP_LAMMPS(dft_training_data::Vector{Float64}, params::Dict)
     path = params["path"]
     ntypes = params["ntypes"]
     rcut = params["rcut"]
@@ -39,14 +40,14 @@ function SNAP_LAMMPS(params::Dict)
     cols = 2 * ncoeff
     β = []
     A = Matrix{Float64}(undef, 0, 0)
-    b = [] #b = dft_training_data
+    b = dft_training_data
     p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ntypes, ncoeff, no_atoms_per_conf, no_atoms_per_type)
     p.A = calc_A(path, rcut, twojmax, p)
     return p
 end
 
 """
-    error(β::Vector{Float64}, p, s::SNAP_LAMMPS)
+    error(β::Vector{Float64}, s::SNAP_LAMMPS)
 
 Error function to perform the learning process (Eq. 14, 10.1016/j.jcp.2014.12.018)
 """
@@ -140,12 +141,12 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
 end
 
 """
-    potential_energy(params::Dict, j::Int64, p::Potential)
+    potential_energy(params::Dict, j::Int64, p::PotentialLearningProblem)
 
 Calculation of the potential energy of a particular atomic configuration (j).
 This calculation requires accessing the SNAP implementation of LAMMPS.
 """
-function potential_energy(params::Dict, j::Int64, p::Potential)
+function potential_energy(params::Dict, j::Int64, p::PotentialLearningProblem)
     # Calculate b
     path = params["path"]
     rcut = params["rcut"]
@@ -169,44 +170,6 @@ function potential_energy(params::Dict, j::Int64, p::Potential)
     
     command(lmp, "clear")
     return E_tot_acc
-end
-
-"""
-    potential_energy(atomic_positions::Vector{Position}, rcut::Float64, p::Potential)
-
-Calculation of the potential energy of a particular atomic configuration.
-It is based on the atomic positions of the configuration, the rcut, and a
-particular potential.
-"""
-function potential_energy(atomic_positions::Vector{Position}, rcut::Float64, p::Potential)
-    acc = 0.0
-    for i = 1:length(atomic_positions)
-        for j = i:length(atomic_positions)
-            r_diff = (atomic_positions[i] - atomic_positions[j])
-            if norm(r_diff) <= rcut && norm(r_diff) > 0.0
-                acc += potential_energy(i, j, r_diff, p)
-            end
-        end
-    end
-    return acc
-end
-
-function forces(atomic_positions::Vector{Position}, rcut::Float64, p::Potential)
-    forces = Vector{Force}()
-    for i = 1:length(atomic_positions)
-        f_i = Force(0.0, 0.0, 0.0)
-        for j = 1:length(atomic_positions)
-            r_diff = atomic_positions[i] - atomic_positions[j]
-            if norm(r_diff) <= rcut && norm(r_diff) > 0.0
-                ∇potential_energy(r, i, j, p) =
-                     gradient(r -> potential_energy(i, j, r_diff + r, p), r)[1]
-                f = -∇potential_energy(atomic_positions[i], i, j, p)
-                f_i += f
-            end
-        end
-        push!(forces, f_i)
-    end
-    return forces
 end
 
 
