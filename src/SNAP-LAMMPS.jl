@@ -50,9 +50,8 @@ end
 
 Error function to perform the learning process (Eq. 14, 10.1016/j.jcp.2014.12.018)
 """
-function error(β::Vector{Float64}, p, s::SNAP_LAMMPS)
-    # ToDO: make this function compatible with GalacticOptim.jl
-    return norm(s.A * s.β - s.b)
+function error(β::Vector{Float64}, s::SNAP_LAMMPS)
+    return norm(s.A * β - s.b)
 end
 
 """

@@ -27,8 +27,8 @@ function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
     if params["solver"] == "\\"
         p.β = p.A \ p.b
     else
-        β0 = zeros(p.no_train_atomic_conf)
-        prob = OptimizationProblem(error, β0, [], p)
+        β0 = zeros(length(p.A[1,:]))
+        prob = OptimizationProblem( (x, pars) -> error(x, p), β0, [])
         p.β = solve(prob, NelderMead())
     end
 end
