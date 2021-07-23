@@ -6,7 +6,9 @@
 
 module PotentialLearning
 
-using GalacticOptim, Optim, Printf
+using GalacticOptim, Optim
+using BlackBoxOptim
+using Printf
 
 export load_conf_params, load_dft_data, learn, validate_potentials, SNAP_LAMMPS
 
@@ -26,11 +28,16 @@ function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
     
     if params["solver"] == "\\"
         p.β = p.A \ p.b
-    else
+    elseif params["solver"] == "NelderMead"
         β0 = zeros(length(p.A[1,:]))
-        prob = OptimizationProblem( (x, pars) -> error(x, p), β0, [])
-        p.β = solve(prob, NelderMead())
+        prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [])
+        p.β = GalacticOptim.solve(prob, NelderMead(), maxiters=5000)
+    elseif params["solver"] == "BBO"
+        β0 = zeros(length(p.A[1,:]))
+        prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [])
+        p.β = solve(prob, BBO())
     end
+    
 end
 
 """
