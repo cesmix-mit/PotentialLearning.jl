@@ -8,7 +8,7 @@ module PotentialLearning
 
 using GalacticOptim, Optim, Printf
 
-export load_conf_params, load_dft_data, learn, validate, SNAP_LAMMPS
+export load_conf_params, load_dft_data, learn, validate_potentials, SNAP_LAMMPS
 
 include("EmpiricalPotentials.jl")
 include("SNAP-LAMMPS.jl")
@@ -38,12 +38,14 @@ end
     
 Validate trained potentials, forces, and stresses.
 """
-function validate(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
+function validate_potentials(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
     rcut = params["rcut"]
     no_train_atomic_conf = params["no_train_atomic_conf"]
+    no_val_energies = params["no_atomic_conf"] - params["no_train_atomic_conf"]
     rel_errors = []
     @printf("Potential Energy, Fitted Potential Energy, Relative Error\n")
-    for (j, p_dft) in enumerate(dft_validation_data)
+    for j in 1:no_val_energies
+        p_dft = dft_validation_data[j]
         p_fitted = potential_energy(params, j + no_train_atomic_conf, p)
         rel_error = abs(p_dft - p_fitted) / p_dft
         push!(rel_errors, rel_error)

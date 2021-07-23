@@ -75,22 +75,27 @@ function load_dft_data(params::Dict)
     dft_model = Symbol(params["DFT_model"])
     dft_potential = @eval $dft_model($params)
     
-    # Calculate potential energy per configuration (vector b) using the potential model
+    # Calculate DFT training data
     potential_dft_data = [potential_energy(positions_per_conf[j], rcut, dft_potential)
                           for j = 1:no_train_atomic_conf]
-
-    force_dft_data = [vcat(forces(positions_per_conf[j], rcut, dft_potential)...)
+    force_dft_data = [forces(positions_per_conf[j], rcut, dft_potential)
                       for j = 1:no_train_atomic_conf]
+    force_dft_data_lin = Vector{Float64}()
+    for i = 1:length(force_dft_data), j = 1:length(force_dft_data[i]), k = 1:3
+        push!(force_dft_data_lin, force_dft_data[i][j][k])
+    end
+    dft_training_data = [potential_dft_data; force_dft_data_lin]
 
-    dft_training_data =  [potential_dft_data; vcat(force_dft_data...)]
-
+    # Calculate DFT validation data
     potential_dft_data = [potential_energy(positions_per_conf[j], rcut, dft_potential)
                           for j = no_train_atomic_conf+1:no_atomic_conf]
-
-    force_dft_data = [vcat(forces(positions_per_conf[j], rcut, dft_potential)...)
+    force_dft_data = [forces(positions_per_conf[j], rcut, dft_potential)
                       for j = no_train_atomic_conf+1:no_atomic_conf]
-
-    dft_validation_data = [potential_dft_data; vcat(force_dft_data...)]
+    force_dft_data_lin = Vector{Float64}()
+    for i = 1:length(force_dft_data), j = 1:length(force_dft_data[i]), k = 1:3
+        push!(force_dft_data_lin, force_dft_data[i][j][k])
+    end
+    dft_validation_data = [potential_dft_data; force_dft_data_lin]
 
     return dft_training_data, dft_validation_data
 end
