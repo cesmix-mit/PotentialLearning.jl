@@ -31,13 +31,15 @@ function learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
     elseif params["solver"] == "NelderMead"
         β0 = zeros(length(p.A[1,:]))
         prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [])
-        p.β = GalacticOptim.solve(prob, NelderMead(), maxiters=5000)
+        p.β = GalacticOptim.solve(prob, NelderMead(), maxiters=500)
     elseif params["solver"] == "BBO"
         β0 = zeros(length(p.A[1,:]))
-        prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [])
-        p.β = solve(prob, BBO())
+        lb0 = -ones(length(p.A[1,:]))
+        ub0 = ones(length(p.A[1,:]))
+        prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [],
+                                                  ub = ub0, lb = lb0)
+        p.β = solve(prob, BBO(), maxiters=500)
     end
-    
 end
 
 """
