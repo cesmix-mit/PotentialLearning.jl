@@ -33,19 +33,20 @@ function learn(p::PotentialLearningProblem, params::Dict)
         prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [])
         p.β = GalacticOptim.solve(prob, NelderMead(), maxiters=500)
     elseif params["solver"] == "BBO"
-        β0 = zeros(length(p.A[1,:]))
-        lb0 = -ones(length(p.A[1,:]))
-        ub0 = ones(length(p.A[1,:]))
+        β0 = zeros(p.cols)
+        lb0 = -0.5ones(p.cols)
+        ub0 = 0.5ones(p.cols)
         prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [],
                                                   ub = ub0, lb = lb0)
-        p.β = solve(prob, BBO(); reltol=0.001)
+        p.β = solve(prob, BBO(); maxiters=500)
     end
 end
 
 """
-    validate(p::Potential, dft_validation_data::Vector{Float64}, params::Dict)
-    
-Validate trained potentials, forces, and stresses.
+    validate_potentials(p::PotentialLearningProblem,
+                        dft_validation_data::Vector{Float64}, params::Dict)
+
+Validate trained potentials.
 """
 function validate_potentials(p::PotentialLearningProblem,
                              dft_validation_data::Vector{Float64}, params::Dict)
@@ -63,6 +64,28 @@ function validate_potentials(p::PotentialLearningProblem,
     end
     return maximum(rel_errors)
 end
+
+#"""
+#    validate_forces(p::PotentialLearningProblem,
+#                    dft_validation_data::Vector{Float64}, params::Dict)
+
+#Validate trained forces.
+#"""
+#function validate_forces(p::PotentialLearningProblem,
+#                         dft_validation_data::Vector{Float64}, params::Dict)
+#    rcut = params["rcut"]
+#    no_train_atomic_conf = params["no_train_atomic_conf"]
+#    rel_errors = []
+#    @printf("Force, Fitted Force, Relative Error\n")
+#    for j in no_train_atomic_conf+1:length(dft_validation_data) # check this when adding stresses
+#        f_dft = dft_validation_data[j]
+#        f_fitted = force(params, j + no_train_atomic_conf, p) #????
+#        rel_error = abs(f_dft - f_fitted) / f_dft
+#        push!(rel_errors, rel_error)
+#        @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)
+#    end
+#    return maximum(rel_errors)
+#end
 
 end
 
