@@ -141,12 +141,12 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
 end
 
 """
-    potential_energy(params::Dict, j::Int64, p::PotentialLearningProblem)
+    potential_energy(p::PotentialLearningProblem, j::Int64, params::Dict)
 
 Calculation of the potential energy of a particular atomic configuration (j).
 This calculation requires accessing the SNAP implementation of LAMMPS.
 """
-function potential_energy(params::Dict, j::Int64, p::PotentialLearningProblem)
+function potential_energy(p::PotentialLearningProblem, j::Int64, params::Dict)
     # Calculate b
     path = params["path"]
     rcut = params["rcut"]

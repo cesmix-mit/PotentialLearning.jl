@@ -14,7 +14,7 @@ export load_conf_params, load_dft_data, learn, validate_potentials, SNAP_LAMMPS
 
 abstract type PotentialLearningProblem end
 
-include("EmpiricalPotentials.jl")
+include("./Potentials/Potentials.jl")
 include("SNAP-LAMMPS.jl")
 include("InputLoading.jl")
 
@@ -57,7 +57,7 @@ function validate_potentials(p::PotentialLearningProblem,
     @printf("Potential Energy, Fitted Potential Energy, Relative Error\n")
     for j in 1:no_val_energies
         p_dft = dft_validation_data[j]
-        p_fitted = potential_energy(params, j + no_train_atomic_conf, p)
+        p_fitted = potential_energy(p, j + no_train_atomic_conf, params)
         rel_error = abs(p_dft - p_fitted) / p_dft
         push!(rel_errors, rel_error)
         @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)
