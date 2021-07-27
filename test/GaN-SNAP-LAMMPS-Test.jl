@@ -4,10 +4,10 @@ using Test
 
     # Load configuration parameters (e.g. potential, solver, DFT model)
     path = "../examples/GaN-SNAP-LAMMPS/"
-    params = load_conf_params(path)
+    params = get_conf_params(path)
 
-    # Load DFT data
-    dft_training_data, dft_validation_data = load_dft_data(params)
+    # Get DFT data
+    dft_training_data, dft_validation_data = get_dft_data(params)
 
     # Define potential learning problem (e.g. SNAP linear system)
     snap = SNAP_LAMMPS(dft_training_data, params)

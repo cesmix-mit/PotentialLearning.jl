@@ -10,13 +10,14 @@ using GalacticOptim, Optim
 using BlackBoxOptim
 using Printf
 
-export load_conf_params, load_dft_data, learn, validate_potentials, SNAP_LAMMPS
+export get_conf_params, get_dft_data, learn, validate_potentials, SNAP_LAMMPS
 
 abstract type PotentialLearningProblem end
 
 include("./Potentials/Potentials.jl")
-include("SNAP-LAMMPS.jl")
 include("InputLoading.jl")
+include("LearningData.jl")
+include("SNAP-LAMMPS.jl")
 
 
 """
