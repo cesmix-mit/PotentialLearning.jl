@@ -7,8 +7,10 @@ struct LennardJones <: Potential
 end
 
 function LennardJones(params::Dict)
-    #TODO
-    return LennardJones(1.0, 1.0)
+    #TODO: read configuration file
+    ε = params["ε"]
+    σ = params["σ"]
+    return LennardJones(ε, σ)
 end
 
 function potential_energy(p::LennardJones, r::Position, args...)

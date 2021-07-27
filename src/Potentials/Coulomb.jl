@@ -2,14 +2,17 @@
     Coulomb Potential
 """
 struct Coulomb <: Potential
+    ε0::Float64
     q_1::Float64
     q_2::Float64
-    ε0::Float64
 end
 
 function Coulomb(params::Dict)
-    #TODO
-    return Coulomb(1.0, 1.0, 1.0)
+    #TODO: read configuration file
+    ε0 = params["ε0"]
+    q_1 = params["q_1"]
+    q_2 = params["q_2"]
+    return Coulomb(ε0, q_1, q_2)
 end
 
 function potential_energy(p::Coulomb, r::Position, args...)

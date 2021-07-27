@@ -9,6 +9,7 @@ include("LennardJones.jl")
 include("BornMayer.jl")
 include("Coulomb.jl")
 include("GaN.jl")
+include("ZBL.jl")
 
 """
     atom_type(i::Int64)

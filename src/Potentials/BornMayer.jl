@@ -7,8 +7,10 @@ struct BornMayer <: Potential
 end
 
 function BornMayer(params::Dict)
-    #TODO
-    return BornMayer(1.0, 1.0)
+    #TODO: read configuration file
+    A = params["A"]
+    ρ = params["ρ"]
+    return BornMayer(A, ρ)
 end
 
 function potential_energy(p::BornMayer, r::Position, args...)
