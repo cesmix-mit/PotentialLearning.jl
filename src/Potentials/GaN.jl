@@ -24,15 +24,13 @@ function GaN(params::Dict)
     return gan
 end
 
-
 """
     potential_energy(p::GaN, r::Position, args...)
 
 Calculation of the potential energy between two atoms using the GaN model.
 """
 function potential_energy(p::GaN, r::Position, args...)
-    i = args[1]
-    j = args[2]
+    i = args[1]; j = args[2]
     if i <= p.no_Ga && j <= p.no_N # Ga-Ga interaction
         return potential_energy(p.c, r) + potential_energy(p.lj_Ga_Ga, r)
     elseif i > p.no_Ga && j > p.no_N # N-N interaction

@@ -19,7 +19,6 @@ include("InputLoading.jl")
 include("LearningData.jl")
 include("SNAP-LAMMPS.jl")
 
-
 """
     learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
 

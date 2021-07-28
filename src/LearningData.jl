@@ -43,16 +43,16 @@ end
 
 
 """
-    gen_learning_data(p::Potential, positions_per_conf::Vector, rcut::Float64)
+    gen_learning_data(p::Potential, positions_per_conf::Vector,
+                      a::Int64, b::Int64, rcut::Float64)
 
 Generates learning data from a mathematical model. It is used to generate surrogate 
 DFT data, or to generate "reference" data (see SNAP mathematical formulation).
 """
-function gen_learning_data(p::Potential, positions_per_conf::Vector, rcut::Float64)
-    potentials  = [potential_energy(p, positions_per_conf[j], rcut)
-                   for j = 1:length(positions_per_conf)]
-    forces_     = [forces(p, positions_per_conf[j], rcut)
-                   for j = 1:length(positions_per_conf)]
+function gen_learning_data(p::Potential, positions_per_conf::Vector,
+                           a::Int64, b::Int64, rcut::Float64)
+    potentials  = [potential_energy(p, positions_per_conf[j], rcut) for j = a:b]
+    forces_     = [forces(p, positions_per_conf[j], rcut) for j = a:b]
     return [potentials; linearize(forces_)]
 end
 
@@ -75,9 +75,9 @@ function get_dft_data(params::Dict)
         positions_per_conf = params["positions_per_conf"]
         rcut = params["rcut"]
         # Calculate DFT training data
-        training_data = gen_learning_data(p, positions_per_conf[1:a], rcut)
+        training_data = gen_learning_data(p, positions_per_conf, 1, a, rcut)
         # Calculate DFT validation data
-        validation_data = gen_learning_data(p, positions_per_conf[a+1:b], rcut)
+        validation_data = gen_learning_data(p, positions_per_conf, a+1, b, rcut)
         return training_data, validation_data
     
     else # Get DFT data from an actual DFT simulation (e.g. using DFTK.jl)

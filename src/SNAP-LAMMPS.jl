@@ -8,9 +8,11 @@ using LinearAlgebra:norm
     Mathematical formulation: A. P. Thompson et al. (10.1016/j.jcp.2014.12.018)
 """
 mutable struct SNAP_LAMMPS <: PotentialLearningProblem
-    β::Vector{Float64} # SNAP parameters to be fitted
-    A::Matrix{Float64} # Matrix of potentials, forces, and stresses
-    b::Vector{Float64} # = dft_training_data = potentials, forces, and stresses
+    β::Vector{Float64}        # SNAP parameters to be fitted
+    A::Matrix{Float64}        # Matrix of potentials, forces, and stresses
+    b::Vector{Float64}        # DFT training data - Reference data
+    dft_data::Vector{Float64} # DFT training data
+    ref_data::Vector{Float64} # Reference data
     no_train_atomic_conf::Int64
     cols::Int64
     ntypes::Int64
@@ -26,7 +28,7 @@ end
 Creation of a SNAP_LAMMPS instance based on the DFT training data and the 
 configuration parameters.
 """
-function SNAP_LAMMPS(dft_training_data::Vector{Float64}, params::Dict)
+function SNAP_LAMMPS(dft_data::Vector{Float64}, params::Dict)
     path = params["path"]
     ntypes = params["ntypes"]
     rcut = params["rcut"]
@@ -46,12 +48,11 @@ function SNAP_LAMMPS(dft_training_data::Vector{Float64}, params::Dict)
     ref_model = Symbol(params["Reference_model"])
     p = @eval $ref_model($params)
     positions_per_conf = params["positions_per_conf"]
-    ref_training_data = gen_learning_data(p,
-                               positions_per_conf[1:no_train_atomic_conf], rcut)
+    ref_data = gen_learning_data(p, positions_per_conf, 1, no_train_atomic_conf, rcut)
     
-    b = dft_training_data + ref_training_data
-    p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ntypes, ncoeff,
-                    no_atoms_per_conf, no_atoms_per_type)
+    b = dft_data - ref_data
+    p = SNAP_LAMMPS(β, A, b, dft_data, ref_data, no_train_atomic_conf, cols,
+                    ntypes, ncoeff, no_atoms_per_conf, no_atoms_per_type)
     p.A = calc_A(path, rcut, twojmax, p)
     return p
 end
