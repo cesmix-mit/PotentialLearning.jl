@@ -45,8 +45,8 @@ end
 """
     gen_learning_data(p::Potential, positions_per_conf::Vector, rcut::Float64)
 
-Get DFT data from a surrogate mathematical model, or from an actual DFT
-simulation (e.g. using DFTK.jl)
+Generates learning data from a mathematical model. It is used to generate surrogate 
+DFT data, or to generate "reference" data (see SNAP mathematical formulation).
 """
 function gen_learning_data(p::Potential, positions_per_conf::Vector, rcut::Float64)
     potentials  = [potential_energy(p, positions_per_conf[j], rcut)

@@ -12,6 +12,22 @@ include("GaN.jl")
 include("ZBL.jl")
 
 """
+    load_params(path)
+    
+Load the parameters of a potential located in "path"
+"""
+function load_params(path::String)
+    params = Dict()
+    open(path) do f
+        while !eof(f)
+            line = split(readline(f))
+            params[line[1]] = parse(Float64, line[2])
+        end
+    end 
+    return params
+end
+
+"""
     atom_type(i::Int64)
     
 Returns the atom type of the i-th atom of the configuration.

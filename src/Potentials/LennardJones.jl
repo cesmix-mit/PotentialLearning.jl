@@ -1,7 +1,7 @@
 """
     Lennard-Jones Potential
 """
-struct LennardJones <: Potential
+mutable struct LennardJones <: Potential
     ε::Float64
     σ::Float64
 end

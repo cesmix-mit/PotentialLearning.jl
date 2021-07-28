@@ -1,7 +1,7 @@
 """
     Coulomb Potential
 """
-struct Coulomb <: Potential
+mutable struct Coulomb <: Potential
     ε0::Float64
     q_1::Float64
     q_2::Float64

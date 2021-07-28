@@ -1,7 +1,7 @@
 """
     Born-Mayer Potential
 """
-struct BornMayer <: Potential
+mutable struct BornMayer <: Potential
     A::Float64
     ρ::Float64
 end

@@ -3,7 +3,7 @@
 
 See 10.1088/1361-648X/ab6cbe
 """
-struct GaN <: Potential
+mutable struct GaN <: Potential
     lj_Ga_Ga::LennardJones
     lj_N_N::LennardJones
     bm_Ga_N::BornMayer
@@ -14,14 +14,7 @@ end
 
 function GaN(params::Dict)
     # Read parameters from a configuration file
-    GaN_params = Dict()
-    path = params["path"]
-    open(string(path, "/GaN.params")) do f
-        while !eof(f)
-            line = split(readline(f))
-            GaN_params[line[1]] = parse(Float64, line[2])
-        end
-    end 
+    GaN_params = load_params(string(params["path"], "/GaN.conf"))
     # Creates the GaN model
     lj_Ga_Ga = LennardJones(GaN_params["ε_Ga_Ga"], GaN_params["σ_Ga_Ga"])
     lj_N_N = LennardJones(GaN_params["ε_N_N"], GaN_params["σ_N_N"])

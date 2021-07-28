@@ -19,6 +19,7 @@ mutable struct SNAP_LAMMPS <: PotentialLearningProblem
     no_atoms_per_type::Vector{Int64}
 end
 
+
 """
     SNAP_LAMMPS(dft_training_data::Vector{Float64}, params::Dict)
 
@@ -41,23 +42,16 @@ function SNAP_LAMMPS(dft_training_data::Vector{Float64}, params::Dict)
     β = []
     A = Matrix{Float64}(undef, 0, 0)
     
-#    # Load reference energy, forces and stresses
-#    ref_model = Symbol(params["Reference_model"])
-#    ref_data = @eval $ref_model($params)
-#    
-#    potential_ref_data = [potential_energy(ref_potential, positions_per_conf[j], rcut)
-#                          for j = 1:no_train_atomic_conf]
-#    force_ref_data = [forces(ref_potential, positions_per_conf[j], rcut)
-#                      for j = 1:no_train_atomic_conf]
-#    force_ref_data_lin = Vector{Float64}()
-#    for i = 1:length(force_ref_data), j = 1:length(force_ref_data[i]), k = 1:3
-#        push!(force_ref_data_lin, force_ref_data[i][j][k])
-#    end
-#    ref_training_data = [potential_ref_data; force_ref_data_lin]
-    ref_training_data = zeros(length(dft_training_data))
-
+    # Calculate reference training data
+    ref_model = Symbol(params["Reference_model"])
+    p = @eval $ref_model($params)
+    positions_per_conf = params["positions_per_conf"]
+    ref_training_data = gen_learning_data(p,
+                               positions_per_conf[1:no_train_atomic_conf], rcut)
+    
     b = dft_training_data + ref_training_data
-    p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ntypes, ncoeff, no_atoms_per_conf, no_atoms_per_type)
+    p = SNAP_LAMMPS(β, A, b, no_train_atomic_conf, cols, ntypes, ncoeff,
+                    no_atoms_per_conf, no_atoms_per_type)
     p.A = calc_A(path, rcut, twojmax, p)
     return p
 end
