@@ -16,15 +16,10 @@ mutable struct ZBL <: Potential
     C::Float64
 end
 
+# TODO: check this function: "exp" or "e"
 function ϕ(p::ZBL, x::Float64)
-    #return   0.18175 * (p.e+0.0im)^(-3.1998*x) + 0.50986*(p.e+0.0im)^(-0.94229*x) +
-    #         0.28022*(p.e+0.0im)^(-0.40290*x) + 0.2817*(p.e+0.0im)^(-0.20162*x)
-    @show x
-    @show p.e^(-3.1998*x)
-    @show p.e^(-0.94229*x)
-    @show p.e^(-0.40290*x)
-    @show p.e^(-0.20162*x)
-    return   0.18175 * p.e^(-3.1998*x) + 0.50986 * p.e^(-0.94229*x) + 0.28022 * p.e^(-0.40290*x) + 0.2817 * p.e^(-0.20162*x)
+    return   0.18175 * exp(-3.1998*x)  + 0.50986 * exp(-0.94229*x) +
+             0.28022 * exp(-0.40290*x) + 0.2817  * exp(-0.20162*x)
 end
 
 function zbl(p::ZBL, r::Float64)
@@ -66,10 +61,6 @@ function ZBL(params::Dict)
     E(r) = -zbl(p, r) / 2.0
     E′(r) = -zbl′(p, r) / 2.0
     E′′(r) = -zbl′′(p, r) / 2.0
-    
-    @show E(r_outer)
-    @show E′(r_outer)
-    @show E′′(r_outer)
     
     p.A = (-3.0 * E′(r_outer) + (r_outer - r_inner) * E′′(r_outer)) / (r_outer - r_inner)^2
     p.B = (-2.0 * E′(r_outer) - (r_outer - r_inner) * E′′(r_outer)) / (r_outer - r_inner)^3
