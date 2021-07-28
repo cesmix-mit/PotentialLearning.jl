@@ -15,6 +15,8 @@ function get_conf_params(path::String)
                 rhs = parse(Float64, line[2])
             elseif lhs == "DFT_model" || lhs == "Reference_model" || lhs == "solver"
                 rhs = line[2]
+            elseif lhs == "fit_forces"
+                rhs = line[2] == "true"
             elseif length(line[2:end]) == 1
                 rhs = parse(Int64, line[2])
             else

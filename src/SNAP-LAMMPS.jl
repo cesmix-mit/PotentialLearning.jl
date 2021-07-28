@@ -48,12 +48,14 @@ function SNAP_LAMMPS(dft_data::Vector{Float64}, params::Dict)
     ref_model = Symbol(params["Reference_model"])
     p = @eval $ref_model($params)
     positions_per_conf = params["positions_per_conf"]
-    ref_data = gen_learning_data(p, positions_per_conf, 1, no_train_atomic_conf, rcut)
+    fit_forces = params["fit_forces"]
+    ref_data = gen_learning_data(p, positions_per_conf, 1, no_train_atomic_conf,
+                                 rcut, fit_forces)
     
     b = dft_data - ref_data
     p = SNAP_LAMMPS(β, A, b, dft_data, ref_data, no_train_atomic_conf, cols,
                     ntypes, ncoeff, no_atoms_per_conf, no_atoms_per_type)
-    p.A = calc_A(path, rcut, twojmax, p)
+    p.A = calc_A(path, rcut, twojmax, fit_forces, p)
     return p
 end
 
@@ -103,18 +105,19 @@ end
 
 Calculation of the A matrix of SNAP (Eq. 13, 10.1016/j.jcp.2014.12.018)
 """
-function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
+function calc_A(path::String, rcut::Float64, twojmax::Int64, fit_forces::Bool, p::SNAP_LAMMPS)
     
     A = LMP(["-screen","none"]) do lmp
 
         A_potential = Array{Float64}(undef, p.no_train_atomic_conf, p.cols)
-        A_forces    = Array{Float64}(undef, 3 * p.no_atoms_per_conf *
-                                            p.no_train_atomic_conf, p.cols)
+        
+        A_forces = fit_forces ? Array{Float64}(undef, 3 * p.no_atoms_per_conf *
+                                p.no_train_atomic_conf, p.cols) : Array{Float64}(undef, 0, p.cols)
         
         for j in 1:p.no_train_atomic_conf
             data = joinpath(path, "DATA", string(j), "DATA")
             bs, deriv_bs = run_snap(lmp, data, rcut, twojmax)
-
+            
             # Create a row of the potential energy block
             row = Vector{Float64}()
             for no_atoms in p.no_atoms_per_type
@@ -129,20 +132,22 @@ function calc_A(path::String, rcut::Float64, twojmax::Int64, p::SNAP_LAMMPS)
             end
             A_potential[j, :] = row
             
-            # Create a set of rows of the force block
-            k = (j - 1) * 3 * p.no_atoms_per_conf + 1 
-            for n = 1:p.no_atoms_per_conf
-                for c = [1, 2, 3] # component x, y, z
-                    row = Vector{Float64}()
-                    for t = 1:p.ntypes # e.g. 2 : Ga and N
-                        offset = (t-1) * (p.ncoeff-1) + (c-1) * p.ntypes * (p.ncoeff-1)
-                        row = [row; [0.0; deriv_bs[1 + offset:(p.ncoeff-1) + offset, n]]]
+            if fit_forces
+                # Create a set of rows of the force block
+                k = (j - 1) * 3 * p.no_atoms_per_conf + 1 
+                for n = 1:p.no_atoms_per_conf
+                    for c = [1, 2, 3] # component x, y, z
+                        row = Vector{Float64}()
+                        for t = 1:p.ntypes # e.g. 2 : Ga and N
+                            offset = (t-1) * (p.ncoeff-1) + (c-1) * p.ntypes * (p.ncoeff-1)
+                            row = [row; [0.0; deriv_bs[1 + offset:(p.ncoeff-1) + offset, n]]]
+                        end
+                        A_forces[k, :] = row
+                        k += 1
                     end
-                    A_forces[k, :] = row
-                    k += 1
                 end
             end
-
+            
             command(lmp, "clear")
         end
         return [A_potential; A_forces]
