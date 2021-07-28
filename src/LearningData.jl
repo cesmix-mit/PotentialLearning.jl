@@ -52,10 +52,8 @@ DFT data, or to generate "reference" data (see SNAP mathematical formulation).
 function gen_learning_data(p::Potential, positions_per_conf::Vector,
                            a::Int64, b::Int64, rcut::Float64, fit_forces::Bool)
     potentials  = [potential_energy(p, positions_per_conf[j], rcut) for j = a:b]
-    
     lin_forces = fit_forces ? linearize([forces(p, positions_per_conf[j], rcut)
                                          for j = a:b]) : Vector{Float64}()
-    
     return [potentials; lin_forces]
 end
 

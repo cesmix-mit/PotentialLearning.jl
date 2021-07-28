@@ -50,7 +50,7 @@ function potential_energy(p::Potential, atomic_positions::Vector{Position}, rcut
         for j = i:length(atomic_positions)
             r_diff = (atomic_positions[i] - atomic_positions[j])
             if norm(r_diff) <= rcut && norm(r_diff) > 0.0
-                acc += potential_energy(p, r_diff, atom_type(i), atom_type(j))
+                acc += potential_energy(p, r_diff, i, j) #atom_type(i), atom_type(j))
             end
         end
     end

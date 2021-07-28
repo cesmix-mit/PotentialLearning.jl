@@ -38,6 +38,7 @@ function potential_energy(p::GaN, r::Position, args...)
     else # Ga-N or N-Ga interaction
         return potential_energy(p.c, r) + potential_energy(p.bm_Ga_N, r)
     end
+
 end
 
 
