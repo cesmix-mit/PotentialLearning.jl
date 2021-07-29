@@ -10,7 +10,7 @@ using GalacticOptim, Optim
 using BlackBoxOptim
 using Printf
 
-export get_conf_params, get_dft_data, learn, validate_potentials, SNAP_LAMMPS
+export get_conf_params, get_dft_data, learn, validate, SNAP_LAMMPS
 
 abstract type PotentialLearningProblem end
 
@@ -46,46 +46,57 @@ end
     validate_potentials(p::PotentialLearningProblem,
                         dft_validation_data::Vector{Float64}, params::Dict)
 
-Validate trained potentials.
+Validate trained potentials, forces, and stresses.
 """
-function validate_potentials(p::PotentialLearningProblem,
-                             dft_validation_data::Vector{Float64}, params::Dict)
+function validate(p::PotentialLearningProblem, dft_validation_data::Vector{Float64},
+                  params::Dict)
+    fit_forces = params["fit_forces"]
     rcut = params["rcut"]
+    no_atoms_per_conf = params["no_atoms_per_conf"]
     no_train_atomic_conf = params["no_train_atomic_conf"]
-    no_val_energies = params["no_atomic_conf"] - params["no_train_atomic_conf"]
+    no_atomic_conf = params["no_atomic_conf"]
+    no_val_atomic_conf = no_atomic_conf - no_train_atomic_conf
     rel_errors = []
-    @printf("Potential Energy, Fitted Potential Energy, Relative Error\n")
-    for j in 1:no_val_energies
+    
+    io = open("energy_validation.csv", "w");
+    line = @sprintf("Configuration, DFT Potential Energy, Fitted Potential Energy, Relative Error\n")
+    write(io, line)
+    for j in 1:no_val_atomic_conf
         p_dft = dft_validation_data[j]
         p_fitted = potential_energy(p, j + no_train_atomic_conf, params)
         rel_error = abs(p_dft - p_fitted) / p_dft
         push!(rel_errors, rel_error)
-        @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)
+        line = @sprintf("%d, %0.2f, %0.2f, %0.2f\n", j+ no_train_atomic_conf, p_dft, p_fitted, rel_error)
+        write(io, line)
     end
+    close(io)
+    
+    if fit_forces
+        io = open("force_validation.csv", "w");
+        line = @sprintf("Configuration, No. Atom, DFT Force, Fitted Force, Relative Error\n")
+        write(io, line)
+        for j in 1:no_val_atomic_conf
+            fitted_forces = forces(p, j + no_train_atomic_conf, params)
+            for k in 1:no_atoms_per_conf
+                f_dft = Force(dft_validation_data[k*3-2],
+                              dft_validation_data[k*3-1],
+                              dft_validation_data[k*3])
+                rel_error = norm(f_dft - fitted_forces[k]) / norm(f_dft)
+                push!(rel_errors, rel_error)
+                line = @sprintf("%d, %d, %0.2f %0.2f %0.2f, %0.2f %0.2f %0.2f, %0.2f\n",
+                        j+ no_train_atomic_conf, k, f_dft[1], f_dft[2], f_dft[3],
+                        fitted_forces[k][1], fitted_forces[k][2], fitted_forces[k][3],
+                        rel_error)
+                write(io, line)
+            end
+        end
+        close(io)
+    end
+    
+    # TODO: validate stresses
+    
     return maximum(rel_errors)
 end
-
-#"""
-#    validate_forces(p::PotentialLearningProblem,
-#                    dft_validation_data::Vector{Float64}, params::Dict)
-
-#Validate trained forces.
-#"""
-#function validate_forces(p::PotentialLearningProblem,
-#                         dft_validation_data::Vector{Float64}, params::Dict)
-#    rcut = params["rcut"]
-#    no_train_atomic_conf = params["no_train_atomic_conf"]
-#    rel_errors = []
-#    @printf("Force, Fitted Force, Relative Error\n")
-#    for j in no_train_atomic_conf+1:length(dft_validation_data) # check this when adding stresses
-#        f_dft = dft_validation_data[j]
-#        f_fitted = force(params, j + no_train_atomic_conf, p) #????
-#        rel_error = abs(f_dft - f_fitted) / f_dft
-#        push!(rel_errors, rel_error)
-#        @printf("%0.2f, %0.2f, %0.2f\n", p_dft, p_fitted, rel_error)
-#    end
-#    return maximum(rel_errors)
-#end
 
 end
 

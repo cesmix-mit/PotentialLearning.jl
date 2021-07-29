@@ -159,7 +159,8 @@ end
 """
     potential_energy(p::PotentialLearningProblem, j::Int64, params::Dict)
 
-Calculation of the potential energy of a particular atomic configuration (j).
+Calculation of the potential energy of a particular atomic configuration (j)
+using the fitted parameters β.
 This calculation requires accessing the SNAP implementation of LAMMPS.
 """
 function potential_energy(p::PotentialLearningProblem, j::Int64, params::Dict)
@@ -185,7 +186,43 @@ function potential_energy(p::PotentialLearningProblem, j::Int64, params::Dict)
     end
     
     command(lmp, "clear")
-    return E_tot_acc
+    return E_tot_acc + p.ref_data[j]
+end
+
+"""
+    forces(p::PotentialLearningProblem, j::Int64, params::Dict)
+
+Calculation of the forces of a particular atomic configuration (j) using the 
+fitted parameters β. 
+This calculation requires accessing the SNAP implementation of LAMMPS.
+"""
+function forces(p::PotentialLearningProblem, j::Int64, params::Dict)
+    # Calculate b
+    path = params["path"]
+    rcut = params["rcut"]
+    twojmax = params["twojmax"]
+    
+    data = joinpath(path, "DATA", string(j), "DATA")
+    lmp = LMP(["-screen","none"])
+    bs, deriv_bs = run_snap(lmp, data, rcut, twojmax)
+    
+    forces = Vector{Force}()
+    
+    for n = 1:p.no_atoms_per_conf
+        for t = 1:p.ntypes # e.g. 2 : Ga and N
+            f = [0.0, 0.0, 0.0]
+            for c = [1, 2, 3] # component x, y, z
+                offset = (t-1) * (p.ncoeff-1) + (c-1) * p.ntypes * (p.ncoeff-1)
+                deriv_bs_row = [0.0; deriv_bs[1 + offset:(p.ncoeff-1) + offset, n]]
+                f[c] = sum([p.β[k + (t-1) * p.ncoeff] * deriv_bs_row[k]
+                            for k in 1:length(deriv_bs_row)])
+            end
+            push!(forces, Force(f))
+        end
+    end
+    
+    command(lmp, "clear")
+    return forces
 end
 
 

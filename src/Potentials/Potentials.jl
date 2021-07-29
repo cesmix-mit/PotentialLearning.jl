@@ -71,7 +71,7 @@ function forces(p::Potential, atomic_positions::Vector{Position}, rcut::Float64)
             r_diff = atomic_positions[i] - atomic_positions[j]
             if norm(r_diff) <= rcut && norm(r_diff) > 0.0
                 ∇potential_energy(p, r, i, j) =
-                     gradient(r -> potential_energy(p, r_diff - r, i, j), r)[1]
+                     gradient(r -> potential_energy(p, r_diff + r, i, j), r)[1]
                 f_ij = -∇potential_energy(p, atomic_positions[i], atom_type(i),
                                                                   atom_type(j))
                 f_i += f_ij
@@ -81,5 +81,4 @@ function forces(p::Potential, atomic_positions::Vector{Position}, rcut::Float64)
     end
     return forces
 end
-
 
