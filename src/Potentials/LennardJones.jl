@@ -7,9 +7,11 @@ mutable struct LennardJones <: Potential
 end
 
 function LennardJones(params::Dict)
-    #TODO: read configuration file
-    ε = params["ε"]
-    σ = params["σ"]
+    # Read parameters from a configuration file
+    LJ_params = load_params(string(params["path"], "/LennardJones.conf"))
+    # Creates the LennardJones model
+    ε = LJ_params["ε"]
+    σ = LJ_params["σ"]
     return LennardJones(ε, σ)
 end
 

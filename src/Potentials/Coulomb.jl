@@ -8,10 +8,12 @@ mutable struct Coulomb <: Potential
 end
 
 function Coulomb(params::Dict)
-    #TODO: read configuration file
-    q_1 = params["q_1"]
-    q_2 = params["q_2"]
-    ε0 = params["ε0"]
+    # Read parameters from a configuration file
+    BM_params = load_params(string(params["path"], "/Coulomb.conf"))
+    # Creates the Coulomb model
+    q_1 = BM_params["q_1"]
+    q_2 = BM_params["q_2"]
+    ε0 = BM_params["ε0"]
     return Coulomb(q_1, q_2, ε0)
 end
 
