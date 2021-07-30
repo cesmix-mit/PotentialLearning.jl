@@ -16,7 +16,7 @@ mutable struct ZBL <: Potential
     C::Float64
 end
 
-# TODO: check this function: "exp" or "e"
+# TODO: check this function: "exp" or "e"?
 function ϕ(p::ZBL, x::Float64)
     return   0.18175 * exp(-3.1998*x)  + 0.50986 * exp(-0.94229*x) +
              0.28022 * exp(-0.40290*x) + 0.2817  * exp(-0.20162*x)
@@ -36,17 +36,14 @@ end
 
 function ZBL(params::Dict)
 
-    # Read parameters from a configuration file
-    ZBL_params = load_params(string(params["path"], "/ZBL.conf"))
-
     # Creates the ZBL model
-    ε0 = ZBL_params["ε0"]
-    e = ZBL_params["e"]
-    zi = ZBL_params["zi"]
-    zj = ZBL_params["zj"]
+    ε0 = params["ε0"]
+    e = params["e"]
+    zi = params["zi"]
+    zj = params["zj"]
     a = 0.46850 / (zi^0.23 + zj^0.23)
-    r_inner = ZBL_params["r_inner"]
-    r_outer = ZBL_params["r_outer"]
+    r_inner = params["r_inner"]
+    r_outer = params["r_outer"]
     
     p = ZBL(ε0, e, zi, zj, a, r_inner, r_outer, 0.0, 0.0, 0.0)
     
@@ -69,8 +66,6 @@ function ZBL(params::Dict)
 
     return p
 end
-
-
 
 """
     S(r)

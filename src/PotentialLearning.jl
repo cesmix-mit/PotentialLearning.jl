@@ -10,29 +10,42 @@ using GalacticOptim, Optim
 using BlackBoxOptim
 using Printf
 
-export get_conf_params, get_dft_data, learn, validate, SNAP_LAMMPS
+export get_conf_params, generate_data, learning_problem, learn, validate
 
 abstract type PotentialLearningProblem end
 
 include("./Potentials/Potentials.jl")
 include("InputLoading.jl")
 include("LearningData.jl")
-include("SNAP-LAMMPS.jl")
 
 """
-    learn(p::Potential, dft_training_data::Vector{Float64}, params::Dict)
+    learning_problem( dft_train_data::Vector{Float64},
+                      ref_train_data::Vector{Float64},
+                      params::Dict)
 
-Fit the potentials, forces, and stresses against the DFT data using the
-configuration parameters.
+Creates a potential learning problem.
+"""
+function learning_problem(dft_train_data::Vector{Float64},
+                          ref_train_data::Vector{Float64},
+                          params::Dict)
+    lp = Symbol(params["global"]["potential"])
+    return @eval $lp($dft_train_data, $ref_train_data, $params)
+end
+
+"""
+    learn(p::PotentialLearningProblem, params::Dict)
+
+Fit the potentials, forces, and stresses against the DFT and reference data using
+the configuration parameters.
 """
 function learn(p::PotentialLearningProblem, params::Dict)
-    if params["solver"] == "\\"
+    if params["solver"]["name"] == "\\"
         p.β = p.A \ p.b
-    elseif params["solver"] == "NelderMead"
+    elseif params["solver"]["name"] == "NelderMead"
         β0 = zeros(length(p.A[1,:]))
         prob = GalacticOptim.OptimizationProblem( (x, pars) -> error(x, p), β0, [])
         p.β = GalacticOptim.solve(prob, NelderMead(), maxiters=500)
-    elseif params["solver"] == "BBO"
+    elseif params["solver"]["name"] == "BBO"
         β0 = zeros(p.cols)
         lb0 = -0.5ones(p.cols)
         ub0 = 0.5ones(p.cols)
@@ -43,50 +56,49 @@ function learn(p::PotentialLearningProblem, params::Dict)
 end
 
 """
-    validate_potentials(p::PotentialLearningProblem,
-                        dft_validation_data::Vector{Float64}, params::Dict)
+    validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
 
 Validate trained potentials, forces, and stresses.
 """
-function validate(p::PotentialLearningProblem, dft_validation_data::Vector{Float64},
-                  params::Dict)
-    fit_forces = params["fit_forces"]
-    rcut = params["rcut"]
-    no_atoms_per_conf = params["no_atoms_per_conf"]
-    no_train_atomic_conf = params["no_train_atomic_conf"]
-    no_atomic_conf = params["no_atomic_conf"]
+function validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
+    fit_forces = params["global"]["fit_forces"]
+    rcut = params["global"]["rcut"]
+    no_atoms_per_conf = params["global"]["no_atoms_per_conf"]
+    no_train_atomic_conf = params["global"]["no_train_atomic_conf"]
+    no_atomic_conf = params["global"]["no_atomic_conf"]
     no_val_atomic_conf = no_atomic_conf - no_train_atomic_conf
     rel_errors = []
     
     io = open("energy_validation.csv", "w");
-    line = @sprintf("Configuration, DFT Potential Energy, Fitted Potential Energy, Relative Error\n")
+    line = @sprintf("Configuration, Potential Energy, Fitted Potential Energy, Relative Error\n")
     write(io, line)
     for j in 1:no_val_atomic_conf
-        p_dft = dft_validation_data[j]
-        p_fitted = potential_energy(p, j + no_train_atomic_conf, params)
-        rel_error = abs(p_dft - p_fitted) / p_dft
+        p_val = val_data[j]
+        p_fitted = potential_energy(p, j + no_train_atomic_conf)
+        rel_error = abs(p_val - p_fitted) / p_val
         push!(rel_errors, rel_error)
-        line = @sprintf("%d, %0.2f, %0.2f, %0.2f\n", j+ no_train_atomic_conf, p_dft, p_fitted, rel_error)
+        line = @sprintf("%d, %0.2f, %0.2f, %0.2f\n",
+                         j+ no_train_atomic_conf, p_val, p_fitted, rel_error)
         write(io, line)
     end
     close(io)
     
     if fit_forces
         io = open("force_validation.csv", "w");
-        line = @sprintf("Configuration, No. Atom, DFT Force, Fitted Force, Relative Error\n")
+        line = @sprintf("Configuration, No. Atom, Force, Fitted Force, Relative Error\n")
         write(io, line)
         for j in 1:no_val_atomic_conf
-            fitted_forces = forces(p, j + no_train_atomic_conf, params)
+            fitted_forces = forces(p, j + no_train_atomic_conf)
             for k in 1:no_atoms_per_conf
-                f_dft = Force(dft_validation_data[k*3-2],
-                              dft_validation_data[k*3-1],
-                              dft_validation_data[k*3])
-                rel_error = norm(f_dft - fitted_forces[k]) / norm(f_dft)
+                f_val = Force(val_data[k*3-2],
+                              val_data[k*3-1],
+                              val_data[k*3])
+                rel_error = norm(f_val - fitted_forces[k]) / norm(f_val)
                 push!(rel_errors, rel_error)
                 line = @sprintf("%d, %d, %0.2f %0.2f %0.2f, %0.2f %0.2f %0.2f, %0.2f\n",
-                        j+ no_train_atomic_conf, k, f_dft[1], f_dft[2], f_dft[3],
-                        fitted_forces[k][1], fitted_forces[k][2], fitted_forces[k][3],
-                        rel_error)
+                        j+ no_train_atomic_conf, k, f[1], f[2], f[3],
+                        fitted_forces[k][1], fitted_forces[k][2],
+                        fitted_forces[k][3], rel_error)
                 write(io, line)
             end
         end

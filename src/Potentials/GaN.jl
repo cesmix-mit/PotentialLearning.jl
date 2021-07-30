@@ -13,14 +13,12 @@ mutable struct GaN <: Potential
 end
 
 function GaN(params::Dict)
-    # Read parameters from a configuration file
-    GaN_params = load_params(string(params["path"], "/GaN.conf"))
     # Creates the GaN model
-    lj_Ga_Ga = LennardJones(GaN_params["ε_Ga_Ga"], GaN_params["σ_Ga_Ga"])
-    lj_N_N = LennardJones(GaN_params["ε_N_N"], GaN_params["σ_N_N"])
-    bm_Ga_N = BornMayer(GaN_params["A_Ga_N"], GaN_params["ρ_Ga_N"])
-    c = Coulomb(GaN_params["q_Ga"], GaN_params["q_N"], GaN_params["ε0"])
-    gan = GaN(lj_Ga_Ga, lj_N_N, bm_Ga_N, c, GaN_params["no_Ga"], GaN_params["no_N"])
+    lj_Ga_Ga = LennardJones(params["ε_Ga_Ga"], params["σ_Ga_Ga"])
+    lj_N_N = LennardJones(params["ε_N_N"], params["σ_N_N"])
+    bm_Ga_N = BornMayer(params["A_Ga_N"], params["ρ_Ga_N"])
+    c = Coulomb(params["q_Ga"], params["q_N"], params["ε0"])
+    gan = GaN(lj_Ga_Ga, lj_N_N, bm_Ga_N, c, params["no_Ga"], params["no_N"])
     return gan
 end
 

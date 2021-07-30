@@ -7,11 +7,9 @@ mutable struct BornMayer <: Potential
 end
 
 function BornMayer(params::Dict)
-    # Read parameters from a configuration file
-    BM_params = load_params(string(params["path"], "/BornMayer.conf"))
     # Creates the BM model
-    A = BM_params["A"]
-    ρ = BM_params["ρ"]
+    A = params["A"]
+    ρ = params["ρ"]
     return BornMayer(A, ρ)
 end
 

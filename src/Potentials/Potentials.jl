@@ -10,6 +10,8 @@ include("BornMayer.jl")
 include("Coulomb.jl")
 include("GaN.jl")
 include("ZBL.jl")
+include("SNAP-LAMMPS.jl")
+
 
 """
     load_params(path)

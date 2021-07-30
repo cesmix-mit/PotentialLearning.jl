@@ -2,21 +2,23 @@ using Test
 
 @testset "GaN-SNAP-LAMMPS" begin
 
-    # Load configuration parameters (e.g. potential, solver, DFT model)
-    path = "../examples/GaN-SNAP-LAMMPS/"
-    params = get_conf_params(path)
+    params = get_conf_params("../examples/GaN-SNAP-LAMMPS/")
 
     # Get DFT data
-    dft_training_data, dft_validation_data = get_dft_data(params)
+    dft_train_data, dft_val_data = generate_data("dft", params)
 
-    # Define potential learning problem (e.g. SNAP linear system)
-    snap = SNAP_LAMMPS(dft_training_data, params)
+    # Get reference data
+    ref_train_data, ref_val_data = generate_data("ref", params)
 
-    # Learn potentials, forces, and stresses (e.g. calculate β of the system A β = b)
-    learn(snap, params)
+    # Get potential learning problem (e.g. A β = b)
+    snap_prob = learning_problem(dft_train_data, ref_train_data, params)
+
+    # Solve potential learning problem (e.g. β = A \ b)
+    snap = solve(snap_prob, params)
 
     # Validate potentials, forces, and stresses
-    rel_error = validate_potentials(snap, dft_validation_data, params)
+    validate(snap, dft_val_data - ref_val_data)
+
     @test rel_error < 0.1
 
 end
