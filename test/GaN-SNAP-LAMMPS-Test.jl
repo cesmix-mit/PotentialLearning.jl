@@ -11,13 +11,13 @@ using Test
     ref_train_data, ref_val_data = generate_data("ref", params)
 
     # Get potential learning problem (e.g. A β = b)
-    snap_prob = learning_problem(dft_train_data, ref_train_data, params)
+    snap = learning_problem(dft_train_data, ref_train_data, params)
 
     # Solve potential learning problem (e.g. β = A \ b)
-    snap = solve(snap_prob, params)
+    learn(snap, params)
 
     # Validate potentials, forces, and stresses
-    validate(snap, dft_val_data - ref_val_data)
+    validate(snap, dft_val_data - ref_val_data, params)
 
     @test rel_error < 0.1
 

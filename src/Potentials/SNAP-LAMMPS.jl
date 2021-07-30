@@ -197,7 +197,7 @@ function forces(p::PotentialLearningProblem, j::Int64)
 
     data = joinpath(p.path, "DATA", string(j), "DATA")
     lmp = LMP(["-screen","none"])
-    bs, deriv_bs = run_snap(lmp, data, p.rcut, p.twojmax)
+    bs, deriv_bs = get_bispectrums(lmp, data, p.rcut, p.twojmax)
     
     forces = Vector{Force}()
     

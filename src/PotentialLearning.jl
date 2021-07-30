@@ -96,7 +96,7 @@ function validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params
                 rel_error = norm(f_val - fitted_forces[k]) / norm(f_val)
                 push!(rel_errors, rel_error)
                 line = @sprintf("%d, %d, %0.2f %0.2f %0.2f, %0.2f %0.2f %0.2f, %0.2f\n",
-                        j+ no_train_atomic_conf, k, f[1], f[2], f[3],
+                        j+ no_train_atomic_conf, k, f_val[1], f_val[2], f_val[3],
                         fitted_forces[k][1], fitted_forces[k][2],
                         fitted_forces[k][3], rel_error)
                 write(io, line)
