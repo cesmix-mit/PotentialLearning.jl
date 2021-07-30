@@ -21,7 +21,7 @@ end
 """
     potential_energy(p::LennardJones, r::Position, args...)
     
-Calculates LennardJones potential.
+Calculates LennardJones potential energy.
 """
 function potential_energy(p::LennardJones, r::Position, args...)
     return 4.0 * p.ε * ((p.σ / norm(r))^12 - (p.σ / norm(r))^6)

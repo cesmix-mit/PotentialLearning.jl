@@ -35,8 +35,8 @@ end
 """
     learn(p::PotentialLearningProblem, params::Dict)
 
-Fit the potentials, forces, and stresses against the DFT and reference data using
-the configuration parameters.
+Fits the potentials, forces, and stresses against the DFT and reference data
+using the configuration parameters.
 """
 function learn(p::PotentialLearningProblem, params::Dict)
     if params["solver"]["name"] == "\\"
@@ -58,7 +58,7 @@ end
 """
     validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
 
-Validate trained potentials, forces, and stresses.
+Validates trained potentials, forces, and stresses.
 """
 function validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
     fit_forces = params["global"]["fit_forces"]

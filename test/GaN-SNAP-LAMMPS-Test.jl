@@ -17,7 +17,7 @@ using Test
     learn(snap, params)
 
     # Validate potentials, forces, and stresses
-    validate(snap, dft_val_data - ref_val_data, params)
+    rel_error = validate(snap, dft_val_data - ref_val_data, params)
 
     @test rel_error < 0.1
 

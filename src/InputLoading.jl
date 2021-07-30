@@ -2,7 +2,7 @@
     load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
                             no_conf_init::Int64, no_conf_end::Int64)
 
-Load atomic positions per configuration.
+Loads atomic positions per configuration.
 """
 function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
                                  no_conf_init::Int64, no_conf_end::Int64)
@@ -27,9 +27,9 @@ function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
 end
 
 """
-    load_conf_params(path::String)
+    get_conf_params(path::String)
 
-Load configuration parameters.
+Loads configuration parameters.
 """
 function get_conf_params(path::String)
     params = Dict()

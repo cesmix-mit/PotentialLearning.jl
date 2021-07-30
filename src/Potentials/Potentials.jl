@@ -12,37 +12,10 @@ include("GaN.jl")
 include("ZBL.jl")
 include("SNAP-LAMMPS.jl")
 
-
-"""
-    load_params(path)
-    
-Load the parameters of a potential located in "path"
-"""
-function load_params(path::String)
-    params = Dict()
-    open(path) do f
-        while !eof(f)
-            line = split(readline(f))
-            params[line[1]] = parse(Float64, line[2])
-        end
-    end 
-    return params
-end
-
-"""
-    atom_type(i::Int64)
-    
-Returns the atom type of the i-th atom of the configuration.
-"""
-function atom_type(i::Int64)
-    #TODO
-    return i
-end
-
 """
     potential_energy(p::Potential, atomic_positions::Vector{Position}, rcut::Float64)
 
-Calculation of the potential energy of a particular atomic configuration.
+Calculates the potential energy of a particular atomic configuration.
 It is based on the atomic positions of the configuration, the rcut, and a
 particular potential.
 """
@@ -59,11 +32,10 @@ function potential_energy(p::Potential, atomic_positions::Vector{Position}, rcut
     return acc
 end
 
-
 """
     forces(p::Potential, atomic_positions::Vector{Position}, rcut::Float64)
 
-Calculation of the forces of each atom in an atomic configuration.
+Calculates the forces of each atom in an atomic configuration.
 """
 function forces(p::Potential, atomic_positions::Vector{Position}, rcut::Float64)
     forces = Vector{Force}()
@@ -83,4 +55,15 @@ function forces(p::Potential, atomic_positions::Vector{Position}, rcut::Float64)
     end
     return forces
 end
+
+"""
+    atom_type(i::Int64)
+    
+Returns the atom type of the i-th atom of the configuration.
+"""
+function atom_type(i::Int64)
+    #TODO
+    return i
+end
+
 

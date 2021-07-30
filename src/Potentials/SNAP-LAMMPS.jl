@@ -7,21 +7,21 @@ using LinearAlgebra:norm
     Mathematical formulation: A. P. Thompson et al. (10.1016/j.jcp.2014.12.018)
 """
 mutable struct SNAP_LAMMPS <: PotentialLearningProblem
-    path::String
-    β::Vector{Float64}
-    A::Matrix{Float64}            # Matrix of potentials, forces, and stresses
-    b::Vector{Float64}            # DFT training data - Reference data
-    dft_data::Vector{Float64}     # DFT training data
-    ref_data::Vector{Float64}     # Reference data
-    no_atoms_per_type::Vector
-    ntypes::Int64
-    no_train_atomic_conf::Int64
-    no_atoms_per_conf::Int64
-    twojmax::Int64
-    ncoeff::Int64
-    cols::Int64
-    rcut::Float64
-    fit_forces::Bool
+    path::String                # Path of the example folder
+    β::Vector{Float64}          # Fitted parameters
+    A::Matrix{Float64}          # Matrix of potentials, forces, and stresses.
+    b::Vector{Float64}          # DFT training data - Reference data
+    dft_data::Vector{Float64}   # DFT training data
+    ref_data::Vector{Float64}   # Reference data
+    no_atoms_per_type::Vector   # No. of atoms per type
+    ntypes::Int64               # No. of atom types
+    no_train_atomic_conf::Int64 # No. of trainning atomic configurations
+    no_atoms_per_conf::Int64    # No. of atoms per atomic configurations
+    twojmax::Int64              # SNAP-LAMMPS parameter
+    ncoeff::Int64               # ncoeff-1 = no. of param. associated to an atom type
+    cols::Int64                 # No. of columns of matrix `A`
+    rcut::Float64               # Cutoff radius
+    fit_forces::Bool            # Enable/disable force fitting
 end
 
 
@@ -66,7 +66,7 @@ end
 """
     get_bispectrums(lmp, path::String, rcut::Float64, twojmax::Int64)
 
-Calcuulates the bispectrums components and its derivatives.
+Calculates the bispectrums components and its derivatives.
 """
 function get_bispectrums(lmp, path::String, rcut::Float64, twojmax::Int64)
     read_data_str = "read_data " * path
@@ -160,8 +160,8 @@ end
 """
     potential_energy(p::Potential, j::Int64)
 
-Calculates the potential energy of a particular atomic configuration (j)
-using the fitted parameters β.
+Calculates the potential energy of a particular atomic configuration (j) using
+the fitted parameters β. 
 This calculation requires accessing the SNAP implementation of LAMMPS.
 """
 function potential_energy(p::PotentialLearningProblem, j::Int64)

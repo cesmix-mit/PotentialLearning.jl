@@ -25,7 +25,7 @@ end
 """
     potential_energy(p::GaN, r::Position, args...)
 
-Calculation of the potential energy between two atoms using the GaN model.
+Calculates GaN potential energy.
 """
 function potential_energy(p::GaN, r::Position, args...)
     i = args[1]; j = args[2]

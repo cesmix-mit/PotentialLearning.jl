@@ -7,6 +7,11 @@ mutable struct Coulomb <: Potential
     ε0::Float64
 end
 
+"""
+    Coulomb(params::Dict)
+    
+Creates a Coulomb potential.
+"""
 function Coulomb(params::Dict)
     # Creates the Coulomb model
     q_1 = params["q_1"]
@@ -15,6 +20,11 @@ function Coulomb(params::Dict)
     return Coulomb(q_1, q_2, ε0)
 end
 
+"""
+    potential_energy(p::Coulomb, r::Position, args...)
+    
+Calculates Coulomb potential energy.
+"""
 function potential_energy(p::Coulomb, r::Position, args...)
     return p.q_1 * p.q_2 / (4.0 * π * p.ε0 * norm(r))
 end
