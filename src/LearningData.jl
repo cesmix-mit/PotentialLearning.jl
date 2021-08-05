@@ -13,25 +13,25 @@ function generate_data(model::String, params::Dict)
     a = params["global"]["no_train_atomic_conf"]
     b = params["global"]["no_atomic_conf"]
     positions_per_conf = params["global"]["positions_per_conf"]
-    rcut = params["global"]["rcut"]
+    rcutfac = params["global"]["rcutfac"]
     # Calculate DFT training data
-    training_data = generate_data_aux(p, positions_per_conf, 1, a, rcut, fit_forces)
+    training_data = generate_data_aux(p, positions_per_conf, 1, a, rcutfac, fit_forces)
     # Calculate DFT validation data
-    validation_data = generate_data_aux(p, positions_per_conf, a+1, b, rcut, fit_forces)
+    validation_data = generate_data_aux(p, positions_per_conf, a+1, b, rcutfac, fit_forces)
     
     return training_data, validation_data
 end
 
 """
     generate_data_aux(p::Potential, positions_per_conf::Vector,
-                      a::Int64, b::Int64, rcut::Float64, fit_forces::Bool)
+                      a::Int64, b::Int64, rcutfac::Float64, fit_forces::Bool)
 
 Auxiliar function. See `generate_data`.
 """
 function generate_data_aux(p::Potential, positions_per_conf::Vector,
-                           a::Int64, b::Int64, rcut::Float64, fit_forces::Bool)
-    potentials  = [potential_energy(p, positions_per_conf[j], rcut) for j = a:b]
-    lin_forces = fit_forces ? linearize([forces(p, positions_per_conf[j], rcut)
+                           a::Int64, b::Int64, rcutfac::Float64, fit_forces::Bool)
+    potentials  = [potential_energy(p, positions_per_conf[j], rcutfac) for j = a:b]
+    lin_forces = fit_forces ? linearize([forces(p, positions_per_conf[j], rcutfac)
                                          for j = a:b]) : Vector{Float64}()
     return [potentials; lin_forces]
 end
@@ -50,3 +50,28 @@ function linearize(data::Vector{Vector{Force}})
     return lin_data
 end
 
+function get_dft_data(params::Dict)
+    path = params["global"]["path"]
+    fit_forces = params["global"]["fit_forces"]
+    dirs = readdir(joinpath(path, "DATA"))
+    dft_data = []
+    for d in dirs
+        open(joinpath(dir, "ENERGY") , "r") do file
+            e = readline(file)
+            push!(dft_data, e)
+        end
+    end
+    if fit_forces
+        for d in dirs
+            open(joinpath(dir, "FORCES") , "r") do file
+                while !eof(f)
+                    f = parse.(Float64, split(readline(file)))
+                    push!(dft_data, f[1])
+                    push!(dft_data, f[2])
+                    push!(dft_data, f[3])
+                end
+            end
+        end
+    end
+    return dft_data
+end

@@ -62,7 +62,7 @@ Validates trained potentials, forces, and stresses.
 """
 function validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
     fit_forces = params["global"]["fit_forces"]
-    rcut = params["global"]["rcut"]
+    rcutfac = params["global"]["rcutfac"]
     no_atoms_per_conf = params["global"]["no_atoms_per_conf"]
     no_train_atomic_conf = params["global"]["no_train_atomic_conf"]
     no_atomic_conf = params["global"]["no_atomic_conf"]

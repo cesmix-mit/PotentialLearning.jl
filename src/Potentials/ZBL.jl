@@ -9,11 +9,7 @@ mutable struct ZBL <: Potential
     zi::Float64      # Atomic number of the atom i.
     zj::Float64      # Atomic number of the atom j.
     a::Float64
-    r_inner::Float64 # Inner cutoff. Distance where switching function begins.
-    r_outer::Float64 # Outer cutoff. Global cutoff for ZBL interaction.
-    A::Float64
-    B::Float64
-    C::Float64
+    rcutfac::Float64    # Rcut
 end
 
 """
@@ -22,36 +18,14 @@ end
 Creates a ZBL potential.
 """
 function ZBL(params::Dict)
-
     # Creates the ZBL model
     ε0 = params["ε0"]
     e = params["e"]
     zi = params["zi"]
     zj = params["zj"]
     a = 0.46850 / (zi^0.23 + zj^0.23)
-    r_inner = params["r_inner"]
-    r_outer = params["r_outer"]
-    
-    p = ZBL(ε0, e, zi, zj, a, r_inner, r_outer, 0.0, 0.0, 0.0)
-    
-    # See https://docs.lammps.org/pair_zbl.html
-    #     https://docs.lammps.org/pair_gromacs.html
-    #
-    #   E(r_outer) = zbl(p, r_outer) + S(r_outer)
-    #   S(r_outer) = -E(r_outer)
-    #   S′(r_outer) = -E′(r_outer)
-    #   S′′(r_outer) = -E′′(r_outer)
-    #   =>
-    E(r) = -zbl(p, r) / 2.0
-    E′(r) = -zbl′(p, r) / 2.0
-    E′′(r) = -zbl′′(p, r) / 2.0
-    
-    p.A = (-3.0 * E′(r_outer) + (r_outer - r_inner) * E′′(r_outer)) / (r_outer - r_inner)^2
-    p.B = (-2.0 * E′(r_outer) - (r_outer - r_inner) * E′′(r_outer)) / (r_outer - r_inner)^3
-    p.C = -E(r_outer) + 0.5 * (r_outer - r_inner) * E′(r_outer)
-          -1.0 / 12.0 * (r_outer - r_inner)^2 * E′′(r_outer)
-
-    return p
+    rcutfac = params["rcutfac"]
+    return ZBL(ε0, e, zi, zj, a, rcutfac)
 end
 
 """
@@ -73,24 +47,6 @@ function zbl(p::ZBL, r::Float64)
 end
 
 """
-    zbl′(p, r)
-    
-First derivative of the ZBL function without the switching function S.
-"""
-function zbl′(p, r)
-    return gradient(r -> zbl(p, r), r)[1]
-end
-
-"""
-    zbl′(p, r)
-    
-Second derivative of the ZBL function without the switching function S.
-"""
-function zbl′′(p, r)
-    return gradient(r -> zbl′(p, r), r)[1]
-end
-
-"""
     S(r)
 
 Switching function that ramps the energy, force, and curvature smoothly to zero
@@ -98,13 +54,7 @@ between an inner and outer cutoff. Here, the inner and outer cutoff are the same
 for all pairs of atom types.
 """
 function S(p::ZBL, r::Float64)
-    if r < p.r_inner
-        return p.C
-    elseif p.r_inner < r && r < p.r_outer
-        return p.A / 3.0 * (r - p.r_inner)^3 + p.B / 4.0 * (r - p.r_inner)^4 + p.C
-    else
-        return 0.0 # TODO: check this
-    end
+    return r <= p.rcutfac ? 0.5 * (cos(pi * r / p.rcutfac) + 1.0) : 0
 end
 
 # TODO: check this function: "exp" or "e"?
