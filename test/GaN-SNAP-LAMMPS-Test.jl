@@ -17,9 +17,9 @@ using Test
     learn(snap, params)
 
     # Validate potentials, forces, and stresses
-    rel_error = validate(snap, dft_val_data - ref_val_data, params)
+    m = error_metrics(snap, dft_val_data - ref_val_data, params)
 
-    @test rel_error < 0.1
+    @test m["energy"]["max_rel_error"] < 0.1
 
 end
 

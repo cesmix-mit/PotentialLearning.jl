@@ -69,7 +69,6 @@ function error_metrics(p::PotentialLearningProblem, val_data::Vector{Float64}, p
     no_atomic_conf = params["global"]["no_atomic_conf"]
     no_val_atomic_conf = no_atomic_conf - no_train_atomic_conf
 
-    
     global metrics = Dict()
     metrics["energy"] = Dict()
     
@@ -86,14 +85,11 @@ function error_metrics(p::PotentialLearningProblem, val_data::Vector{Float64}, p
     # Force metrics
     if fit_forces
         forces_ = val_data[no_val_atomic_conf+1:end]
-        
-        @show size([forces(p, j) for j in no_train_atomic_conf+1:no_atomic_conf])
         fitted_forces = linearize([forces(p, j)
                                    for j in no_train_atomic_conf+1:no_atomic_conf])
-        
         metrics["force"] = Dict()
         metrics["force"]["max_rel_error"] =
-                    maximum(abs.(fitted_forces .- forces_) ./ fitted_forces)
+                    maximum(abs.((fitted_forces .- forces_) ./ forces_))
         metrics["force"]["mae"] = 
                     sum(abs.(fitted_forces .- forces_)) / length(forces_)
         metrics["force"]["rmse"] =
