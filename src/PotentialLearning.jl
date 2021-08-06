@@ -10,7 +10,8 @@ using GalacticOptim, Optim
 using BlackBoxOptim
 using Printf
 
-export get_conf_params, generate_data, learning_problem, learn, validate
+export get_conf_params, generate_data, get_dft_data, learning_problem, learn,
+       error_metrics, potential_energy, forces
 
 abstract type PotentialLearningProblem end
 
@@ -56,58 +57,52 @@ function learn(p::PotentialLearningProblem, params::Dict)
 end
 
 """
-    validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
+    error_metrics(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
 
-Validates trained potentials, forces, and stresses.
+Calculates error metrics: max_rel_error, mae, rmse
 """
-function validate(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
+function error_metrics(p::PotentialLearningProblem, val_data::Vector{Float64}, params::Dict)
     fit_forces = params["global"]["fit_forces"]
     rcutfac = params["global"]["rcutfac"]
     no_atoms_per_conf = params["global"]["no_atoms_per_conf"]
     no_train_atomic_conf = params["global"]["no_train_atomic_conf"]
     no_atomic_conf = params["global"]["no_atomic_conf"]
     no_val_atomic_conf = no_atomic_conf - no_train_atomic_conf
-    rel_errors = []
+
     
-    io = open("energy_validation.csv", "w");
-    line = @sprintf("Configuration, Potential Energy, Fitted Potential Energy, Relative Error\n")
-    write(io, line)
-    for j in 1:no_val_atomic_conf
-        p_val = val_data[j]
-        p_fitted = potential_energy(p, j + no_train_atomic_conf)
-        rel_error = abs(p_val - p_fitted) / p_val
-        push!(rel_errors, rel_error)
-        line = @sprintf("%d, %0.2f, %0.2f, %0.2f\n",
-                         j+ no_train_atomic_conf, p_val, p_fitted, rel_error)
-        write(io, line)
-    end
-    close(io)
+    global metrics = Dict()
+    metrics["energy"] = Dict()
     
+    # Energy metrics
+    energies = val_data[1:no_val_atomic_conf]
+    fitted_energies = [potential_energy(p, j) for j in no_train_atomic_conf+1:no_atomic_conf]
+    metrics["energy"]["max_rel_error"] =
+                    maximum(abs.(fitted_energies .- energies) ./ fitted_energies)
+    metrics["energy"]["mae"] = 
+                    sum(abs.(fitted_energies .- energies)) / length(energies)
+    metrics["energy"]["rmse"] =
+                    sqrt(sum((fitted_energies .- energies).^2) / length(energies))
+    
+    # Force metrics
     if fit_forces
-        io = open("force_validation.csv", "w");
-        line = @sprintf("Configuration, No. Atom, Force, Fitted Force, Relative Error\n")
-        write(io, line)
-        for j in 1:no_val_atomic_conf
-            fitted_forces = forces(p, j + no_train_atomic_conf)
-            for k in 1:no_atoms_per_conf
-                f_val = Force(val_data[k*3-2],
-                              val_data[k*3-1],
-                              val_data[k*3])
-                rel_error = norm(f_val - fitted_forces[k]) / norm(f_val)
-                push!(rel_errors, rel_error)
-                line = @sprintf("%d, %d, %0.2f %0.2f %0.2f, %0.2f %0.2f %0.2f, %0.2f\n",
-                        j+ no_train_atomic_conf, k, f_val[1], f_val[2], f_val[3],
-                        fitted_forces[k][1], fitted_forces[k][2],
-                        fitted_forces[k][3], rel_error)
-                write(io, line)
-            end
-        end
-        close(io)
+        forces_ = val_data[no_val_atomic_conf+1:end]
+        
+        @show size([forces(p, j) for j in no_train_atomic_conf+1:no_atomic_conf])
+        fitted_forces = linearize([forces(p, j)
+                                   for j in no_train_atomic_conf+1:no_atomic_conf])
+        
+        metrics["force"] = Dict()
+        metrics["force"]["max_rel_error"] =
+                    maximum(abs.(fitted_forces .- forces_) ./ fitted_forces)
+        metrics["force"]["mae"] = 
+                    sum(abs.(fitted_forces .- forces_)) / length(forces_)
+        metrics["force"]["rmse"] =
+                    sqrt(sum((fitted_forces .- forces_).^2) / length(forces_))
     end
-    
-    # TODO: validate stresses
-    
-    return maximum(rel_errors)
+
+    # TODO: Stress metrics
+
+   return metrics
 end
 
 end

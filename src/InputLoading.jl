@@ -10,15 +10,18 @@ function load_positions_per_conf(path::String, no_atoms_per_conf::Int64,
     for j = no_conf_init:no_conf_end
         rs = Vector{Position}()
         open(string(path, "/DATA/", string(j), "/DATA")) do f
-            for i = 1:23
-                readline(f)
+            while readline(f) != "Atoms" end
+            line = readline(f)
+            while line == ""
+                line = readline(f)
             end
             for i = 1:no_atoms_per_conf
-                s = split(readline(f))
+                s = split(line)
                 r = Position(parse(Float64, s[3]),
                              parse(Float64, s[4]),
                              parse(Float64, s[5]))
                 push!(rs, r)
+                line = i < no_atoms_per_conf ? readline(f) : ""
             end
         end
         push!(positions_per_conf, rs)

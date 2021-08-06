@@ -53,25 +53,34 @@ end
 function get_dft_data(params::Dict)
     path = params["global"]["path"]
     fit_forces = params["global"]["fit_forces"]
+    n = params["global"]["no_train_atomic_conf"]
+    m = params["global"]["no_atoms_per_conf"]
+    
     dirs = readdir(joinpath(path, "DATA"))
-    dft_data = []
+    dft_energies = Vector{Float64}()
     for d in dirs
-        open(joinpath(dir, "ENERGY") , "r") do file
-            e = readline(file)
-            push!(dft_data, e)
+        open(joinpath(path, "DATA", d, "ENERGY") , "r") do file
+            e = parse(Float64, readline(file))
+            push!(dft_energies, e)
         end
     end
+    training_data = dft_energies[1:n]
+    validation_data = dft_energies[n+1:end]
+    
     if fit_forces
+        dft_forces = Vector{Float64}()
         for d in dirs
-            open(joinpath(dir, "FORCES") , "r") do file
+            open(joinpath(path, "DATA", d, "FORCES") , "r") do file
                 while !eof(f)
                     f = parse.(Float64, split(readline(file)))
-                    push!(dft_data, f[1])
-                    push!(dft_data, f[2])
-                    push!(dft_data, f[3])
+                    push!(dft_forces, f[1])
+                    push!(dft_forces, f[2])
+                    push!(dft_forces, f[3])
                 end
             end
         end
+        training_data = [training_data; dft_forces[1:3*n*m]]
+        validation_data = [training_data; dft_forces[3*n*m+1:end]]
     end
-    return dft_data
+    return training_data, validation_data
 end

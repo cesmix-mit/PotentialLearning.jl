@@ -9,7 +9,7 @@ mutable struct ZBL <: Potential
     zi::Float64      # Atomic number of the atom i.
     zj::Float64      # Atomic number of the atom j.
     a::Float64
-    rcutfac::Float64    # Rcut
+    rcutfac::Float64 # Rcut
 end
 
 """

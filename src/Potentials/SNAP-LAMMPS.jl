@@ -46,7 +46,8 @@ function SNAP_LAMMPS(dft_data::Vector{Float64}, ref_data::Vector{Float64}, param
     b = dft_data - ref_data
     pars = params["global"]
     path = pars["path"]
-    no_atoms_per_type = pars["no_atoms_per_type"]
+    aux = pars["no_atoms_per_type"]
+    no_atoms_per_type = length(aux) > 1 ? aux : [aux]
     no_atoms_per_conf = sum(no_atoms_per_type)
     no_atomic_conf = pars["no_atomic_conf"]
     no_train_atomic_conf = pars["no_train_atomic_conf"]
@@ -56,8 +57,10 @@ function SNAP_LAMMPS(dft_data::Vector{Float64}, ref_data::Vector{Float64}, param
     J = twojmax / 2.0
     ncoeff = round(Int, (J + 1) * (J + 2) * (( J + (1.5)) / 3. ) + 1)
     cols = 2 * ncoeff
-    cutoff_radii = pars["cutoff_radii"]
-    neighbor_weights = pars["neighbor_weights"]
+    aux = pars["cutoff_radii"]
+    cutoff_radii = length(aux) > 1 ? aux : [aux]
+    aux = pars["neighbor_weights"]
+    neighbor_weights = length(aux) > 1 ? aux : [aux]
     numTypes = pars["numTypes"]
 
     opt_pars = Dict()
@@ -122,13 +125,7 @@ function get_bispectrums(lmp, data_path::String, p::SNAP_LAMMPS)
     args *= haskey(p.opt_pars, "bnormflag") ? "bnormflag $(p.opt_pars["bnormflag"]) " : ""
     args *= haskey(p.opt_pars, "wselfallflag") ? "wselfallflag $(p.opt_pars["wselfallflag"]) " : ""
     args *= haskey(p.opt_pars, "switchflag") ? "switchflag $(p.opt_pars["switchflag"]) " : ""
-    
-#    units = params["ref"]["units"]
-#    atom_style = params["ref"]["atom_style"]
-#    pair_style = params["ref"]["pair_style"]
-#    pair_coeff1 = params["ref"]["pair_coeff1"]
-#    pair_coeff2 = params["ref"]["pair_coeff2"]
-    
+
     read_data_str = "read_data " * data_path
     command(lmp, "log none")
     command(lmp, "units metal")
@@ -136,9 +133,11 @@ function get_bispectrums(lmp, data_path::String, p::SNAP_LAMMPS)
     command(lmp, "atom_style atomic")
     command(lmp, "atom_modify map array")
     command(lmp, read_data_str)
-    command(lmp, "pair_style hybrid/overlay zero 10.0 zbl 4.0 4.8")
-    command(lmp, "pair_coeff * * zero")
-    command(lmp, "pair_coeff * * zbl 73 73")
+#    command(lmp, "pair_style hybrid/overlay zero 10.0 zbl 4.0 4.8")
+#    command(lmp, "pair_coeff * * zero")
+#    command(lmp, "pair_coeff * * zbl 73 73")
+    command(lmp, "pair_style zero $(p.rcutfac)")
+    command(lmp, "pair_coeff * *")
     command(lmp, "compute PE all pe")
     command(lmp, "compute S all pressure thermo_temp")
     command(lmp, "compute SNA all sna/atom " * args)
@@ -147,7 +146,7 @@ function get_bispectrums(lmp, data_path::String, p::SNAP_LAMMPS)
     command(lmp, "thermo_style custom pe")
     command(lmp, "run 0")
 
-    ## Extract bispectrum
+    # Extract bispectrum
     bs = extract_compute(lmp, "SNA",  LAMMPS.API.LMP_STYLE_ATOM,
                                       LAMMPS.API.LMP_TYPE_ARRAY)
     deriv_bs = extract_compute(lmp, "SNAD", LAMMPS.API.LMP_STYLE_ATOM,
@@ -195,8 +194,9 @@ function calc_A(p::SNAP_LAMMPS)
                     for c = [1, 2, 3] # component x, y, z
                         row = Vector{Float64}()
                         for t = 1:p.numTypes # e.g. 2 : Ga and N
-                            offset = (t-1) * (p.ncoeff-1) + (c-1) * p.numTypes * (p.ncoeff-1)
-                            row = [row; [0.0; deriv_bs[1 + offset:(p.ncoeff-1) + offset, n]]]
+                            a = 1 + (p.ncoeff-1) * (c-1) + 3 * (p.ncoeff-1) * (t-1)
+                            b = a + p.ncoeff - 2
+                            row = [row; [0.0; deriv_bs[a:b, n]]]
                         end
                         A_forces[k, :] = row
                         k += 1
@@ -248,6 +248,7 @@ end
 Calculates the forces of a particular atomic configuration (j) using the 
 fitted parameters β. 
 This calculation requires accessing the SNAP implementation of LAMMPS.
+See https://docs.lammps.org/compute_sna_atom.html#compute-snad-atom-command
 """
 function forces(p::PotentialLearningProblem, j::Int64)
 
@@ -256,18 +257,19 @@ function forces(p::PotentialLearningProblem, j::Int64)
     bs, deriv_bs = get_bispectrums(lmp, data_path, p)
     
     forces = Vector{Force}()
-    
+
     for n = 1:p.no_atoms_per_conf
-        for t = 1:p.numTypes # e.g. 2 : Ga and N
-            f = [0.0, 0.0, 0.0]
-            for c = [1, 2, 3] # component x, y, z
-                offset = (t-1) * (p.ncoeff-1) + (c-1) * p.numTypes * (p.ncoeff-1)
-                deriv_bs_row = [0.0; deriv_bs[1 + offset:(p.ncoeff-1) + offset, n]]
-                f[c] = sum([p.β[k + (t-1) * p.ncoeff] * deriv_bs_row[k]
-                            for k in 1:length(deriv_bs_row)])
+        f = [0.0, 0.0, 0.0]
+        for c = [1, 2, 3] # component x, y, z
+            deriv_bs_row = []
+            for t = 1:p.numTypes
+                a = 1 + (p.ncoeff-1) * (c-1) + 3 * (p.ncoeff-1) * (t-1)
+                b = a + p.ncoeff - 2
+                deriv_bs_row = [deriv_bs_row; [0.0; deriv_bs[a:b, n]]]
             end
-            push!(forces, Force(f))
+            f[c] = sum(deriv_bs_row .* p.β)
         end
+        push!(forces, Force(f))
     end
     
     command(lmp, "clear")
