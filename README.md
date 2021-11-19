@@ -1,4 +1,4 @@
-# [WIP] PotentialLearning.jl: The Julia Library of Molecular Dynamics Potentials
+# [WIP] PotentialLearning.jl
 
 An Open Source library for active training and fast calculation of molecular dynamics potentials for atomistic simulations of materials. 
 
