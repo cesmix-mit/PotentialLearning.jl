@@ -1,6 +1,7 @@
 
 # Learning problem #############################################################
 
+
 """
     SmallSNAPLP{D, T}
     
@@ -8,7 +9,7 @@ SNAP learning problem for small systems
 """
 struct SmallSNAPLP{D, T} <: LearningProblem{D, T}
    # SNAP potential
-   snap::SNAP{D, T}
+   snap::SNAP
   
    # SNAP matrix (depends on the hyper-parameters)
    A::Matrix{T}
@@ -21,10 +22,10 @@ struct SmallSNAPLP{D, T} <: LearningProblem{D, T}
    # Input data
    y::Vector{T} # linearize(training_dft_data) - linearize(training_ref_data)
    ATy::Matrix{T} # A^T * A, optional
-   training_dft_data::DFTData{D, T}
-   training_ref_data::DFTData{D, T}
-   validation_dft_data::DFTData{D, T}
-   validation_ref_data::DFTData{D, T}
+   training_dft_data::SmallESData{D}
+   training_ref_data::SmallESData{D}
+   validation_dft_data::SmallESData{D}
+   validation_ref_data::SmallESData{D}
 end
 
 

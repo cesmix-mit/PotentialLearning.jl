@@ -4,8 +4,14 @@
 #
 ################################################################################
 
-using GalacticOptim, Optim
-using BlackBoxOptim
+using ElectronicStructure
+
+using GalacticOptim, Optim, BlackBoxOptim
+using LinearAlgebra
+
+export LearningProblem, LearningOptimizer
+export SDPOpt, LeastSquaresOpt, QRLinearOpt, NelderMeadOpt
+export loss, learn
 
 
 # Abstract types ###############################################################
@@ -64,7 +70,7 @@ end
 `params`: parameters to be fitted
 `opt`: learning optimizer
 """
-function loss(params::Vector{T}, opt::LearningOptimizer{D, T}) end
+function loss(params::Vector{T}, opt::LearningOptimizer{D, T}) where {T, D} end
 
 """
     learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T})
@@ -72,7 +78,7 @@ function loss(params::Vector{T}, opt::LearningOptimizer{D, T}) end
 `lp`: learning problem
 `opt`: learning optimizer
 """
-function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}) end
+function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}) where {T, D}  end
 
 """
     learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}, loss)
@@ -81,5 +87,5 @@ function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}) end
 `opt`: learning optimizer
 `loss`: loss function
 """
-function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}, loss) end
+function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}, loss) where {T, D} end
 
