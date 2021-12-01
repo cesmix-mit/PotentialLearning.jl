@@ -1,4 +1,6 @@
 
+export SmallSNAPLP, hyperparam_loss, β_loss, learn
+
 # Learning problem #############################################################
 
 
@@ -28,6 +30,17 @@ struct SmallSNAPLP{D, T} <: LearningProblem{D, T}
    validation_ref_data::SmallESData{D}
 end
 
+function SmallSNAPLP(snap::SNAP, data::SmallESData)
+    
+#    A = get_snap(inter_pot_atomic_confs, snap)
+#    ATA = A' * A
+#    n = size(A)[1]
+#    Q = Diagonal(ones(n))
+#    invQ = inv(Q)
+#    y = 
+#    SNAP(snap, A, )
+end
+
 
 # Hyper-parameter optimization #################################################
 
@@ -36,17 +49,17 @@ end
     
 SNAP hyper-parameter loss function
 """
-function hyperparam_loss(hyperparams::Vector{T}, lp::SmallSNAPLP{D, T})
+function hyperparam_loss(hyperparams::Vector{T}, lp::SmallSNAPLP{D, T}) where {D, T}
 #   return  ...
 end
 
 
 """
-    learn(lp::SNAPLP{T}, loss, s::SDPOpt{T})
+    learn(lp::SmallSNAPLP{T}, loss, s::SDPOpt{T})
     
 Learning function: using SDPOpt to optimize the hyper-parameters
 """
-function learn(lp::SNAPLP{T}, loss, s::SDPOpt{T})
+function learn(lp::SmallSNAPLP{T}, loss, s::SDPOpt{T}) where {T}
 #   ...hyperparam_loss...
 #   lp.snap.rcutfac = ...
 #   lp.snap.twojmax = ...
@@ -60,7 +73,7 @@ end
     
 Learning function: using normal equations and qr decomposition to learn main parameters
 """
-function learn(lp::SmallSNAPLP{T}, s::LeastSquaresOpt{T})
+function learn(lp::SmallSNAPLP{T}, s::LeastSquaresOpt{T}) where {T}
    lp.snap.β = (lp.A' * lp.A) \ (lp.A' * lp.y)
 end
 
@@ -69,7 +82,7 @@ end
     
 Learning function: using QR decomposition to learn main parameters
 """
-function learn(lp::SmallSNAPLP{T}, s::QRLinearOpt{T})
+function learn(lp::SmallSNAPLP{T}, s::QRLinearOpt{T}) where {T}
    lp.snap.β = lp.A \ lp.y # or... qr(A,Val(true)) \ y
 end
 
@@ -78,7 +91,7 @@ end
     
 Loss function: using NelderMeadOpt from GalacticOptim to optimize the parameters
 """
-function β_loss(β::Vector{T}, lp::SmallSNAPLP{D, T})
+function β_loss(β::Vector{T}, lp::SmallSNAPLP{D, T}) where {D, T}
    e = lp.A * β - lp.y
    return  transpose(e) * inv(lp.Q) * e
 end
@@ -88,7 +101,7 @@ end
     
 Learning function: using NelderMeadOpt from GalacticOptim to optimize the parameters
 """
-function learn(lp::SmallSNAPLP{T}, loss, s::NelderMeadOpt{T})
+function learn(lp::SmallSNAPLP{T}, loss, s::NelderMeadOpt{T}) where {T}
    β0 = zeros(length(lp.A[1,:]))
    prob = GalacticOptim.OptimizationProblem((x, pars)->loss(x, lp), β0, [])
    lp.β = GalacticOptim.solve(prob, NelderMead(), maxiters=s.maxiters)

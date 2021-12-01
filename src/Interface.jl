@@ -4,10 +4,8 @@
 #
 ################################################################################
 
-using ElectronicStructure
-
-using GalacticOptim, Optim, BlackBoxOptim
-using LinearAlgebra
+using ElectronicStructure, InteratomicPotentials
+using LinearAlgebra, GalacticOptim, Optim, BlackBoxOptim
 
 export LearningProblem, LearningOptimizer
 export SDPOpt, LeastSquaresOpt, QRLinearOpt, NelderMeadOpt
