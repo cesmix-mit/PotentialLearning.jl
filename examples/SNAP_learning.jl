@@ -53,7 +53,7 @@ inter_pot_atomic_confs = inter_pot_conf(atomic_confs)
 snap = SNAP(rcutfac, twojmax, inter_pot_atomic_confs[1])
 
 # Define learning problem
-#lp = SmallSNAPLP{D, Float32}(snap, data)
+lp = SmallSNAPLP(snap, inter_pot_atomic_confs, data)
 
 # Learn :-)
 #learn(lp, LeastSquaresOpt{T}())
