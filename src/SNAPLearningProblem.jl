@@ -33,13 +33,13 @@ struct SmallSNAPLP{D, T} <: LearningProblem{D, T}
 end
 
 function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
-                     training_prop = 0.8, fit = [:e, :f, :s]) where {D}
+                     trainingsize = 0.8, fit = [:e, :f, :s]) where {D}
 
-    m = floor(Int, length(atomic_confs) * training_prop)
+    m = floor(Int, length(atomic_confs) * trainingsize)
 
-    n_e = floor(Int, length(data.energies) * training_prop)
-    n_f = n_e + floor(Int, length(data.forces) * length(data.forces[1]) * 3 * training_prop)
-    n_s = n_f + floor(Int, length(data.stresses) * sum([ 1 for j in 1:D for i in j:D ]) * training_prop)
+    n_e = floor(Int, length(data.energies) * trainingsize)
+    n_f = n_e + floor(Int, length(data.forces) * length(data.forces[1]) * 3 * trainingsize)
+    n_s = n_f + floor(Int, length(data.stresses) * sum([ 1 for j in 1:D for i in j:D ]) * trainingsize)
     
     AA = get_snap(atomic_confs[1:m], snap) #TODO: get_snap should allow me to chose what to fit (e, f, or s)
     A_e = AA[1:n_e, :]
@@ -64,14 +64,27 @@ function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
                                          data.stresses[m+1:end]) # TODO: @views?
     training_ref_data = training_dft_data # TODO: add ZBL, see PotentialLearning.jl in master
     validation_ref_data = validation_dft_data # TODO: add ZBL, see PotentialLearning.jl in master
-    
-    y = linearize(training_dft_data) #- linearize(training_ref_data)
-    y_val = linearize(validation_dft_data) #- linearize(validation_ref_data)
+
+    y = []
+    if :e in fit
+        y = linearize(training_dft_data.energies) #- linearize(training_ref_data.energies)
+        y_val = linearize(validation_dft_data.energies) #- linearize(validation_ref_data.energies)
+    end
+    if :f in fit
+        append!(y, linearize(training_dft_data.forces)) #- linearize(training_ref_data.forces)
+        append!(y_val, linearize(validation_dft_data.forces)) #- linearize(validation_ref_data.forces)
+    end
+    if :s in fit
+        append!(y, linearize(training_dft_data.stresses)) #- linearize(training_ref_data.stresses)
+        append!(y_val, linearize(validation_dft_data.stresses)) #- linearize(validation_ref_data.stresses)
+    end
+
     ATy = A' * y
 
     SmallSNAPLP(snap, A, ATA, Q, invQ, training_dft_data, training_ref_data,
                 validation_dft_data, validation_ref_data, y, y_val, ATy)
 end
+
 
 
 # Hyper-parameter optimization #################################################
