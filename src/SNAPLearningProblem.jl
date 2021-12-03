@@ -32,21 +32,35 @@ struct SmallSNAPLP{D, T} <: LearningProblem{D, T}
    
 end
 
-function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D}; training_prop = 0.8) where {D}
-    m = floor(Int, length(data.energies) * training_prop)
-    n = floor(Int, length(data.forces) * training_prop)
+function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
+                     training_prop = 0.8, fit = [:e, :f, :s]) where {D}
+
+    m = floor(Int, length(atomic_confs) * training_prop)
+
+    n_e = floor(Int, length(data.energies) * training_prop)
+    n_f = n_e + floor(Int, length(data.forces) * length(data.forces[1]) * 3 * training_prop)
+    n_s = n_f + floor(Int, length(data.stresses) * sum([ 1 for j in 1:D for i in j:D ]) * training_prop)
     
-    A = get_snap(atomic_confs[1:m], snap)
+    AA = get_snap(atomic_confs[1:m], snap) #TODO: get_snap should allow me to chose what to fit (e, f, or s)
+    A_e = AA[1:n_e, :]
+    A_f = AA[n_e+1:n_f, :]
+    A_s = AA[n_f+1:n_s, :]
+    
+    A = []
+    if :e in fit A = A_e end
+    if :f in fit A = vcat(A, A_f) end
+    if :s in fit A = vcat(A, A_s) end
+    
     ATA = A' * A
     nrows = size(A)[1]
     Q = Diagonal(ones(nrows))
     invQ = inv(Q)
     
     training_dft_data = SmallESData{D}(data.energies[1:m],
-                                       data.forces[1:n],
+                                       data.forces[1:m],
                                        data.stresses[1:m]) # TODO: @views?
     validation_dft_data = SmallESData{D}(data.energies[m+1:end],
-                                         data.forces[n+1:end],
+                                         data.forces[m+1:end],
                                          data.stresses[m+1:end]) # TODO: @views?
     training_ref_data = training_dft_data # TODO: add ZBL, see PotentialLearning.jl in master
     validation_ref_data = validation_dft_data # TODO: add ZBL, see PotentialLearning.jl in master
@@ -55,7 +69,6 @@ function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D}; tra
     y_val = linearize(validation_dft_data) #- linearize(validation_ref_data)
     ATy = A' * y
 
-    
     SmallSNAPLP(snap, A, ATA, Q, invQ, training_dft_data, training_ref_data,
                 validation_dft_data, validation_ref_data, y, y_val, ATy)
 end
