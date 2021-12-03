@@ -123,7 +123,7 @@ Learning function: using NelderMeadOpt from GalacticOptim to optimize the parame
 function learn(lp::SmallSNAPLP{T}, loss, s::NelderMeadOpt{T}) where {T}
    β0 = zeros(length(lp.A[1,:]))
    prob = GalacticOptim.OptimizationProblem((x, pars)->loss(x, lp), β0, [])
-   lp.β = GalacticOptim.solve(prob, NelderMead(), maxiters=s.maxiters)
+   lp.snap.β = GalacticOptim.solve(prob, NelderMead(), maxiters=s.maxiters)
 end
 
 
