@@ -72,8 +72,8 @@ function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
     n_e = m_val; n_f = n_e + m_val * length(atomic_confs[1].Atoms) * 3
     A_val = []
     if :e in fit A_val = AA_val[1:n_e, :] end
-    if :f in fit A_val = vcat(A, AA_val[n_e+1:n_f, :]) end
-    if :s in fit A_val = vcat(A, AA_val[n_f+1:end, :]) end
+    if :f in fit A_val = vcat(A_val, AA_val[n_e+1:n_f, :]) end
+    if :s in fit A_val = vcat(A_val, AA_val[n_f+1:end, :]) end
     validation_dft_data = SmallESData{D}(data.energies[m+1:end],
                                          data.forces[m+1:end],
                                          data.stresses[m+1:end])
