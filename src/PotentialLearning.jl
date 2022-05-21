@@ -1,6 +1,8 @@
 module PotentialLearning
 
 include("Interface.jl")
-include("SNAPLearningProblem.jl")
+include("IO/io.jl")
+include("SubsetSelection/subsetselector.jl")
+# include("SNAPLearningProblem.jl")
 
 end

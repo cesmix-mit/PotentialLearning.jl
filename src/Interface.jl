@@ -4,7 +4,8 @@
 #
 ################################################################################
 
-using ElectronicStructure, InteratomicPotentials
+using InteratomicPotentials, AtomsBase, Unitful, UnitfulAtomic
+using DPP, HDBSCAN, Clustering
 using LinearAlgebra, GalacticOptim, Optim, BlackBoxOptim
 
 export LearningProblem, LearningOptimizer

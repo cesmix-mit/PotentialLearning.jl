@@ -1,4 +1,10 @@
 using PotentialLearning
 using Test
 
-#include("SNAP-test.jl")
+@testset "PotentialLearning.jl" begin
+
+    @testset "IO Tests.jl" begin
+        include("io/extxyz_test.jl")
+        include("io/lammps_test.jl")
+    end
+end
