@@ -5,33 +5,33 @@ export SmallSNAPLP, hyperparam_loss, β_loss, learn
 
 
 """
-    SmallSNAPLP{D, T}
+    SmallSNAPLP
     
 SNAP learning problem for small systems
 """
-struct SmallSNAPLP{D, T} <: LearningProblem{D, T}
+struct SmallSNAPLP <: LearningProblem
    
    # Training #################################
    snap::SNAP         # SNAP potential
-   A::Matrix{T}       # SNAP matrix
-   y::Vector{T}       # DFT and reference data
-   ATA::Matrix{T}     # A^T * A
-   ATy::Vector{T}     # A^T * y
-   Q::Diagonal{T}     # Covariance
-   invQ::Diagonal{T}  # inverse of Q
-   training_dft_data::SmallESData{D}
-   training_ref_data::SmallESData{D}
+   A::Matrix       # SNAP matrix
+   y::Vector       # DFT and reference data
+   ATA::Matrix     # A^T * A
+   ATy::Vector     # A^T * y
+   Q::Diagonal     # Covariance
+   invQ::Diagonal  # inverse of Q
+   training_dft_data::SmallESData
+   training_ref_data::SmallESData
     
    # Validation ###############################
-   A_val::Matrix{T}   # SNAP matrix
-   y_val::Vector{T}   # DFT and reference data
-   validation_dft_data::SmallESData{D}
-   validation_ref_data::SmallESData{D}
+   A_val::Matrix   # SNAP matrix
+   y_val::Vector   # DFT and reference data
+   validation_dft_data::SmallESData
+   validation_ref_data::SmallESData
    
 end
 
-function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
-                     trainingsize = 0.8, fit = [:e, :f, :s]) where {D}
+function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData;
+                     trainingsize = 0.8, fit = [:e, :f, :s]) where 
     # TODO: @views?
     
     # Training #############################################################
@@ -44,11 +44,11 @@ function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
     if :s in fit A = vcat(A, AA[n_f+1:end, :]) end
     ATA = A' * A
     Q = Diagonal(ones(size(A)[1])); invQ = inv(Q)
-    training_dft_data = SmallESData{D}(data.energies[1:m],
+    training_dft_data = SmallESData(data.energies[1:m],
                                        data.forces[1:m],
                                        data.stresses[1:m])
     # TODO: add ZBL, see PotentialLearning.jl in master
-    training_ref_data = SmallESData{D}(data.energies[1:m] * 0.01,
+    training_ref_data = SmallESData(data.energies[1:m] * 0.01,
                                        data.forces[1:m] * 0.01,
                                        data.stresses[1:m] * 0.01)
     y = []
@@ -74,11 +74,11 @@ function SmallSNAPLP(snap::SNAP, atomic_confs::Vector, data::SmallESData{D};
     if :e in fit A_val = AA_val[1:n_e, :] end
     if :f in fit A_val = vcat(A_val, AA_val[n_e+1:n_f, :]) end
     if :s in fit A_val = vcat(A_val, AA_val[n_f+1:end, :]) end
-    validation_dft_data = SmallESData{D}(data.energies[m+1:end],
+    validation_dft_data = SmallESData(data.energies[m+1:end],
                                          data.forces[m+1:end],
                                          data.stresses[m+1:end])
     # TODO: add ZBL, see PotentialLearning.jl in master
-    validation_ref_data = SmallESData{D}(data.energies[m+1:end] * 0.01,
+    validation_ref_data = SmallESData(data.energies[m+1:end] * 0.01,
                                          data.forces[m+1:end] * 0.01,
                                          data.stresses[m+1:end] * 0.01)
     y_val = []
@@ -105,21 +105,21 @@ end
 # Hyper-parameter optimization #################################################
 
 """
-    hyperparam_loss(hyperparams::Vector{T}, lp::SmallSNAPLP{D, T})
+    hyperparam_loss(hyperparams::Vector, lp::SmallSNAPLP)
     
 SNAP hyper-parameter loss function
 """
-function hyperparam_loss(hyperparams::Vector{T}, lp::SmallSNAPLP{D, T}) where {D, T}
+function hyperparam_loss(hyperparams::Vector, lp::SmallSNAPLP) where 
 #   return  ...
 end
 
 
 """
-    learn(lp::SmallSNAPLP{T}, loss, s::SDPOpt{T})
+    learn(lp::SmallSNAPLP, loss, s::SDPOpt)
     
 Learning function: using SDPOpt to optimize the hyper-parameters
 """
-function learn(lp::SmallSNAPLP{T}, loss, s::SDPOpt{T}) where {T}
+function learn(lp::SmallSNAPLP, loss, s::SDPOpt) where 
 #   ...hyperparam_loss...
 #   lp.snap.rcutfac = ...
 #   lp.snap.twojmax = ...
@@ -129,39 +129,39 @@ end
 # β-parameter optimization #####################################################
 
 """
-    learn(lp::SmallSNAPLP{T}, s::LeastSquaresOpt{T})
+    learn(lp::SmallSNAPLP, s::LeastSquaresOpt)
     
 Learning function: using normal equations and qr decomposition to learn main parameters
 """
-function learn(lp::SmallSNAPLP{T}, s::LeastSquaresOpt{T}) where {T}
+function learn(lp::SmallSNAPLP, s::LeastSquaresOpt) where 
    lp.snap.β = (lp.A' * lp.A) \ (lp.A' * lp.y)
 end
 
 """
-    learn(lp::SmallSNAPLP{T}, s::QRLinearOpt{T})
+    learn(lp::SmallSNAPLP, s::QRLinearOpt)
     
 Learning function: using QR decomposition to learn main parameters
 """
-function learn(lp::SmallSNAPLP{T}, s::QRLinearOpt{T}) where {T}
+function learn(lp::SmallSNAPLP, s::QRLinearOpt) where 
    lp.snap.β = lp.A \ lp.y # or... qr(A,Val(true)) \ y
 end
 
 """
-    β_loss(β::Vector{T}, lp::SmallSNAPLP{D, T})
+    β_loss(β::Vector, lp::SmallSNAPLP)
     
 Loss function: using NelderMeadOpt from GalacticOptim to optimize the parameters
 """
-function β_loss(β::Vector{T}, lp::SmallSNAPLP{D, T}) where {D, T}
+function β_loss(β::Vector, lp::SmallSNAPLP) where 
    e = lp.A * β - lp.y
    return  transpose(e) * inv(lp.Q) * e
 end
 
 """
-    learn(lp::SmallSNAPLP{T}, loss, s::NelderMeadOpt{T})
+    learn(lp::SmallSNAPLP, loss, s::NelderMeadOpt)
     
 Learning function: using NelderMeadOpt from GalacticOptim to optimize the parameters
 """
-function learn(lp::SmallSNAPLP{T}, loss, s::NelderMeadOpt{T}) where {T}
+function learn(lp::SmallSNAPLP, loss, s::NelderMeadOpt) where 
    β0 = zeros(length(lp.A[1,:]))
    prob = GalacticOptim.OptimizationProblem((x, pars)->loss(x, lp), β0, [])
    lp.snap.β = GalacticOptim.solve(prob, NelderMead(), maxiters=s.maxiters)
