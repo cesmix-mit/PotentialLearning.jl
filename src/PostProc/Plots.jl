@@ -1,4 +1,14 @@
-# Plot variables
+export plot_energy, plot_forces, plot_cos
+
+"""
+    plot_energy(e_pred, e_true)
+    
+`e_pred`: vector of predicted energies
+`e_true`: vector of true energies
+
+Returns an energy plot.
+
+"""
 function plot_energy(e_pred, e_true)
     r0 = minimum(e_true); r1 = maximum(e_true); rs = (r1-r0)/10
     plot( e_true, e_pred, seriestype = :scatter, markerstrokewidth=0,
@@ -7,6 +17,16 @@ function plot_energy(e_pred, e_true)
     return p
 end
 
+
+"""
+    plot_forces(f_pred, f_true)
+    
+`f_pred`: vector of predicted forces
+`f_true`: vector of true forces
+
+Returns a force plot.
+
+"""
 function plot_forces(f_pred, f_true)
     f_pred_v = collect(eachcol(reshape(f_pred, 3, :)))
     f_true_v = collect(eachcol(reshape(f_true, 3, :)))
@@ -18,6 +38,16 @@ function plot_forces(f_pred, f_true)
     return p
 end
 
+
+"""
+    plot_cos(f_pred, f_true)
+    
+`f_pred`: vector of predicted forces
+`f_true`: vector of true forces
+
+Returns a plot with the cosine or correlation of the forces.
+
+"""
 function plot_cos(f_pred, f_true)
     f_pred_v = collect(eachcol(reshape(f_pred, 3, :)))
     f_true_v = collect(eachcol(reshape(f_true, 3, :)))

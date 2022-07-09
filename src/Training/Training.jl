@@ -1,6 +1,15 @@
-# Batch training using Optimization.jl
-# I am using one of the Optimization.jl solvers, because I have not been able to
-# tackle this problem with the Flux solvers.
+export train!
+
+"""
+    batch_train_opt!(ps, re, opt, maxiters, train_loader_e, train_loader_f,
+                     w_e, w_f, epoch, train_losses_batches)
+
+TODO: complete documentation
+Batch training using Optimization.jl
+I am using one of the Optimization.jl solvers, because I have not been able to
+tackle this problem with the Flux solvers.
+
+"""
 function batch_train_opt!(ps, re, opt, maxiters, train_loader_e, train_loader_f,
                           w_e, w_f, epoch, train_losses_batches)
     i = 1
@@ -22,7 +31,13 @@ function batch_train_opt!(ps, re, opt, maxiters, train_loader_e, train_loader_f,
     return ps
 end
 
-# Batch training using Flux.jl
+"""
+    batch_train_flux!(ps, re, opt, maxiters, train_loader_e, train_loader_f, w_e, w_f)
+    
+TODO: complete documentation
+Batch training using Flux.jl
+
+"""
 function batch_train_flux!(ps, re, opt, maxiters, train_loader_e, train_loader_f, w_e, w_f)
     for ((bs_e, es), (bs_f, dbs_f, fs)) in zip(train_loader_e, train_loader_f)
         g = gradient(Flux.params(ps)) do
@@ -34,7 +49,13 @@ function batch_train_flux!(ps, re, opt, maxiters, train_loader_e, train_loader_f
     return ps
 end
 
-# Training
+"""
+    train!( lib, nnbp, epochs, opt, maxiters, train_loader_e, train_loader_f,
+            test_loader_e, test_loader_f, w_e, w_f)
+
+TODO: complete documentation
+
+"""
 function train!( lib, nnbp, epochs, opt, maxiters, train_loader_e, train_loader_f,
                  test_loader_e, test_loader_f, w_e, w_f)
 

@@ -1,6 +1,16 @@
-# This code will be added to PotentialLearning.jl
+export load_extxyz
 
-function load_data(file; max_entries = 2000, T = Float64)
+"""
+    load_extxyz(file; max_entries = 2000, T = Float64)
+
+`file`: name of extxyz file
+`max_entries`: maximum number of systems
+`T`: default type
+
+Returns a vector of systems or atomic configurations.
+
+"""
+function load_extxyz(file; max_entries = 2000, T = Float64)
     systems  = AbstractSystem[]
     energies = T[]
     forces    = Vector{SVector{3, T}}[]
