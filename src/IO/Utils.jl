@@ -1,5 +1,10 @@
 
-export savevar, savecsv, savefig
+export @savevar, @savecsv, @savefig
+
+path = ""
+var = ""
+dict = ""
+
 
 """
     savevar(path, var)
@@ -8,20 +13,22 @@ Simplifies the saving of a variable.
 
 """
 macro savevar(path, var)
-    quote
-        write("$(path)" * $(string(var)) * ".dat", string($(esc(var))))
-    end
+     quote
+        write($(esc(path)) * $(string(var)) * ".dat", string($(esc(var))))
+     end
 end
 
 
 """
-    savevar(path, dict)
+    savecsv(path, dict)
     
 Simplifies the saving of a dictionary to a CSV file.
 
 """
 macro savecsv(path, dict)
-    return :( CSV.write("$(path)" * $(string(dict)) * ".csv", $(dict), header = false) )
+    quote
+        CSV.write($(esc(path)) * $(string(dict)) * ".csv", $(esc(dict)), header = false)
+    end
 end
 
 """
@@ -31,6 +38,8 @@ Simplifies the saving of a figure.
 
 """
 macro savefig(path, var)
-    return :( savefig($(var), "$(path)" * $(string(var)) * ".png") )
+    quote
+        savefig($(esc(var)), $(esc(path)) * $(string(var)) * ".png")
+    end
 end
 

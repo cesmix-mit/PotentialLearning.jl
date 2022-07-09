@@ -1,4 +1,3 @@
-include("load-extxyz.jl")
 
 export get_defaults_args, get_input, load_dataset, linearize_forces, get_batches
 
@@ -76,7 +75,7 @@ function load_dataset(n_train_sys, n_test_sys, dataset_path, dataset_filename)
     n_sys = n_train_sys + n_test_sys
     filename = dataset_path*dataset_filename
     systems, energies, forces, stress =
-                               load_data(filename, max_entries = n_sys)
+                               load_extxyz(filename, max_entries = n_sys)
     rand_list = randperm(n_sys)
     train_index, test_index = rand_list[1:n_train_sys], rand_list[n_train_sys+1:n_sys]
     train_systems, train_energies, train_forces, train_stress =
@@ -109,10 +108,10 @@ function load_dataset(n_train_sys, n_test_sys, dataset_path,
     n_sys = n_train_sys + n_test_sys
     filename = dataset_path*trainingset_filename
     train_systems, train_energies, train_forces, train_stress =
-            load_data(filename, max_entries = n_train_sys)
+            load_extxyz(filename, max_entries = n_train_sys)
     filename = dataset_path*testset_filename
     test_systems, test_energies, test_forces, test_stress =
-            load_data(filename, max_entries = n_test_sys)
+            load_extxyz(filename, max_entries = n_test_sys)
     return train_systems, train_energies, train_forces, train_stress,
            test_systems, test_energies, test_forces, test_stress
 end
