@@ -4,10 +4,18 @@ export train!
     batch_train_opt!(ps, re, opt, maxiters, train_loader_e, train_loader_f,
                      w_e, w_f, epoch, train_losses_batches)
 
-TODO: complete documentation
-Batch training using Optimization.jl
-I am using one of the Optimization.jl solvers, because I have not been able to
-tackle this problem with the Flux solvers.
+`ps`: neural network parameters. See Flux.destructure.
+`re`: neural network restructure. See Flux.destructure.
+`opt`: optimizer.
+`maxiters`: maximum number of iterations in the optimizer.
+`train_loader_e`: energy data loader.
+`train_loader_f`: force data loader.
+`w_e`: energy weight.
+`w_f`: force weight.
+`epoch`: current epoch.
+`train_losses_batches`: vector of batch losses during training.
+
+Batch training using Optimization.jl. Returns NN parameters.
 
 """
 function batch_train_opt!(ps, re, opt, maxiters, train_loader_e, train_loader_f,
@@ -33,9 +41,17 @@ end
 
 """
     batch_train_flux!(ps, re, opt, maxiters, train_loader_e, train_loader_f, w_e, w_f)
-    
-TODO: complete documentation
-Batch training using Flux.jl
+
+`ps`: neural network parameters. See Flux.destructure.
+`re`: neural network restructure. See Flux.destructure.
+`opt`: optimizer.
+`maxiters`: maximum number of iterations in the optimizer.
+`train_loader_e`: energy data loader.
+`train_loader_f`: force data loader.
+`w_e`: energy weight.
+`w_f`: force weight.
+
+Batch training using Flux.jl. Returns neural network parameters.
 
 """
 function batch_train_flux!(ps, re, opt, maxiters, train_loader_e, train_loader_f, w_e, w_f)
@@ -53,7 +69,20 @@ end
     train!( lib, nnbp, epochs, opt, maxiters, train_loader_e, train_loader_f,
             test_loader_e, test_loader_f, w_e, w_f)
 
-TODO: complete documentation
+`lib`:
+`nnbp`:  
+`epochs`: no. of epochs.
+`opt`: optimizer.
+`maxiters`: maximum number of iterations in the optimizer.
+`train_loader_e`: energy data loader for training.
+`train_loader_f`: force data loader for training.
+`test_loader_e`: energy data loader for test.
+`test_loader_f`: force data loader for test.
+`w_e`: energy weight.
+`w_f`: force weight.
+
+Train neural network potential.
+Returns losses of training and test per epoch and per batch.
 
 """
 function train!( lib, nnbp, epochs, opt, maxiters, train_loader_e, train_loader_f,
