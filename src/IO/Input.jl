@@ -130,6 +130,7 @@ function load_dataset(input)
     n_test_sys = input["n_test_sys"]
     dataset_path = input["dataset_path"]
     if "dataset_filename" in keys(input)
+        dataset_filename = input["dataset_filename"]
         return load_dataset(n_train_sys, n_test_sys, dataset_path,
                             dataset_filename)
     else
