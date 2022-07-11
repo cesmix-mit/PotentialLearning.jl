@@ -12,6 +12,7 @@ using IterTools
 using LinearAlgebra 
 using StaticArrays
 using Statistics
+using Optimization
 using UnitfulAtomic
 using Unitful 
 using Flux

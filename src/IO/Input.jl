@@ -118,6 +118,30 @@ end
 
 
 """
+    load_dataset(input)
+    
+`input`: OrderedDict with input arguments. See `get_defaults_args()`.
+
+Returns training and test energies, forces, and stresses.
+
+"""
+function load_dataset(input)
+    n_train_sys = input["n_train_sys"]
+    n_test_sys = input["n_test_sys"]
+    dataset_path = input["dataset_path"]
+    if "dataset_filename" in keys(input)
+        return load_dataset(n_train_sys, n_test_sys, dataset_path,
+                            dataset_filename)
+    else
+        trainingset_filename = input["trainingset_filename"]
+        testset_filename = input["testset_filename"]
+        return load_dataset(n_train_sys, n_test_sys, dataset_path,
+                            trainingset_filename, testset_filename)
+    end
+end
+
+
+"""
     linearize_forces(forces)
     
 `forces`: vector of forces per system
