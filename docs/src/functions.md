@@ -1,6 +1,0 @@
-# Functions 
-
-```@autodocs 
-Modules = [PotentialLearning]
-```
-
