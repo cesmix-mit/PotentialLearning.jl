@@ -1,32 +1,5 @@
 
-export get_defaults_args, get_input, load_dataset, linearize_forces, get_batches
-
-"""
-    get_defaults_args()
-    
-Returns default input arguments for NN potential training.
-
-TODO: probably this should not be here.
-
-"""
-function get_defaults_args()
-    args = ["experiment_path",      "TiO2/",
-            "dataset_path",         "data/",
-            "trainingset_filename", "TiO2trainingset.xyz",
-            "testset_filename",     "TiO2testset.xyz",
-            "n_train_sys",          "80",
-            "n_test_sys",           "20",
-            "n_batches",            "8",
-            "n_body",               "3",
-            "max_deg",              "3",
-            "r0",                   "1.0",
-            "rcutoff",              "5.0",
-            "wL",                   "1.0",
-            "csp",                  "1.0",
-            "w_e",                  "1.0",
-            "w_f",                  "1.0"]
-     return args
-end
+export get_input, load_dataset, linearize_forces, get_batches
 
 
 """
@@ -40,9 +13,6 @@ for information about how to define the input arguments.
 
 """
 function get_input(args)
-    if length(args) == 0
-        args = get_defaults_args()
-    end
     input = OrderedDict()
     for (key, val) in partition(args,2,2)
         if tryparse(Float64, val) != nothing
