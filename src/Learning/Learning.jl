@@ -1,4 +1,46 @@
-export train!
+export train!, learn
+
+
+"""
+    learn(B_train, dB_train, e_train, f_train, w_e, w_f)
+
+`B_train`: energy descriptors.
+`dB_train`: force descriptors.
+`e_train`: training energies.
+`f_train`: training forces.
+`w_e`: energy weight.
+`w_f`: force weight.
+
+"""
+function learn(B_train, dB_train, e_train, f_train, w_e, w_f)
+
+    # Calculate A and b.
+    A = [B_train; dB_train]
+    b = [e_train; f_train]
+
+
+    # Calculate coefficients β.
+    Q = Diagonal([w_e * ones(length(e_train));
+                  w_f * ones(length(f_train))])
+    β = (A'*Q*A) \ (A'*Q*b)
+
+
+    ## Check weights.
+    #using IterTools
+    #for (e_weight, f_weight) in product(1:10:100, 1:10:100)
+    #    Q = Diagonal([e_weight * ones(length(e_train));
+    #                  f_weight * ones(length(f_train))])
+    #    try
+    #        β = (A'*Q*A) \ (A'*Q*b)
+    #        a = compute_errors(dB_test * β, f_test)
+    #        println(e_weight,", ", f_weight, ", ", a[1])
+    #    catch
+    #        println("Exception with :", e_weight,", ", f_weight)
+    #    end
+    #end
+
+    return β
+end
 
 
 """
