@@ -1,6 +1,4 @@
-# [WIP] PotentialLearning.jl
-
-An Open Source library for active training and fast calculation of molecular dynamics potentials for atomistic simulations of materials. 
+## [WIP] PotentialLearning.jl: an open source library for the active learning and fast calculation of interatomic potentials in atomistic simulations of materials.
 
 <!-- Information badges -->
 <p align="center">
@@ -26,3 +24,6 @@ An Open Source library for active training and fast calculation of molecular dyn
 </p>
 
 Developed as part of [CESMIX](https://cesmix.mit.edu).
+
+See [Atomistic Composable Workflows](https://github.com/cesmix-mit/AtomisticComposableWorkflows) for current Julia case studies.
+

@@ -1,1 +1,2 @@
-# [WIP] PotentialLearning.jl
+# PotentialLearning.jl
+
