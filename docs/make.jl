@@ -39,7 +39,7 @@ makedocs(bib;
     ],
     doctest = true,
     linkcheck = true,
-    strict = true
+    strict = false
 )
 
 deploydocs(;
