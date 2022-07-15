@@ -44,6 +44,6 @@ makedocs(bib;
 
 deploydocs(;
     repo = "github.com/cesmix-mit/PotentialLearning.jl",
-    devbranch = "refactor", # main
+    devbranch = "main",
     push_preview = true
 )
