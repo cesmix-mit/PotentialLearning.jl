@@ -4,6 +4,6 @@ This page provides a list of all documented types and functions and in Potential
 
 
 ```@autodocs
-Modules = [InteratomicPotentials]
+Modules = [PotentialLearning]
 Order   = [:type, :function, :constant]
 ```
