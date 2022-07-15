@@ -1,10 +1,6 @@
 
 export @savevar, @savecsv, @savefig
 
-path = ""
-var = ""
-dict = ""
-
 
 """
     savevar(path, var)

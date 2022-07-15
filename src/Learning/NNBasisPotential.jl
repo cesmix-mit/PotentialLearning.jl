@@ -1,20 +1,41 @@
 # TODO: Add to InteratomicPotentials.jl/InteratomicBasisPotentials.jl
 
-# Defining NNBP composed type and associated functions
+
+"""
+    NNBasisPotential
+    
+Definition of the neural network basis potential composed type.
+"""
 mutable struct NNBasisPotential <: AbstractPotential
     nn
     nn_params
     ibp_params
 end
 
-function potential_energy(A::AbstractSystem, 
-                          p::NNBasisPotential)
+
+"""
+    potential_energy(A::AbstractSystem, p::NNBasisPotential)
+
+`A`: atomic system or atomic configuration.
+`p`: neural network basis potential.
+
+Returns the potential energy of a system using a neural network basis potential.
+"""
+function potential_energy(A::AbstractSystem, p::NNBasisPotential)
     b = evaluate_basis(A, p.ibp_params)
     return p.nn(b)
 end
 
-function force(A::AbstractSystem, 
-               p::NNBasisPotential)
+
+"""
+    force(A::AbstractSystem, p::NNBasisPotential)
+
+`A`: atomic system or atomic configuration.
+`p`: neural network basis potential.
+
+Returns the force of a system using a neural network basis potential.
+"""
+function force(A::AbstractSystem, p::NNBasisPotential)
     b = evaluate_basis(A, p.ibp_params)
     dnndb = first(gradient(p.nn, b))
     dbdr = evaluate_basis_d(A, p.ibp_params)
@@ -22,28 +43,58 @@ function force(A::AbstractSystem,
              for atom in 1:length(dbdr)]
 end
 
+
+"""
+    potential_energy(b::Vector, p::NNBasisPotential)
+
+`b`: vector of energy descriptors.
+`p`: neural network basis potential.
+
+Returns the potential energy of a system using a neural network basis potential.
+"""
 function potential_energy(b::Vector, p::NNBasisPotential)
     return sum(p.nn(b))
 end
 
+
+"""
+    potential_energy(b::Vector, ps::Vector, re)
+
+`b`: energy descriptors of a system.
+`ps`: neural network parameters. See Flux.destructure.
+`re`: neural network restructure. See Flux.destructure.
+
+Returns the potential energy of a system using a neural network basis potential.
+"""
 function potential_energy(b::Vector, ps::Vector, re)
     return sum(re(ps)(b))
 end
 
-# Note: calculating the gradient of the loss function requires in turn
-# calculating the gradient of the energy. That is, calculating the gradient of
-# a function that calculates another gradient.
-# So far I have not found a clean way to do this using the abstractions 
-# provided by Flux, which in turn is integrated with Zygote. 
-# Links related to this issue:
-#    https://discourse.julialang.org/t/how-to-add-norm-of-gradient-to-a-loss-function/69873/16
-#    https://discourse.julialang.org/t/issue-with-zygote-over-forwarddiff-derivative/70824
-#    https://github.com/FluxML/Zygote.jl/issues/953#issuecomment-841882071
-#
-# To solve this for the moment I am calculating one of the gradients analytically.
-# To do this I had to use Flux.destructure, which I think makes the code slower
-# because of the copies it creates.
 
+# TODO: create issue.
+#Note: calculating the gradient of the loss function requires in turn
+#calculating the gradient of the energy. That is, calculating the gradient of
+#a function that calculates another gradient.
+#So far I have not found a clean way to do this using the abstractions 
+#provided by Flux, which in turn is integrated with Zygote. 
+#Links related to this issue:
+#https://discourse.julialang.org/t/how-to-add-norm-of-gradient-to-a-loss-function/69873/16
+#https://discourse.julialang.org/t/issue-with-zygote-over-forwarddiff-derivative/70824
+#https://github.com/FluxML/Zygote.jl/issues/953#issuecomment-841882071
+#
+#To solve this for the moment I am calculating one of the gradients analytically.
+#To do this I had to use Flux.destructure, which I think makes the code slower
+#because of the copies it creates.
+
+
+"""
+    grad_mlp(nn_params, x0)
+    
+`nn_params`: neural network parameters.
+`x0`: first layer input (energy descriptors).
+
+Returns the analytical derivative of a feedforward neural network.
+"""
 function grad_mlp(nn_params, x0)
     dsdy(x) = x>0 ? 1 : 0 # Flux.σ(x) * (1 - Flux.σ(x)) 
     prod = 1; x = x0
@@ -58,12 +109,33 @@ function grad_mlp(nn_params, x0)
     return prod
 end
 
-function force(b, dbdr, p)
+
+"""
+    force(b::Vector, dbdr::Vector, p::NNBasisPotential)
+    
+`b`: energy descriptors of a system.
+`dbdr`: force descriptors of a system.
+`p`: neural network basis potential.
+
+Returns the force of a system using a neural network basis potential.
+"""
+function force(b::Vector, dbdr::Vector, p::NNBasisPotential)
     dnndb = grad_mlp(p.nn_params, b)
     return dnndb ⋅ dbdr
 end
 
-function force(b, dbdr, ps, re)
+
+"""
+    force(b::Vector, dbdr::Vector, ps::Vector, re)
+    
+`b`: energy descriptors of a system.
+`dbdr`: force descriptors of a system.
+`ps`: neural network parameters. See Flux.destructure.
+`re`: neural network restructure. See Flux.destructure.
+
+Returns the force of a system using a neural network basis potential.
+"""
+function force(b::Vector, dbdr::Vector, ps::Vector, re)
     nn_params = Flux.params(re(ps))
     dnndb = grad_mlp(nn_params, b)
     return dnndb ⋅ dbdr
