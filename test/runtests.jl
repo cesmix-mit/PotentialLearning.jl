@@ -1,7 +1,7 @@
 # TODO: Create tests.
 
-using Pkg; Pkg.activate("./")
-using PotentialLearning
+include("../src/PotentialLearning.jl")
+using .PotentialLearning
 using Test
 
 @test 1 == 1

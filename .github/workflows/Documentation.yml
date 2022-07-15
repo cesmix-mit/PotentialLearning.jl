@@ -34,7 +34,9 @@ jobs:
       - name: run doctests
         run: |
           julia --project=docs -e '
-            using Pkg; Pkg.activate("./")
+            using Pkg
+            Pkg.activate("Documenter")
+            Pkg.activate("./")
             using Documenter: DocMeta, doctest
             using PotentialLearning
             DocMeta.setdocmeta!(PotentialLearning, :DocTestSetup, :(using PotentialLearning); recursive=true)
