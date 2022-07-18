@@ -2,9 +2,9 @@
 
 An open source Julia library for active learning of interatomic potentials in atomistic simulations of materials. It incorporates elements of bayesian inference, machine learning, differentiable programming,  software composability, and high-performance computing. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
 
-<a href="https://cesmix-mit.github.io/PotentialLearning.jl/stable">
+<!--<a href="https://cesmix-mit.github.io/PotentialLearning.jl/stable">
 <img alt="Stable documentation" src="https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square">
-</a>
+</a>-->
 <a href="https://cesmix-mit.github.io/PotentialLearning.jl/dev">
 <img alt="Development documentation" src="https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square">
 </a>
