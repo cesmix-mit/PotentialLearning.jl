@@ -4,12 +4,11 @@ An open source Julia library for active learning of interatomic potentials in at
 
 ## Specific goals
 - Intelligent data subsampling: iteratively query a large pool of unlabeled data to extract a minimum number of training data that would lead to a supervised ML model with superior accuracy compared to a training model with educated handpicking.
-    - Via [DPP]().
-    - Via [clustering](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit).
-- Interatomic potential hyper-parameter optimization. E.g.  estimation of the optimum cutoff radius.
-- Measurement of QoI sensitivity to individual parameters. 
+    - Via [DPP](), [clustering](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit).
 - Inference of the optimal values and uncertainties of the model parameters, to propagate them through the atomistic simulation.
-- Interatomic potential fitting. The potentials addressed in this package are defined in [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl) and [InteratomicBasisPotentials.jl](https://github.com/cesmix-mit/InteratomicBasisPotentials.jl). E.g. ACE, SNAP, Neural Network Potentials.
+    - Interatomic potential hyper-parameter optimization. E.g.  estimation of the optimum cutoff radius.
+    - Interatomic potential fitting. The potentials addressed in this package are defined in [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl) and [InteratomicBasisPotentials.jl](https://github.com/cesmix-mit/InteratomicBasisPotentials.jl). E.g. ACE, SNAP, Neural Network Potentials.
+- Measurement of QoI sensitivity to individual parameters. 
 - Input data management and post-processing.
   - Process input data so that it is ready for training. E.g. read XYZ file with atomic configurations, linearize energies and forces, split dataset into training and testing, normalize data, transfer data to GPU, define iterators, etc.
   - Post-processing: computation of different metrics (MAE, RSQ, COV, etc), saving results, and plotting.
