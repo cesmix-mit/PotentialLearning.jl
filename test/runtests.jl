@@ -1,4 +1,7 @@
-using PotentialLearning
+# TODO: Create tests.
+
+include("../src/PotentialLearning.jl")
+using .PotentialLearning
 using Test
 
 @testset "PotentialLearning.jl" begin

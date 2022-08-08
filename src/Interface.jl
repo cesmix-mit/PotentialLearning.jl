@@ -4,87 +4,21 @@
 #
 ################################################################################
 
-using InteratomicPotentials, AtomsBase, Unitful, UnitfulAtomic
-using DPP, HDBSCAN, Clustering
-using LinearAlgebra, GalacticOptim, Optim, BlackBoxOptim
+using AtomsBase
+using InteratomicPotentials 
+using InteratomicBasisPotentials
+using OrderedCollections
+using IterTools
+using LinearAlgebra
+using StaticArrays
+using Statistics
+using Optimization
+using UnitfulAtomic
+using Unitful 
+using Flux
+using Flux.Data: DataLoader
+using Random
+using CSV
+using Plots
 
-export LearningProblem, LearningOptimizer
-export SDPOpt, LeastSquaresOpt, QRLinearOpt, NelderMeadOpt
-export loss, learn
-
-
-# Abstract types ###############################################################
-
-"""
-    LearningProblem{D, T}
-    
-"""
-abstract type LearningProblem{D, T} end
-
-"""
-    LearningOptimizer{D, T}
-    
-"""
-abstract type LearningOptimizer{D, T} end
-
-
-# Optimizers ###################################################################
-
-"""
-    SDPOpt{D, T}
-    
-Semidefinite program (SDP) optimizer
-"""
-struct SDPOpt{D, T} <: LearningOptimizer{D, T} end
-
-"""
-    LeastSquaresOpt{D, T}
-    
-Least squares optimizer
-"""
-struct LeastSquaresOpt{D, T} <: LearningOptimizer{D, T} end
-
-"""
-    QRLinearOpt{D, T}
-    
-QR optimizer
-"""
-struct QRLinearOpt{D, T} <: LearningOptimizer{D, T} end
-
-"""
-    NelderMeadOpt{D, T}
-    
-Nelder mead optimizer
-"""
-struct NelderMeadOpt{D, T} <: LearningOptimizer{D, T}
-    maxiters
-end
-
-
-# Learning and loss functions ##################################################
-
-"""
-    loss(params::Vector{T}, opt::LearningOptimizer{D, T})
-    
-`params`: parameters to be fitted
-`opt`: learning optimizer
-"""
-function loss(params::Vector{T}, opt::LearningOptimizer{D, T}) where {T, D} end
-
-"""
-    learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T})
-    
-`lp`: learning problem
-`opt`: learning optimizer
-"""
-function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}) where {T, D}  end
-
-"""
-    learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}, loss)
-    
-`lp`: learning problem
-`opt`: learning optimizer
-`loss`: loss function
-"""
-function learn(lp::LearningProblem{D, T}, opt::LearningOptimizer{D, T}, loss) where {T, D} end
-
+# TODO
