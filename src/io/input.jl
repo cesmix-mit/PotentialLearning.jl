@@ -63,7 +63,12 @@ function load_datasets(input)
         # Load dataset
         filename = input["dataset_path"]*input["dataset_filename"]
         systems, energies, forces, stress = load_extxyz(filename)
-        rand_list = randperm(length(systems))
+        # Split dataset
+        split_prop = input["split_prop"]
+        n_sys = length(systems)
+        n_train_sys = round(Int, split_prop * n_sys)
+        n_test_sys = n_sys - n_train_sys
+        rand_list = randperm(n_sys)
         train_index, test_index = rand_list[1:n_train_sys], rand_list[n_train_sys+1:n_sys]
         train_sys, train_e, train_f, train_s =
                                      systems[train_index], energies[train_index],
@@ -71,8 +76,6 @@ function load_datasets(input)
         test_sys, test_e, test_f, test_s =
                                      systems[test_index], energies[test_index],
                                      forces[test_index], stress[test_index]
-        return load_dataset(n_train_sys, n_test_sys, dataset_path,
-                            dataset_filename)
     else # Load training and test datasets
         filename = input["dataset_path"]*input["trainingset_filename"]
         train_sys, train_e, train_f, train_s = load_extxyz(filename)
