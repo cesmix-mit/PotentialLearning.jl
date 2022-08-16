@@ -127,7 +127,7 @@ Returns losses of training and test per epoch and per batch.
 
 """
 function train!( train_loader_e, train_loader_f, test_loader_e, test_loader_f,
-                 w_e, w_f, nnbp, epochs, opt, maxiters = Infinite)
+                 w_e, w_f, nnbp, epochs, opt, maxiters = 99999)
 
     train_losses_epochs = []; test_losses_epochs = []; train_losses_batches = []
     ps, re = Flux.destructure(nnbp.nn)
