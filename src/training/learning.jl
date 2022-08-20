@@ -129,31 +129,48 @@ Returns losses of training and test per epoch and per batch.
 function train!( train_loader_e, train_loader_f, test_loader_e, test_loader_f,
                  w_e, w_f, nnbp, epochs, opt, maxiters = 99999)
 
-    train_losses_epochs = []; test_losses_epochs = []; train_losses_batches = []
+    train_losses_epochs = []; e_train_losses_epochs = []; f_train_losses_epochs = []
+    test_losses_epochs = []; e_test_losses_epochs = []; f_test_losses_epochs = []
+    train_losses_batches = []; train_losses_batches = []
     ps, re = Flux.destructure(nnbp.nn)
     for epoch in 1:epochs
         
-        if typeof(opt) == typeof(BFGS()) # use Optimization.jl
-            ps = batch_train_opt!(train_loader_e, train_loader_f, w_e, w_f,
-                                  ps, re, epoch, opt, maxiters, train_losses_batches)
-        else # use Flux.jl 
-            ps = batch_train_flux!(train_loader_e, train_loader_f, w_e, w_f, 
-                                   ps, re, opt)
+        if parentmodule(typeof(opt)) == Flux.Optimise
+             ps = batch_train_flux!(train_loader_e, train_loader_f, w_e, w_f, 
+                                    ps, re, opt)
+        else # use OptimizationOptimJL.jl 
+             ps = batch_train_opt!(train_loader_e, train_loader_f, w_e, w_f,
+                                   ps, re, epoch, opt, maxiters, train_losses_batches)
         end
-        
+
         # Report losses
         train_loss = global_loss(train_loader_e, train_loader_f, w_e, w_f, ps, re)
+        e_train_loss = global_energy_loss(train_loader_e, w_e, ps, re)
+        f_train_loss = global_force_loss(train_loader_f, w_f, ps, re)
         test_loss = global_loss(test_loader_e, test_loader_f, w_e, w_f, ps, re)
+        e_test_loss = global_energy_loss(test_loader_e, w_e, ps, re)
+        f_test_loss = global_force_loss(test_loader_f, w_f, ps, re)
         push!(train_losses_epochs, train_loss)
+        push!(e_train_losses_epochs, e_train_loss)
+        push!(f_train_losses_epochs, f_train_loss)
         push!(test_losses_epochs, test_loss)
-        println("Epoch $(epoch). \
-                 Training loss: $(train_loss). \
-                 Test loss: $(test_loss).")
+        push!(e_test_losses_epochs, e_test_loss)
+        push!(f_test_losses_epochs, f_test_loss)
+        println("Epoch $(epoch)")
+        println("   Training losses: Global = $(round(train_loss, digits=4)). \
+                                     Energies = $(round(e_train_loss, digits=4)). \
+                                     Forces = $(round(f_train_loss, digits=4)).")
+        println("   Test losses:     Global = $(round(train_loss, digits=4)). \
+                                     Energies = $(round(e_train_loss, digits=4)). \
+                                     Forces = $(round(f_train_loss, digits=4)).")
+        flush(stdout)
     end
     nnbp.nn = re(ps)
     nnbp.nn_params = Flux.params(nnbp.nn)
     
+    # TODO: add new loss arrays (change in the interface)
     return train_losses_epochs, test_losses_epochs, train_losses_batches
+    
 end
 
 
