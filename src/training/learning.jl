@@ -160,9 +160,9 @@ function train!( train_loader_e, train_loader_f, test_loader_e, test_loader_f,
         println("   Training losses: Global = $(round(train_loss, digits=4)). \
                                      Energies = $(round(e_train_loss, digits=4)). \
                                      Forces = $(round(f_train_loss, digits=4)).")
-        println("   Test losses:     Global = $(round(train_loss, digits=4)). \
-                                     Energies = $(round(e_train_loss, digits=4)). \
-                                     Forces = $(round(f_train_loss, digits=4)).")
+        println("   Test losses:     Global = $(round(test_loss, digits=4)). \
+                                     Energies = $(round(e_test_loss, digits=4)). \
+                                     Forces = $(round(f_test_loss, digits=4)).")
         flush(stdout)
     end
     nnbp.nn = re(ps)
