@@ -10,7 +10,7 @@ export loss, global_loss
 Returns the loss of two vectors
 
 """
-loss(x, y) = Flux.Losses.mae(x, y)
+loss(x, y) = Flux.Losses.mse(x, y)
 
 
 """
