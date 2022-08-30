@@ -47,11 +47,16 @@ function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
     f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
     e_test_mae, e_test_rmse, e_test_rsq = calc_metrics(e_test_pred, e_test)
     f_test_mae, f_test_rmse, f_test_rsq = calc_metrics(f_test_pred, f_test)
-    
+
+    f_train_pred_v = collect(eachcol(reshape(f_train_pred, 3, :)))
+    f_train_v = collect(eachcol(reshape(f_train, 3, :)))
+    f_train_cos = dot.(f_train_v, f_train_pred_v) ./ (norm.(f_train_v) .* norm.(f_train_pred_v))
+    f_train_mean_cos = mean(filter(!isnan, f_train_cos))
+
     f_test_pred_v = collect(eachcol(reshape(f_test_pred, 3, :)))
     f_test_v = collect(eachcol(reshape(f_test, 3, :)))
     f_test_cos = dot.(f_test_v, f_test_pred_v) ./ (norm.(f_test_v) .* norm.(f_test_pred_v))
-    f_test_mean_cos = mean(f_test_cos)
+    f_test_mean_cos = mean(filter(!isnan, f_test_cos))
 
     metrics = OrderedDict(  "e_train_mae"      => e_train_mae,
                             "e_train_rmse"     => e_train_rmse,
@@ -59,6 +64,7 @@ function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                             "f_train_mae"      => f_train_mae,
                             "f_train_rmse"     => f_train_rmse,
                             "f_train_rsq"      => f_train_rsq,
+                            "f_train_mean_cos" => f_test_mean_cos,
                             "e_test_mae"       => e_test_mae,
                             "e_test_rmse"      => e_test_rmse,
                             "e_test_rsq"       => e_test_rsq,
