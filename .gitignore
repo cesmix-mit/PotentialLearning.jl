@@ -3,3 +3,6 @@ Manifest.toml
 # generated docs
 docs/build/
 docs/src/generated/
+
+# data too large for github
+examples/aHfO2/data 

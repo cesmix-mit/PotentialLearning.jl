@@ -7,12 +7,14 @@
 struct LAMMPS <: IO
     elements :: Vector{Symbol}
     boundary_conditions :: Vector
+    distance_units :: Unitful.FreeUnits
+    time_units :: Unitful.FreeUnits
 end
 
 """
     load_data(file::string, lammps::LAMMPS)
 
-    Load configuration from a lammps data file into a Flexible System.
+    Load configuration from a lammps data file into a Configuration{FlexibleSystem}.
     Need LAMMPS struct to know the symbols of the elements, and the boundary_conditions.
 """
 
@@ -20,14 +22,13 @@ function load_data(file, lammps :: LAMMPS )
     num_atoms = 0
     num_atom_types = length(lammps.elements)
     bias = []
-    box = [[1.0, 0.0, 0.0]*1u"Å", 
-            [0.0, 1.0, 0.0]*1u"Å",
-            [0.0, 0.0, 1.0]*1u"Å"]
-    system = []
-    elements = []
+    uu = lammps.distance_units
+    box = [[1.0, 0.0, 0.0]*1uu, 
+            [0.0, 1.0, 0.0]*1uu,
+            [0.0, 0.0, 1.0]*1uu]
     positions = SVector{3}[]
     velocities = SVector{3}[]
-    open(file, "r") do io
+    system = open(file, "r") do io
         while !eof(io)
             line = split(readline(io))
             if "atoms" in line
@@ -56,7 +57,7 @@ function load_data(file, lammps :: LAMMPS )
 
                 bias = [x_bias, y_bias, z_bias]
                 
-                bbox = [x[2], 0.0, 0.0, 0.0, y[2], 0.0, 0.0, 0.0, z[2]] * 1u"Å"
+                bbox = [x[2], 0.0, 0.0, 0.0, y[2], 0.0, 0.0, 0.0, z[2]] * 1uu
                 box = [bbox[1:3], bbox[4:6], bbox[7:9]]
             end
             if "Atoms" in line
@@ -84,14 +85,14 @@ function load_data(file, lammps :: LAMMPS )
         atoms = Vector{Atom}(undef, num_atoms)
         for i = 1:num_atoms 
             if isempty(velocities)
-                atoms[i] = Atom( lammps.elements[elements[i]], positions[i] * 1u"Å") 
+                atoms[i] = Atom( lammps.elements[elements[i]], positions[i] * 1uu) 
             else
-                atoms[i] = Atom( lammps.elements[elements[i]], positions[i] * 1u"Å", velocities[i] * 1u"Å/ps") 
+                atoms[i] = Atom( lammps.elements[elements[i]], positions[i] * 1uu, velocities[i] * 1uu/lammps.time_units) 
             end
         end
-        system = FlexibleSystem(atoms, box, lammps.boundary_conditions)
+        FlexibleSystem(atoms, box, lammps.boundary_conditions)
     end
-    return system
+    Configuration(system)
 end
 
 

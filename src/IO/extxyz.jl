@@ -3,50 +3,44 @@
   
     end
 """
-
-struct ExtXYZ <: IO
-
+struct ExtXYZ <: IO 
+    energy_units :: Unitful.FreeUnits
+    distance_units :: Unitful.FreeUnits
 end
-
 """
     load_data(file::string, extxyz::ExtXYZ)
-
-    Load configuration from an extxyz file into a Flexible System.
-    
+    Load configuration from an extxyz file into a DataSet
 """
-function load_data(file :: String, extxyz::ExtXYZ)
-    systems  = AbstractSystem[]
-    energies = Float64[]
-    forces    = Vector{SVector{3, Float64}}[]
-    stresses = SVector{6, Float64}[]
+function load_data(file, extxyz::ExtXYZ; T = Float64)
+    configs = Configuration[]
     open(file, "r") do io
         count = 1
-        while !eof(io) 
+        while !eof(io) && (count <= max_entries)
             # Read info line
             line = readline(io)
             num_atoms = parse(Int, line)
             
             line = readline(io)
             lattice_line = match(r"Lattice=\"(.*?)\" ", line).captures[1]
-            lattice = parse.(Float64, split(lattice_line)) * 1u"Å"
+            lattice = parse.(Float64, split(lattice_line)) * extxyz.distance_units
             box = [lattice[1:3],
                         lattice[4:6], 
                         lattice[7:9]]
-            try 
+            energy = try 
                 energy_line = match(r"energy=(.*?) ", line).captures[1]
                 energy = parse(Float64, energy_line)
-                push!(energies, energy)
+                Energy(energy, extxyz.energy_units)
             catch
-                push!(energies, NaN)
+                Energy(NaN, extxyz.energy_units)
             end
             
-            try
-                stress_line = match(r"stress=\"(.*?)\" ", line).captures[1]
-                stress = parse.(Float64, split(stress_line))
-                push!(stresses, SVector{6}(stress))
-            catch
-                push!(stresses, SVector{6}( fill(NaN, (6,))))
-            end
+            # try
+            #     stress_line = match(r"stress=\"(.*?)\" ", line).captures[1]
+            #     stress = parse.(Float64, split(stress_line))
+            #     push!(stresses, SVector{6}(stress))
+            # catch
+            #     push!(stresses, SVector{6}( fill(NaN, (6,))))
+            # end
 
             bc = []
             try
@@ -58,13 +52,13 @@ function load_data(file :: String, extxyz::ExtXYZ)
 
             properties = match(r"Properties=(.*?) ", line).captures[1]
             properties = split(properties, ":")
-            properties = [properties[i:i+2] for i = 1:3:length(properties)]
-            atoms = Vector{Atom}(undef, num_atoms)
-            force = Vector{SVector{3, Float64}}(undef, num_atoms) 
+            properties = [properties[i:i+2] for i = 1:3:(length(properties)-1)]
+            atoms = Vector{AtomsBase.Atom}(undef, num_atoms)
+            forces = Force{T}[]
             for i = 1:num_atoms
                 line = split(readline(io))
                 line_count = 1
-                position =  0.0
+                position = 0.0
                 element = 0.0
                 data = Dict( () )
                 for prop in properties
@@ -72,10 +66,16 @@ function load_data(file :: String, extxyz::ExtXYZ)
                         element = Symbol(line[line_count])
                         line_count += 1 
                     elseif prop[1] == "pos"
-                        position = SVector{3}(parse.(Float64, line[line_count:line_count+2]))
+                        position = SVector{3}(parse.(T, line[line_count:line_count+2])) .- bias
                         line_count += 3
+                    elseif prop[1] == "move_mask"
+                        ft = Symbol(line[line_count])
+                        line_count += 1 
+                    elseif prop[1] == "tags"
+                        ft = Symbol(line[line_count])
+                        line_count += 1 
                     elseif prop[1] == "forces"
-                        force[i] = SVector{3}(parse.(Float64, line[line_count:line_count+2]))
+                        force[i] = Force(parse.(T, line[line_count:line_count+2]), extxyz.energy_units / extxyz.distance_units)
                         line_count += 3
                     else
                         length = parse(Int, prop[3])
@@ -86,17 +86,16 @@ function load_data(file :: String, extxyz::ExtXYZ)
                         end
                     end
                 end
-                atoms[i] = Atom(element, position * 1u"Å", data = data) 
-                 
+                atoms[i] = AtomsBase.Atom(element, position .* extxyz.distance_units, data = data)
             end
 
-            push!(forces, force)
             system = FlexibleSystem(atoms, box, bc)
-            push!(systems, system)
             count += 1
+            push!(configs, Configuration(system, energy, forces))
         end
     end
-    return systems, energies, forces, stresses
+
+    return DataSet(configs)
 end
 
 

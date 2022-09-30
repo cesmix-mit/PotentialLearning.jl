@@ -1,13 +1,29 @@
 module PotentialLearning
 
-include("Interface.jl")
-include("IO/Input.jl")
-include("IO/Load-extxyz.jl")
-include("IO/Utils.jl")
-include("Learning/NNBasisPotential.jl") # TODO: Add to InteratomicPotentials.jl/InteratomicBasisPotentials.jl
-include("Learning/Losses.jl") 
-include("Learning/Learning.jl")
-include("PostProc/Metrics.jl")
-include("PostProc/Plots.jl")
+using LinearAlgebra, Statistics, Random
+using Unitful, UnitfulAtomic, AtomsBase
+using StaticArrays
+using Zygote 
+
+# Custom Adjoints for StaticVectors
+@Zygote.adjoint (T::Type{<:SVector})(x::AbstractVector) = T(x), dv -> (nothing, dv)
+
+## Data structs 
+include("Data/data.jl")
+
+# Kernel structs and functions 
+include("Kernels/kernels.jl")
+
+# Data input/output
+include("IO/io.jl")
+
+# Subset selection
+include("SubsetSelection/subsetselector.jl")
+
+# Learning problems 
+include("Learning/learning.jl")
+
+# Metrics 
+# include("Metrics/metrics.jl") 
 
 end

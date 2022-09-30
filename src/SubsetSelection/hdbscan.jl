@@ -1,3 +1,4 @@
+using HDBSCAN
 struct hDBSCAN <: SubsetSelector
     h ::  HDBSCAN.HdbscanResult
 end
