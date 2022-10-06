@@ -1,34 +1,71 @@
-abstract type LinearProblem{T<:Real} <: AbstractLearningProblem end
+"""
+    abstract type LinearPRoblem{T<:Real} <: AbstractLearningProblem end 
 
+An abstract type to specify linear potential inference problems. 
+"""
+abstract type LinearProblem{T<:Real} <: AbstractLearningProblem end
+"""
+    struct UnivariateLinearProblem{T<:Real} <: LinearProblem{T}
+        iv_data :: Vector 
+        dv_data :: Vector 
+        β       :: Vector{T}
+        σ       :: Vector{T} 
+        Σ       :: Symmetric{T, Matrix{T}}
+    end
+
+A UnivariateLinearProblem is a linear problem in which there is only 1 type of independent variable / dependent variable. Typically, that means we are either only fitting energies or only fitting forces. When this is the case, the solution is available analytically and the standard deviation, σ, and covariance, Σ, of the coefficients, β, are computable. 
+"""
 struct UnivariateLinearProblem{T<:Real} <: LinearProblem{T}
     iv_data :: Vector 
     dv_data :: Vector 
     β       :: Vector{T}
     σ       :: Vector{T} 
+    Σ       :: Symmetric{T, Matrix{T}}
 end
+Base.show(io::IO, u::UnivariateLinearProblem{T}) where T = print(io, "UnivariateLinearProblem{T, $(u.β), $(u.σ)}")
+"""
+    struct CovariateLinearProblem{T<:Real} <: LinearProblem{T}
+        e       :: Vector
+        f       :: Vector{Vector{T}}
+        B       :: Vector{Vector{T}}
+        dB      :: Vector{Matrix{T}}
+        β       :: Vector{T} 
+        σe      :: Vector{T} 
+        σf      :: Vector{T}
+        Σ       :: Symmetric{T, Matrix{T}}
+    end
+
+A CovariateLinearProblem is a linear problem in which we are fitting energies and forces using both descriptors and their gradients (B and dB, respectively). When this is the case, the solution is not available analytically and must be solved using some iterative optimization proceedure. In the end, we fit the model coefficients, β, standard deviations corresponding to energies and forces, σe and σf, and the covariance Σ. 
+"""
 struct CovariateLinearProblem{T<:Real} <: LinearProblem{T}
     e       :: Vector
-    f       :: Vector{Vector}
-    B       :: Vector{Vector}
-    dB      :: Vector{Vector}
+    f       :: Vector{Vector{T}}
+    B       :: Vector{Vector{T}}
+    dB      :: Vector{Matrix{T}}
     β       :: Vector{T} 
     σe      :: Vector{T} 
     σf      :: Vector{T}
+    Σ       :: Symmetric{T, Matrix{T}}
 end
 
-function LinearProblem(ds::DataSet{T}) where T 
+Base.show(io::IO, u::CovariateLinearProblem{T}) where T = print(io, "CovariateLinearProblem{T, $(u.β), $(u.σe), $(u.σf)}")
+"""
+    function LinearProblem(ds::DatasSet; T = Float64)
+
+Construct a LinearProblem by detecting if there are energy descriptors and/or force descriptors and construct the appropriate LinearProblem (either Univariate, if only a single type of descriptor, or Covariate, if there are both types).
+"""
+function LinearProblem(ds::DataSet; T = Float64)
     
     d_flag, descriptors, energies = try 
         true,  compute_features(ds, GlobalMean()), get_values.(get_energy.(ds))
     catch 
-        false, 0.0 
+        false, 0.0, 0.0 
     end
     fd_flag, force_descriptors, forces = try  
-        true, get_force_descriptors.(ds), get_values.(get_forces.(ds))
+        true, [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds], get_values.(get_forces.(ds))
     catch
-        false, 0.0
+        false, 0.0, 0.0
     end
-    
     if d_flag & ~fd_flag 
         dim = length(descriptors[1])
         β = zeros(T, dim)
@@ -43,7 +80,7 @@ function LinearProblem(ds::DataSet{T}) where T
 
         force_descriptors = [reduce(hcat, fi) for fi in force_descriptors]
         p = UnivariateLinearProblem(force_descriptors,
-            forces, 
+            [reduce(vcat, fi) for fi in forces], 
             β, 
             [1.0]
         )
@@ -59,9 +96,11 @@ function LinearProblem(ds::DataSet{T}) where T
         end
 
         β = zeros(T, dim)
-        
+        forces =  [reduce(vcat, fi) for fi in forces]
+        force_descriptors = [reduce(hcat, fi) for fi in force_descriptors]
+
         p = CovariateLinearProblem(energies, 
-                forces, 
+                [reduce(vcat, fi) for fi in forces], 
                 descriptors, 
                 force_descriptors, 
                 β, 
@@ -73,7 +112,11 @@ function LinearProblem(ds::DataSet{T}) where T
     end
     p
 end
+"""
+    learn!(lp::UnivariateLinearProblem; α = 1e-8)
 
+Fit a univariate Gaussian distribution for the equation y = Aβ + ϵ, where β are model coefficients and ϵ ∼ N(0, σ). Fitting is done via SVD on the design matrix, A'*A (formed iteratively), where eigenvalues less than α are cut-off.  
+"""
 function learn!(lp::UnivariateLinearProblem; α = 1e-8)
     # Form design matrices 
     AtA = sum( v*v' for v in lp.iv_data)
@@ -81,11 +124,19 @@ function learn!(lp::UnivariateLinearProblem; α = 1e-8)
 
     Q = pinv(AtA, α)
     copyto!(lp.β, Q*Atb) 
-    copyto!(lp.σ, std(Atb - AtA*β))
+    copyto!(lp.σ, std(Atb - AtA*lp.β))
+    copyto!(lp.Σ, lp.σ[1]^2 * Q)
     lp
 end
 
+"""
+    learn!(lp::CovariateLinearProblem; α = 1e-8)
 
+Fit a Gaussian distribution by finding the MLE of the following log probability:
+    ℓ(β, σe, σf) = -0.5*(e - A_e *β)'*(e - A_e * β) / σe - 0.5*(f - A_f *β)'*(f - A_f * β) / σf - log(σe) - log(σf)
+
+through an optimization proceedure. 
+"""
 function learn!(lp::CovariateLinearProblem; α = 1e-8)
     # Regularizaiton parameter α
 
@@ -98,20 +149,26 @@ function learn!(lp::CovariateLinearProblem; α = 1e-8)
     Atbf = sum( db*f for (db, f) in zip(lp.dB, lp.f))
 
     f(x, p) = -logpdf(MvNormal(p[1] * x[3:end], exp(x[1])+p[5]), p[2]) - logpdf(MvNormal(p[3] * x[3:end], exp(x[2])+p[5]), p[4])
-    g = OptimizationFunction(f, Optimization.AutoForwardDiff())
+    g = Optimization.OptimizationFunction(f, Optimization.AutoForwardDiff())
 
     x0 = [lp.β..., log(lp.σe[1]), log(lp.σf[1])]
     p = [AtAe, Atbe, AtAf, Atbf, α]
     prob = Optimization.OptimizationProblem(g, x0, p)
-    sol = Optimization.solve(prob, Optimization.BFGS())
+    sol = Optimization.solve(prob, Optim.BFGS())
     copyto!(lp.σe, exp(sol.u[1]))
     copyto!(lp.σf, exp(sol.u[2]))
     copyto!(lp.β, sol.u[3:end])
+    Q = pinv( Symmetric(lp.σe[1]^2 * pinv(Symmetric(AtAe)) + lp.σf[1]^2 * pinv(Symmetric(AtAf)) ))
+    copyto!(lp.Σ, Q)
     lp 
 end
+"""
+    learn!(lp::UnivariateLinearProblem, ss::SubsetSelector; α = 1e-8)
 
+Fit a univariate Gaussian distribution for the equation y = Aβ + ϵ, where β are model coefficients and ϵ ∼ N(0, σ). Fitting is done via batched gradient descent with batches provided by the subset selector and the gradients are calculated using Flux.  
+"""
 function learn!(lp::UnivariateLinearProblem, ss::SubsetSelector; num_steps = 100, opt = Flux.Optimise.Adam())
-    params = [lp.σ; lp.β]
+    params = [log.(lp.σ); lp.β]
     f(x, p) = -logpdf(MvNormal(p[1]*x[2:end], exp(x[1])), p[2])
     for step = 1:num_steps
         inds = get_random_subset(ss)
@@ -124,16 +181,23 @@ function learn!(lp::UnivariateLinearProblem, ss::SubsetSelector; num_steps = 100
             println("Iteration #$(step): \t log(p(x)) = $err")
         end
         
-        grads = Flux.gradient(x->f(x, p), params)
+        grads = Flux.gradient(x->f(x, p), params)[1]
         Flux.Optimise.update!(opt, params, grads)
     end
-    copyto!(lp.σ, params[1])
+    copyto!(lp.σ, exp(params[1]))
     copyto!(lp.β, params[2:end])
     lp
 end
+"""
+    learn!(lp::CovariateLinearProblem, ss::SubsetSelector; α = 1e-8)
 
+Fit a Gaussian distribution by finding the MLE of the following log probability:
+    ℓ(β, σe, σf) = -0.5*(e - A_e *β)'*(e - A_e * β) / σe - 0.5*(f - A_f *β)'*(f - A_f * β) / σf - log(σe) - log(σf)
+
+through an iterative batch gradient descent optimization proceedure where the batches are provided by the subset selector. 
+"""
 function learn!(lp::CovariateLinearProblem, ss::SubsetSelector; num_steps = 100, opt = Flux.Optimise.Adam())
-    params = [lp.σe; lp.σf; lp.β]
+    params = [log.(lp.σe); log.(lp.σf); lp.β]
     f(x, p) = -logpdf(MvNormal(p[1] * x[3:end], exp(x[1])+p[5]), p[2]) - logpdf(MvNormal(p[3] * x[3:end], exp(x[2])+p[5]), p[4])
     for step = 1:num_steps
         inds = get_random_subset(ss)
@@ -153,10 +217,9 @@ function learn!(lp::CovariateLinearProblem, ss::SubsetSelector; num_steps = 100,
         grads = Flux.gradient(x->f(x, p), params)
         Flux.Optimise.update!(opt, params, grads)
     end
-    copyto!(lp.σe, params[1])
-    copyto!(lp.σf, params[2])
+    copyto!(lp.σe, exp(params[1]))
+    copyto!(lp.σf, exp(params[2]))
     copyto!(lp.β, params[3:end])
     lp
 end
-
 

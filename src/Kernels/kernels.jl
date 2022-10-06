@@ -59,11 +59,21 @@ end
 
 get_parameters(k::RBF) = (k.α, k.ℓ, k.β)
 
+"""
+    function compute_kernel(A, B, k) end 
+
+Compute similarity kernel between features A and B using kernel k. 
+"""
 function compute_kernel(A::T, B::T, r::RBF) where T <: Union{Vector{<:Real}, Symmetric{<:Real, <:Matrix{<:Real}}}
     d2 = compute_distance(A, B, r.d)
     r.β*exp(-0.5*d2/r.ℓ)
 end
 
+""" 
+    function KernelMatrix(F, k::Kernel)
+
+Compute symmetric kernel matrix K where K_{ij} = k(F_i, F_j). 
+"""
 function KernelMatrix(F::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}}}, k::Kernel) where T
     n = length(F)
     K = zeros(n, n)
@@ -74,6 +84,11 @@ function KernelMatrix(F::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}
     end
     Symmetric(K)
 end
+""" 
+    function KernelMatrix(F1, F2, k::Kernel)
+
+Compute non-symmetric kernel matrix K where K_{ij} = k(F1_i, F2_j). 
+"""
 function KernelMatrix(F1::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}}}, 
                       F2::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}}}, 
                       k::Kernel) where T
@@ -88,10 +103,20 @@ function KernelMatrix(F1::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}
     K
 
 end
+""" 
+    function KernelMatrix(ds::DataSet, F::Feature, k::Kernel)
+
+Compute symmetric kernel matrix K using features of the dataset ds calculated using the Feature method F. 
+"""
 function KernelMatrix(ds::DataSet, f::Feature, k::Kernel; dt = LocalDescriptors) 
     F = compute_feature.(ds, (f,); dt = dt)
     KernelMatrix(F, k)
 end
+""" 
+    function KernelMatrix(ds1::DataSet, ds2::DataSet, F::Feature, k::Kernel)
+
+    Compute nonsymmetric kernel matrix K using features of the datasets ds1 and ds2 calculated using the Feature method F. 
+"""
 function KernelMatrix(ds1::DataSet, ds2::DataSet, f::Feature, k::Kernel; dt = LocalDescriptors)
     F1 = compute_feature.(ds1, (f,); dt = dt)
     F2 = compute_feature.(ds2, (f,); dt = dt)

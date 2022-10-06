@@ -1,7 +1,14 @@
 import Optimization 
+import Optim
+using OptimizationOptimJL
 import Flux
 using Printf
 
+"""
+    abstract type AbstractLearningProblem end 
+
+Abstract type to define different types of LearningProblems. There are currently two subtypes: LearningProblem (generic) and LinearProblem (Univariate and Covariate). 
+"""
 abstract type AbstractLearningProblem end
 export learn!, LinearProblem, UnivariateLinearProblem, CovariateLinearProblem
 

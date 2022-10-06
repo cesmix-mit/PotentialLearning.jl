@@ -1,6 +1,6 @@
 module PotentialLearning
 
-using LinearAlgebra, Statistics, Random
+using LinearAlgebra, Statistics, Random, Distributions
 using Unitful, UnitfulAtomic, AtomsBase
 using StaticArrays
 using Zygote 
@@ -19,6 +19,9 @@ include("IO/io.jl")
 
 # Subset selection
 include("SubsetSelection/subsetselector.jl")
+
+# Dimension Reduction
+include("DimensionReduction/dimension_reduction.jl")
 
 # Learning problems 
 include("Learning/learning.jl")

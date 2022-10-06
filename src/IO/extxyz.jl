@@ -15,7 +15,7 @@ function load_data(file, extxyz::ExtXYZ; T = Float64)
     configs = Configuration[]
     open(file, "r") do io
         count = 1
-        while !eof(io) && (count <= max_entries)
+        while !eof(io) 
             # Read info line
             line = readline(io)
             num_atoms = parse(Int, line)
@@ -54,7 +54,7 @@ function load_data(file, extxyz::ExtXYZ; T = Float64)
             properties = split(properties, ":")
             properties = [properties[i:i+2] for i = 1:3:(length(properties)-1)]
             atoms = Vector{AtomsBase.Atom}(undef, num_atoms)
-            forces = Force{T}[]
+            forces = Force[]
             for i = 1:num_atoms
                 line = split(readline(io))
                 line_count = 1
@@ -66,7 +66,7 @@ function load_data(file, extxyz::ExtXYZ; T = Float64)
                         element = Symbol(line[line_count])
                         line_count += 1 
                     elseif prop[1] == "pos"
-                        position = SVector{3}(parse.(T, line[line_count:line_count+2])) .- bias
+                        position = SVector{3}(parse.(T, line[line_count:line_count+2])) 
                         line_count += 3
                     elseif prop[1] == "move_mask"
                         ft = Symbol(line[line_count])
@@ -75,23 +75,28 @@ function load_data(file, extxyz::ExtXYZ; T = Float64)
                         ft = Symbol(line[line_count])
                         line_count += 1 
                     elseif prop[1] == "forces"
-                        force[i] = Force(parse.(T, line[line_count:line_count+2]), extxyz.energy_units / extxyz.distance_units)
+                        push!(forces, Force(parse.(T, line[line_count:line_count+2]), extxyz.energy_units / extxyz.distance_units))
                         line_count += 3
                     else
                         length = parse(Int, prop[3])
                         if length == 1
-                            data = merge(data, Dict( (prop[1] => line[line_count]) ) )
+                            data = merge(data, Dict( (Symbol(prop[1]) => line[line_count]) ) )
                         else
-                            data = merge(data, Dict( (prop[1] => line[line_count:line_count+length-1]) ) )
+                            data = merge(data, Dict( (Symbol(prop[1]) => line[line_count:line_count+length-1]) ) )
                         end
                     end
                 end
-                atoms[i] = AtomsBase.Atom(element, position .* extxyz.distance_units, data = data)
+                if isempty(data)
+                    atoms[i] = AtomsBase.Atom(element, position .* extxyz.distance_units )
+                else
+                    atoms[i] = AtomsBase.Atom(element, position .* extxyz.distance_units, data... )
+                end
+
             end
 
             system = FlexibleSystem(atoms, box, bc)
             count += 1
-            push!(configs, Configuration(system, energy, forces))
+            push!(configs, Configuration(system, energy, Forces(forces)))
         end
     end
 

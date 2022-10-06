@@ -13,7 +13,7 @@ end
 """
     kDPP(ds::Dataset, f::Feature, k::Kernel) 
 
-A convenience function that allows the user access to a k-Determinantal Point Process through DPP.jl. All that is required to construct a kDPP is a similarity kernel, for which the user must provide a LinearProblem and two functions to compute descriptor (1) diversity and (2) quality. 
+A convenience function that allows the user access to a k-Determinantal Point Process through DPP.jl. All that is required to construct a kDPP is a dataset, a method to compute features, and a kernel. Optional arguments include batch size and type of descriptor (default LocalDescriptors).
 """
 function kDPP(ds::DataSet, f::Feature, k::Kernel; batch_size = length(ds), dt = LocalDescriptors)
     K = KernelMatrix(ds, f, k; dt = dt)
@@ -21,7 +21,12 @@ function kDPP(ds::DataSet, f::Feature, k::Kernel; batch_size = length(ds), dt = 
     rescale!(ell, batch_size)
     kDPP(ell, batch_size)
 end
-function kDPP(features::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}}},k::Kernel; batch_size =  length(ds)) where T 
+"""
+    kDPP(features::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}}}, k::Kernel) 
+
+A convenience function that allows the user access to a k-Determinantal Point Process through DPP.jl. All that is required to construct a kDPP are features (either a vector of vector features or a vector of symmetric matrix features) and a kernel. Optional argument is batch_size (default length(features)).
+"""
+function kDPP(features::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}}},k::Kernel; batch_size =  length(features)÷2) where T 
     K = KernelMatrix(features, k)
     ell = EllEnsemble(K)
     rescale!(ell, batch_size)
@@ -43,7 +48,7 @@ Access an approximate mode of the k-DPP as calculated by a greedy subset algorit
 """
 function get_dpp_mode(dpp::kDPP; batch_size::Int = dpp.batch_size)
     indices = greedy_subset(dpp.K, batch_size)
-    return (indices, configs[indices])
+    return (indices, dpp[indices])
 end
 """
     get_inclusion_prob(dpp::kDPP) <: Vector{Float64}

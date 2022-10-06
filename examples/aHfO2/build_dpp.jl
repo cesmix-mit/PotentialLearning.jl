@@ -9,7 +9,7 @@ using .PotentialLearning
 
 #################### Importing Data ###################
 # Import Raw Data
-energies, descriptors = JLD.load("examples/aHfO2/data/descriptors_3600.jld", "energies", "descriptors")
+energies, descriptors = JLD.load("examples/aHfO2/data/aHfO2_diverse_descriptors_3600.jld", "energies", "descriptors")
 
 # Create structs for data types 
 energies = Energy.(energies, (u"eV", ))
