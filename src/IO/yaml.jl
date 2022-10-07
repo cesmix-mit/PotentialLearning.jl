@@ -1,9 +1,8 @@
 import YAML as YML
 """
-    struct YAML <: IO
+    YAML <: IO
         energy_units :: Unitful.FreeUnits
         distance_units :: Unitful.FreeUnits
-    end
 """
 struct YAML <: IO 
     energy_units :: Unitful.FreeUnits

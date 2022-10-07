@@ -1,15 +1,14 @@
 ## Distances
 """ 
-    abstract type Distance end 
+    Distance
 
     A struct of abstract type Distance produces the distance between two `global` descriptors, or features. Not all distances might be compatible with all types of features.
 """
 abstract type Distance end
 
 """
-    struct Forstner <: Distance 
+    Forstner <: Distance 
         α :: Regularization parameter
-    end
 
     Computes the squared Forstner distance between two positive semi-definite matrices.
 """
@@ -28,9 +27,8 @@ function compute_distance(C1::Symmetric{T, Matrix{T}}, C2::Symmetric{T, Matrix{T
 end
 
 """
-    struct Euclidean <: Distance 
+    Euclidean <: Distance 
         Cinv :: Covariance Matrix 
-    end
 
     Computes the squared euclidean distance with weight matrix Cinv, the inverse of some covariance matrix.
 """

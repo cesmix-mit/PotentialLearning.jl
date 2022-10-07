@@ -6,16 +6,16 @@ export Feature, GlobalMean, CorrelationMatrix, compute_feature, compute_features
 export Kernel, DotProduct, get_parameters, RBF, compute_kernel, KernelMatrix
 ###############
 """
-    abstract type Kernel end 
+    Kernel
 
     A struct of abstract type Kernel is function that takes in two features and produces a semi-definite scalar representing the similarity between the two features.
 """
 abstract type  Kernel end
 
 """
-    struct DotProduct <: Kernel 
+    DotProduct <: Kernel 
         α :: Power of DotProduct kernel 
-    end
+
 
     Computes the dot product kernel between two features, i.e.,
 
@@ -36,12 +36,12 @@ end
 
 ##
 """ 
-    struct RBF <: Kernel 
+    RBF <: Kernel 
         d :: Distance function 
         α :: Reguarlization parameter 
         ℓ :: Length-scale parameter
         β :: Scale parameter
-    end
+    
 
     Computes the squared exponential kernel, i.e.,
 
@@ -60,7 +60,7 @@ end
 get_parameters(k::RBF) = (k.α, k.ℓ, k.β)
 
 """
-    function compute_kernel(A, B, k) end 
+    compute_kernel(A, B, k)
 
 Compute similarity kernel between features A and B using kernel k. 
 """
@@ -70,7 +70,7 @@ function compute_kernel(A::T, B::T, r::RBF) where T <: Union{Vector{<:Real}, Sym
 end
 
 """ 
-    function KernelMatrix(F, k::Kernel)
+    KernelMatrix(F, k::Kernel)
 
 Compute symmetric kernel matrix K where K_{ij} = k(F_i, F_j). 
 """
@@ -85,7 +85,7 @@ function KernelMatrix(F::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}}
     Symmetric(K)
 end
 """ 
-    function KernelMatrix(F1, F2, k::Kernel)
+    KernelMatrix(F1, F2, k::Kernel)
 
 Compute non-symmetric kernel matrix K where K_{ij} = k(F1_i, F2_j). 
 """
@@ -104,7 +104,7 @@ function KernelMatrix(F1::Union{Vector{Vector{T}}, Vector{Symmetric{T, Matrix{T}
 
 end
 """ 
-    function KernelMatrix(ds::DataSet, F::Feature, k::Kernel)
+    KernelMatrix(ds::DataSet, F::Feature, k::Kernel)
 
 Compute symmetric kernel matrix K using features of the dataset ds calculated using the Feature method F. 
 """
@@ -113,7 +113,7 @@ function KernelMatrix(ds::DataSet, f::Feature, k::Kernel; dt = LocalDescriptors)
     KernelMatrix(F, k)
 end
 """ 
-    function KernelMatrix(ds1::DataSet, ds2::DataSet, F::Feature, k::Kernel)
+    KernelMatrix(ds1::DataSet, ds2::DataSet, F::Feature, k::Kernel)
 
     Compute nonsymmetric kernel matrix K using features of the datasets ds1 and ds2 calculated using the Feature method F. 
 """

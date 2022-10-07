@@ -12,4 +12,10 @@ using Test
     @testset "Kernel Tests.jl" begin
         include("kernels/kernel_tests.jl")
     end
+    @testset "Subset Selector.jl" begin
+        include("subset_selector/subset_selector.jl")
+    end
+    @testset "Dimension Reduction.jl" begin 
+        include("dimension_reduction/dimension_reduction.jl")
+    end
 end

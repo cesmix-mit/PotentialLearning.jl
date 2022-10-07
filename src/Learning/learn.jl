@@ -1,10 +1,10 @@
 """
-    struct LearningProblem{T<:Real} <: AbstractLearningProblem 
+    LearningProblem{T<:Real} <: AbstractLearningProblem 
         ds      :: DataSet
         logprob :: Function # logprob(y::params, ds::Dataset) -> scalar
         ∇logprob :: Function # ∇logprob(y::params, ds::Dataset) -> gradient wrt y (params)
         params :: Vector{T} # model parameters
-    end
+    
 Generic LearningProblem that allows the user to pass a logprob(y::params, ds::DataSet) function and its gradient. The gradient should return a vector of logprob with respect to it's params. If the user does not have a gradient function available, then Flux can provide one for it (provided that logprob is of the form above).
 """
 struct LearningProblem{T<:Real} <: AbstractLearningProblem 
@@ -20,7 +20,7 @@ function LearningProblem(ds :: DataSet, logprob :: Function, params :: Vector{T}
 end
 
 """
-    function learn!(lp::LearningProblem;; num_steps = 100 :: Int, opt = Flux.Optimisers.Adam()) end 
+    learn!(lp::LearningProblem;; num_steps = 100 :: Int, opt = Flux.Optimisers.Adam()) 
 
 Attempts to fit the parameters lp.params in the learning problem lp using gradient descent with the optimizer opt and num_steps number of iterations.
 """
@@ -35,7 +35,7 @@ function learn!(lp::LearningProblem; num_steps = 100 :: Int, opt = Flux.Optimise
     end
 end
 """
-    function learn!(lp::LearningProblem, ss::SubsetSelector; num_steps = 100 :: Int, opt = Flux.Optimisers.Adam()) end 
+    learn!(lp::LearningProblem, ss::SubsetSelector; num_steps = 100 :: Int, opt = Flux.Optimisers.Adam())  
 
 Attempts to fit the parameters lp.params in the learning problem lp using batch gradient descent with the optimizer opt and num_steps number of iterations. Batching is provided by the passed ss::SubsetSelector. 
 """

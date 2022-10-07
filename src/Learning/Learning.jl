@@ -5,7 +5,7 @@ import Flux
 using Printf
 
 """
-    abstract type AbstractLearningProblem end 
+    AbstractLearningProblem 
 
 Abstract type to define different types of LearningProblems. There are currently two subtypes: LearningProblem (generic) and LinearProblem (Univariate and Covariate). 
 """

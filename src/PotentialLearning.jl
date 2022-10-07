@@ -4,6 +4,7 @@ using LinearAlgebra, Statistics, Random, Distributions
 using Unitful, UnitfulAtomic, AtomsBase
 using StaticArrays
 using Zygote 
+using InteratomicPotentials
 
 # Custom Adjoints for StaticVectors
 @Zygote.adjoint (T::Type{<:SVector})(x::AbstractVector) = T(x), dv -> (nothing, dv)

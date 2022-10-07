@@ -2,16 +2,16 @@
 ###########################################################
 ## Featurization 
 """
-    abstract type Feature end 
+    Feature
 
-    A struct of abstract type Feature represents a function that takes in a set of local descriptors corresponding to some atomic environment and produce a `global` descriptor. 
+A struct of abstract type Feature represents a function that takes in a set of local descriptors corresponding to some atomic environment and produce a `global` descriptor. 
 """
 abstract type Feature end
 
 """
-        struct GlobalMean{T} end
+        GlobalMean{T}
 
-        GlobalMean produces the mean of the local descriptors.
+GlobalMean produces the mean of the local descriptors.
 """
 struct GlobalMean <: Feature end
 GlobalMean(nothing) = GlobalMean
@@ -25,11 +25,10 @@ end
 #####################################################
 
 """
-    struct CorrelationMatrix 
+    CorrelationMatrix 
         α :: Vector{Float64} # weights
-    end
 
-    CorrelationMatrix produces a global descriptor that is the correlation matrix of the local descriptors. In other words, it is mean(bi'*bi for bi in B). 
+CorrelationMatrix produces a global descriptor that is the correlation matrix of the local descriptors. In other words, it is mean(bi'*bi for bi in B). 
 """
 struct CorrelationMatrix <: Feature end
 CorrelationMatrix(nothing) = CorrelationMatrix
@@ -44,7 +43,7 @@ function compute_feature(dB::ForceDescriptors, cm::CorrelationMatrix)
 end
 
 function compute_feature(c::Configuration, gm::GlobalMean; dt = LocalDescriptors)
-    compute_feature(get_descriptors(c), gm)
+    compute_feature(get_local_descriptors(c), gm)
 end
 
 function compute_feature(c::Configuration, cm::CorrelationMatrix; dt = LocalDescriptors)
@@ -52,7 +51,7 @@ function compute_feature(c::Configuration, cm::CorrelationMatrix; dt = LocalDesc
 end
 
 """
-    function compute_feature(ds::DataSet, f::Feature; dt = LocalDescriptors)
+    compute_feature(ds::DataSet, f::Feature; dt = LocalDescriptors)
 
 Computes features of the dataset ds using the feature method F on descriptors dt (default option are the LocalDescriptors, if available).
 """

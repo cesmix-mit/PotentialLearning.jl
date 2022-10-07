@@ -1,11 +1,11 @@
 """
-    abstract type LinearPRoblem{T<:Real} <: AbstractLearningProblem end 
+    LinearPRoblem{T<:Real} <: AbstractLearningProblem 
 
 An abstract type to specify linear potential inference problems. 
 """
 abstract type LinearProblem{T<:Real} <: AbstractLearningProblem end
 """
-    struct UnivariateLinearProblem{T<:Real} <: LinearProblem{T}
+    UnivariateLinearProblem{T<:Real} <: LinearProblem{T}
         iv_data :: Vector 
         dv_data :: Vector 
         β       :: Vector{T}
@@ -24,7 +24,7 @@ struct UnivariateLinearProblem{T<:Real} <: LinearProblem{T}
 end
 Base.show(io::IO, u::UnivariateLinearProblem{T}) where T = print(io, "UnivariateLinearProblem{T, $(u.β), $(u.σ)}")
 """
-    struct CovariateLinearProblem{T<:Real} <: LinearProblem{T}
+    CovariateLinearProblem{T<:Real} <: LinearProblem{T}
         e       :: Vector
         f       :: Vector{Vector{T}}
         B       :: Vector{Vector{T}}
@@ -33,7 +33,7 @@ Base.show(io::IO, u::UnivariateLinearProblem{T}) where T = print(io, "Univariate
         σe      :: Vector{T} 
         σf      :: Vector{T}
         Σ       :: Symmetric{T, Matrix{T}}
-    end
+    
 
 A CovariateLinearProblem is a linear problem in which we are fitting energies and forces using both descriptors and their gradients (B and dB, respectively). When this is the case, the solution is not available analytically and must be solved using some iterative optimization proceedure. In the end, we fit the model coefficients, β, standard deviations corresponding to energies and forces, σe and σf, and the covariance Σ. 
 """
@@ -50,7 +50,7 @@ end
 
 Base.show(io::IO, u::CovariateLinearProblem{T}) where T = print(io, "CovariateLinearProblem{T, $(u.β), $(u.σe), $(u.σf)}")
 """
-    function LinearProblem(ds::DatasSet; T = Float64)
+    LinearProblem(ds::DatasSet; T = Float64)
 
 Construct a LinearProblem by detecting if there are energy descriptors and/or force descriptors and construct the appropriate LinearProblem (either Univariate, if only a single type of descriptor, or Covariate, if there are both types).
 """
@@ -158,7 +158,7 @@ function learn!(lp::CovariateLinearProblem; α = 1e-8)
     copyto!(lp.σe, exp(sol.u[1]))
     copyto!(lp.σf, exp(sol.u[2]))
     copyto!(lp.β, sol.u[3:end])
-    Q = pinv( Symmetric(lp.σe[1]^2 * pinv(Symmetric(AtAe)) + lp.σf[1]^2 * pinv(Symmetric(AtAf)) ))
+    Q = pinv( Symmetric(lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α) ))
     copyto!(lp.Σ, Q)
     lp 
 end
@@ -186,6 +186,9 @@ function learn!(lp::UnivariateLinearProblem, ss::SubsetSelector; num_steps = 100
     end
     copyto!(lp.σ, exp(params[1]))
     copyto!(lp.β, params[2:end])
+    AtA = sum( v*v' for v in lp.iv_data)
+    copyto!(lp.Σ, lp.σ[1]^2 * pinv(AtA, α))
+
     lp
 end
 """
@@ -220,6 +223,40 @@ function learn!(lp::CovariateLinearProblem, ss::SubsetSelector; num_steps = 100,
     copyto!(lp.σe, exp(params[1]))
     copyto!(lp.σf, exp(params[2]))
     copyto!(lp.β, params[3:end])
+    AtAe = sum( b*b' for b in lp.B)
+    AtAf = sum( db*db' for db in lp.dB)
+    Q = pinv( Symmetric(lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α) ))
+    copyto!(lp.Σ, Q)
+
     lp
 end
+"""
+    learn!(lb::LBasisPotential, ds::DataSet; α = 1e-8, return_cov = true)
 
+Fits the linear basis potential lb using data from DataSet using either an analytic solution or an optimization proceedure, depending on whether both energies and forces are present. Optionally returns the posterior covariance over the parameters. 
+"""
+function learn!(lb::InteratomicPotentials.LinearBasisPotential, ds::DataSet; α = 1e-8, return_cov = true)
+    linear_problem = LinearProblem(ds)
+    learn!(linear_problem; α = α)
+    copy!(lb.β, linear_problem.β)
+    if return_std 
+        lb, linear_problem.Σ
+    else
+        lb
+    end
+end
+"""
+    learn!(lb::LBasisPotential, ds::DataSet, ss::SubsetSelector; α = 1e-8, return_cov = true)
+
+Fits the linear basis potential lb using data from DataSet using batch gradient descent with batches provided by the subset selector ss. Optionally returns the posterior covariance over the parameters. 
+"""
+function learn!(lb::InteratomicPotentials.LinearBasisPotential, ds::DataSet, ss::SubsetSelector; α = 1e-8, return_cov = true)
+    linear_problem = LinearProblem(ds)
+    learn!(linear_problem, ss; α = α)
+    copy!(lb.β, linear_problem.β)
+    if return_std 
+        lb, linear_problem.Σ
+    else
+        lb
+    end
+end

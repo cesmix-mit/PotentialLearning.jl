@@ -2,7 +2,25 @@ abstract type ConfigurationDataSet end
 struct Configuration <: ConfigurationDataSet
     data :: Dict{DataType, CFG_TYPE}
 end
+"""
+    Configuration(data::Union{AtomsBase.FlexibleSystem, ConfigurationData} )
 
+A Configuration is a data struct that contains information unique to a particular configuration of atoms (Energy, LocalDescriptors, ForceDescriptors, and a FlexibleSystem) in a dictionary. 
+    Example:
+    '''julia
+        e = Energy(-0.57, u"eV")
+        ld = LocalDescriptors(...)
+        c = Configuration(e, ld)
+    '''
+
+Configurations can be added together, which merges the data dictionaries 
+    '''julia 
+    c1 = Configuration(e) # Contains energy 
+    c2 = Configuration(f) # contains forces 
+    c = c1 + c2 # c <: Configuration, contains energy and forces
+    '''
+
+"""
 function Configuration(data::CFG_TYPE...) 
     Configuration(Dict{DataType, CFG_TYPE}(zip(typeof.(data), data)))
 end
@@ -16,20 +34,54 @@ end
 function Base.:+(c::Configuration, d::CFG_TYPE)
     c + Configuration(d)
 end
+"""
+    get_system(c::Configuration) <: AtomsBase.AbstractSystem
 
+Retrieves the AtomsBase system (if available) in the Configuration c. 
+"""
 function get_system(c::Configuration)
     i = findall( keys(c.data) .<: AtomsBase.AbstractSystem )[1]
     collect(values(c.data))[i]
 end
+"""
+    get_positions(c::Configuration) <: Vector{SVector}
 
+Retrieves the AtomsBase system positions (if available) in the Configuration c. 
+"""
 get_positions(c::Configuration) = position(get_system(c))
+"""
+    get_energy(c::Configuration) <: Energy
+
+Retrieves the energy (if available) in the Configuration c. 
+"""
 get_energy(c::Configuration) = c.data[Energy]
-get_descriptors(c::Configuration) = c.data[LocalDescriptors]
+"""
+    get_local_descriptors(c::Configuration) <: LocalDescriptors
+
+Retrieves the local descriptors (if available) in the Configuration c. 
+"""
+get_local_descriptors(c::Configuration) = c.data[LocalDescriptors]
+"""
+    get_forces(c::Configuration) <: Forces
+
+Retrieves the forces (if available) in the Configuration c. 
+"""
 get_forces(c::Configuration) = c.data[Forces]
+"""
+    get_force_descriptors(c::Configuration) <: ForceDescriptors
+
+Retrieves the force descriptors (if available) in the Configuration c. 
+"""
 get_force_descriptors(c::Configuration) = c.data[ForceDescriptors]
-
+"""
+    DataBase 
+Abstract type for DataSets. 
+"""
 abstract type DataBase end 
-
+"""
+    DataSet 
+Struct that holds vector of configuration. Most operations in PotentialLearning are built around the DataSet structure.
+"""
 struct DataSet <: DataBase 
     Configurations :: Vector{Configuration}
 end
@@ -53,64 +105,3 @@ function Base.show(io::IO, ds::DataSet)
         print(io, "\n\t ⋮\n\t $(ds.Configurations[end])")
     end
 end
-
-# Base.show(io::IO, c::Config) = print(io, "Configuration{$(string([ti for ti in c.types])[10:end-1])")
-
-# struct FullConfiguration{T} <: AtomicData 
-#     e :: Energy{T}
-#     B :: Vector{LocalDescriptor{T}}
-#     f :: Vector{Force{T}}
-#     dB :: Vector{ForceDescriptor{T}}
-# end
-# Base.show(io::IO, fc::FullConfiguration{T}) = print(io, "Configuration{$T, num_atoms = $(length(fc.B))}($(fc.e), $(fc.B[1]), Force{3, $T}, $(fc.dB[1])")
-
-# struct EnergyConfiguration{T} <: AtomicData 
-#     e :: Energy{T}
-#     B :: Vector{LocalDescriptor{T}}
-# end
-# Base.show(io::IO, fc::EnergyConfiguration{T}) = print(io, "Configuration{$T, num_atoms = $(length(fc.B))}($(fc.e), $(fc.B[1])")
-
-# struct ForceConfiguration{T} <: AtomicData 
-#     f :: Vector{Force{T}}
-#     dB :: Vector{ForceDescriptor{T}}
-# end
-# Base.show(io::IO, fc::ForceConfiguration{T}) = print(io, "Configuration{$T, num_atoms = $(length(fc.f))}(Force{3, $T}, $(fc.dB[1])")
-
-# struct LocalDescriptorSet{T} <: AtomicData 
-#     B :: Vector{LocalDescriptor{T}}
-# end
-# Base.show(io::IO, fc::LocalDescriptorSet{T}) = print(io, "Configuration{$T, num_atoms = $(length(fc.B))}($(fc.B[1])")
-
-# function LocalDescriptorSet(B::Vector{Vector{T}}) where T<:Real
-#     LocalDescriptorSet(LocalDescriptor.(B))
-# end
-
-# struct ForceDescriptorSet{T} <: AtomicData 
-#     B :: Vector{ForceDescriptor{T}}
-# end
-# Base.show(io::IO, fc::ForceDescriptorSet{T}) = print(io, "Configuration{$T, num_atoms = $(length(fc.B))}($(fc.B[1])")
-
-
-# function ForceDescriptorSet(B::Vector{Vector{T}}) where T<:Vector{<:Real}
-#     LocalDescriptorSet([LocalDescriptor(bi for bi in B)])
-# end
-
-# function Configuration(e :: Energy{T}, B :: Vector{LocalDescriptor{T}}) 
-#     EnergyConfiguration(e, B)
-# end
-
-# function Configuration(e :: Energy{T}, B :: Vector{LocalDescriptor{T}}, f::Vector{Force{T}}, dB::Vector{ForceDescriptor{T}}) 
-#     FullConfiguration(e, B, f, dB)
-# end
-
-# function Configuration(f::Vector{Force{T}}, dB::Vector{ForceDescriptor{T}}) 
-#    ForceConfiguration(f, dB)
-# end
-
-# function Configuration(B :: Vector{LocalDescriptor{T}}) 
-#     LocalDescriptorSet(B)
-# end
-
-# function Configuration(dB :: Vector{ForceDescriptor{T}}) 
-#     ForceDescriptorSet(dB)
-# end

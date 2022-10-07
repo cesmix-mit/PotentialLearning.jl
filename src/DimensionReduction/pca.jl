@@ -1,7 +1,6 @@
 """
-    struct PCA <: DimensionReducer
+    PCA <: DimensionReducer
         tol :: Float64 
-    end
 
 Use SVD to compute the PCA of the design matrix of descriptors. (using Force descriptors TBA)
 
@@ -22,7 +21,7 @@ Fits a linear dimension reduction routine using PCA on the global descriptors in
 """
 function fit(ds::DataSet, pca :: PCA)
     d = try 
-        get_values.(get_descriptors.(ds))
+        vcat(get_values.(get_local_descriptors.(ds))...)
     catch
         error("No local descriptors found in DataSet")
     end

@@ -1,7 +1,5 @@
 """
-    struct ExtXYZ <: IO
-  
-    end
+    ExtXYZ <: IO
 """
 struct ExtXYZ <: IO 
     energy_units :: Unitful.FreeUnits
