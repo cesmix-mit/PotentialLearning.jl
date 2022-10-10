@@ -41,6 +41,7 @@ get_values(e::Energy) = e.d
 function Energy(e) 
     Energy(e, u"eV")
 end
+
 """
     LocalDescriptor <: AtomicData 
 
