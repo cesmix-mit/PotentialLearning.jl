@@ -82,7 +82,8 @@ function LinearProblem(ds::DataSet; T = Float64)
         p = UnivariateLinearProblem(force_descriptors,
             [reduce(vcat, fi) for fi in forces], 
             β, 
-            [1.0]
+            [1.0], 
+            Symmetric(zeros(dim, dim))
         )
         
     elseif d_flag & fd_flag 
@@ -105,7 +106,8 @@ function LinearProblem(ds::DataSet; T = Float64)
                 force_descriptors, 
                 β, 
                 [1.0], 
-                [1.0])
+                [1.0], 
+                Symmetric(zeros(dim, dim)))
 
     else 
         error("Either no (Energy, Descriptors) or (Forces, Force Descriptors) in DataSet")
