@@ -41,6 +41,7 @@ get_values(e::Energy) = e.d
 function Energy(e) 
     Energy(e, u"eV")
 end
+
 """
     LocalDescriptor <: AtomicData 
 
@@ -53,6 +54,7 @@ Base.length(ld::LocalDescriptor) = length(ld.b)
 Base.show(io::IO, l::LocalDescriptor) = print(io, "LocalDescriptor{$(length(l))}")
 get_values(ld::LocalDescriptor) = ld.b
 Base.:*(W::AbstractMatrix{T}, ld::LocalDescriptor) where T<:Real = LocalDescriptor(W * ld.b)
+
 """
     LocalDescriptors <: ConfigurationData 
 
