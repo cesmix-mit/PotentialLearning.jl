@@ -7,6 +7,18 @@
 A struct of abstract type Feature represents a function that takes in a set of local descriptors corresponding to some atomic environment and produce a `global` descriptor. 
 """
 abstract type Feature end
+"""
+        GlobalSum{T}
+
+GlobalSum produces the sum of the local descriptors.
+"""
+struct GlobalSum <: Feature end
+GlobalSum(nothing) = GlobalSum
+
+
+function compute_feature(B::LocalDescriptors, gm::GlobalSum) where T
+    sum(get_values(B))
+end 
 
 """
         GlobalMean{T}

@@ -57,7 +57,7 @@ Construct a LinearProblem by detecting if there are energy descriptors and/or fo
 function LinearProblem(ds::DataSet; T = Float64)
     
     d_flag, descriptors, energies = try 
-        true,  compute_features(ds, GlobalMean()), get_values.(get_energy.(ds))
+        true,  compute_features(ds, GlobalSum()), get_values.(get_energy.(ds))
     catch 
         false, 0.0, 0.0 
     end
@@ -73,7 +73,8 @@ function LinearProblem(ds::DataSet; T = Float64)
         p = UnivariateLinearProblem(descriptors, 
                 energies, 
                 β, 
-                [1.0])
+                [1.0],
+                Symmetric(zeros(dim, dim)))
     elseif ~d_flag & fd_flag 
         dim = length(force_descriptors[1][1])
         β = zeros(T, dim)
@@ -127,7 +128,7 @@ function learn!(lp::UnivariateLinearProblem; α = 1e-8)
     Q = pinv(AtA, α)
     copyto!(lp.β, Q*Atb) 
     copyto!(lp.σ, std(Atb - AtA*lp.β))
-    copyto!(lp.Σ, lp.σ[1]^2 * Q)
+    copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * Q))
     lp
 end
 
@@ -161,7 +162,7 @@ function learn!(lp::CovariateLinearProblem; α = 1e-8)
     copyto!(lp.σf, exp(sol.u[2]))
     copyto!(lp.β, sol.u[3:end])
     Q = pinv( Symmetric(lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α) ))
-    copyto!(lp.Σ, Q)
+    copyto!(lp.Σ, Symmetric(Q))
     lp 
 end
 """
@@ -189,7 +190,7 @@ function learn!(lp::UnivariateLinearProblem, ss::SubsetSelector; num_steps = 100
     copyto!(lp.σ, exp(params[1]))
     copyto!(lp.β, params[2:end])
     AtA = sum( v*v' for v in lp.iv_data)
-    copyto!(lp.Σ, lp.σ[1]^2 * pinv(AtA, α))
+    copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * pinv(AtA, α)))
 
     lp
 end
@@ -228,7 +229,7 @@ function learn!(lp::CovariateLinearProblem, ss::SubsetSelector; num_steps = 100,
     AtAe = sum( b*b' for b in lp.B)
     AtAf = sum( db*db' for db in lp.dB)
     Q = pinv( Symmetric(lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α) ))
-    copyto!(lp.Σ, Q)
+    copyto!(lp.Σ, Symmetric(Q))
 
     lp
 end
@@ -241,7 +242,7 @@ function learn!(lb::InteratomicPotentials.LinearBasisPotential, ds::DataSet; α 
     linear_problem = LinearProblem(ds)
     learn!(linear_problem; α = α)
     copy!(lb.β, linear_problem.β)
-    if return_std 
+    if return_cov
         lb, linear_problem.Σ
     else
         lb
@@ -256,7 +257,7 @@ function learn!(lb::InteratomicPotentials.LinearBasisPotential, ds::DataSet, ss:
     linear_problem = LinearProblem(ds)
     learn!(linear_problem, ss; α = α)
     copy!(lb.β, linear_problem.β)
-    if return_std 
+    if return_cov
         lb, linear_problem.Σ
     else
         lb

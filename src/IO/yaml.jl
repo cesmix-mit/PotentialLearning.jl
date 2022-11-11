@@ -5,6 +5,7 @@ import YAML as YML
         distance_units :: Unitful.FreeUnits
 """
 struct YAML <: IO 
+    element       :: Symbol
     energy_units :: Unitful.FreeUnits
     distance_units :: Unitful.FreeUnits
 end
@@ -36,7 +37,7 @@ function load_yaml(yaml_dict::Dict, yaml::YAML)
                     [0.0 yhi-ylo 0.0].*yaml.distance_units,
                     [0.0 0.0 zhi-zlo].*yaml.distance_units])
 
-    system = FlexibleSystem([Atom(:Na, p_i) for p_i in p], box, [bc == "p" ? Periodic() : DirichletZero() for bc in bcs])
+    system = FlexibleSystem([Atom(yaml.element, p_i) for p_i in p], box, [bc == "p" ? Periodic() : DirichletZero() for bc in bcs])
     Configuration(system, e, f), thermo
 end
     
