@@ -13,6 +13,7 @@ using LinearAlgebra
 using StaticArrays
 using Statistics
 using Optimization
+using OptimizationOptimJL
 using UnitfulAtomic
 using Unitful 
 using Flux

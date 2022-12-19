@@ -1,13 +1,14 @@
 module PotentialLearning
 
-include("Interface.jl")
-include("IO/Input.jl")
-include("IO/Load-extxyz.jl")
-include("IO/Utils.jl")
-include("Learning/NNBasisPotential.jl") # TODO: Add to InteratomicPotentials.jl/InteratomicBasisPotentials.jl
-include("Learning/Losses.jl") 
-include("Learning/Learning.jl")
-include("PostProc/Metrics.jl")
-include("PostProc/Plots.jl")
+include("interface.jl")
+include("io/input.jl")
+include("io/load-extxyz.jl")
+include("io/utils.jl")
+include("subsampling/subsampling.jl")
+include("misc/NNBasisPotential.jl") # TODO: Move to InteratomicBasisPotentials.jl
+include("training/losses.jl") 
+include("training/learning.jl")
+include("postproc/metrics.jl")
+include("postproc/plots.jl")
 
 end

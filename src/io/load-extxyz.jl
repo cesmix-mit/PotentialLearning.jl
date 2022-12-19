@@ -11,7 +11,7 @@ export load_extxyz
 Returns a vector of systems or atomic configurations.
 
 """
-function load_extxyz(file; max_entries = 2000, T = Float64)
+function load_extxyz(file; max_entries = Inf, T = Float64)
     systems  = AbstractSystem[]
     energies = T[]
     forces    = Vector{SVector{3, T}}[]
