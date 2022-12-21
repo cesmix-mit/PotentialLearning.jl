@@ -14,7 +14,7 @@ e = [ Energy(ustrip(uconvert(u"eV", sum(collect(values(di))) * u"hartree"))) for
 f = [ Forces([ ustrip.(uconvert.(u"eV/Å", [fij[1], fij[2], fij[3]] * u"hartree/bohr")) for fij in fi], (u"eV/Å")) for fi in forces ];
 
 # Import configurations 
-ds_temp, _ = load_data("examples/Sodium/data/liquify_sodium.yaml", YAML(u"eV", u"Å"));
+ds_temp, _ = load_data("examples/Sodium/data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å")); # TODO: check YAML(:Na, u"eV", u"Å") is correc
 systems = get_system.(ds_temp);
 
 # Only take subset 
