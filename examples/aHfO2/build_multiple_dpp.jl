@@ -4,8 +4,7 @@ using InteratomicPotentials, InteratomicBasisPotentials
 using CairoMakie
 using JLD
 using DPP
-include("./src/PotentialLearning.jl")
-using .PotentialLearning
+using PotentialLearning
 
 #################### Importing Data ###################
 # Import Raw Data

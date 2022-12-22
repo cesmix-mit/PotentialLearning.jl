@@ -15,7 +15,7 @@ struct LearningProblem{T<:Real} <: AbstractLearningProblem
 end
 
 function LearningProblem(ds :: DataSet, logprob :: Function, params :: Vector{T}) where T
-    ∇logprob(x, ds) = Flux.gradient(y->f(y, ds), x)
+    ∇logprob(x, ds) = Flux.gradient(y->logprob(y, ds), x)
     LearningProblem(ds, logprob, ∇logprob, params)
 end
 
