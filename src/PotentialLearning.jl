@@ -5,6 +5,10 @@ using Unitful, UnitfulAtomic, AtomsBase
 using StaticArrays
 using Zygote 
 using InteratomicPotentials
+using OrderedCollections
+using IterTools
+using CSV
+using Plots
 
 # Custom Adjoints for StaticVectors
 @Zygote.adjoint (T::Type{<:SVector})(x::AbstractVector) = T(x), dv -> (nothing, dv)
@@ -28,6 +32,9 @@ include("DimensionReduction/dimension_reduction.jl")
 include("Learning/learning.jl")
 
 # Metrics 
-# include("Metrics/metrics.jl") 
+include("Metrics/metrics.jl") 
+
+# Postproc
+include("PostProc/Plots.jl")
 
 end

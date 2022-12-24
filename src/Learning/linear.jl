@@ -55,9 +55,9 @@ Base.show(io::IO, u::CovariateLinearProblem{T}) where T = print(io, "CovariateLi
 Construct a LinearProblem by detecting if there are energy descriptors and/or force descriptors and construct the appropriate LinearProblem (either Univariate, if only a single type of descriptor, or Covariate, if there are both types).
 """
 function LinearProblem(ds::DataSet; T = Float64)
-    
     d_flag, descriptors, energies = try 
-        true,  compute_features(ds, GlobalSum()), get_values.(get_energy.(ds))
+        #true,  compute_features(ds, GlobalSum()), get_values.(get_energy.(ds))
+        true, compute_feature.(get_local_descriptors.(ds), [GlobalSum()]), get_values.(get_energy.(ds))
     catch 
         false, 0.0, 0.0 
     end

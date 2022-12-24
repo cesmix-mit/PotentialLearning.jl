@@ -1,6 +1,7 @@
 Manifest.toml
 
 *.jld
+*.DS_Store
 
 # generated docs
 docs/build/

@@ -2,7 +2,7 @@ include("features.jl")
 include("distances.jl")
 
 export Distance, Forstner, compute_distance, Euclidean
-export Feature, GlobalMean, CorrelationMatrix, compute_feature, compute_features
+export Feature, GlobalSum, GlobalMean, CorrelationMatrix, compute_feature, compute_features
 export Kernel, DotProduct, get_parameters, RBF, compute_kernel, KernelMatrix
 ###############
 """
