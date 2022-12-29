@@ -27,7 +27,10 @@ ace = ACE([:Na], n_body, max_deg, wL, csp, r0, rcutoff)
 # force_descriptors = compute_force_descriptors.(systems, (ace,))
 lb = LBasisPotential(ace)
 
-local_descriptors = JLD.load("examples/Sodium/data/sodium_empirical_full.jld", "descriptors");
+# If we already have local_descriptors
+# local_descriptors = JLD.load("examples/Sodium/data/sodium_empirical_full.jld", "descriptors");
+
+# If we need to compute local_descriptors
 local_descriptors = LocalDescriptors.(local_descriptors);
 ds = ds .+ local_descriptors;
 
@@ -112,7 +115,7 @@ size_inches = (12, 8)
 size_pt = 72 .* size_inches
 fig = Figure(resolution = size_pt, fontsize =16)
 ax1 = Axis(fig[1,1], xlabel = "Energy (eV)", )
-scatter!(ax1, ace_energies, , markersize = 3.0)
+scatter!(ax1, ace_energies, markersize = 3.0)
 save("examples/Sodium/figures/energy_error_prediction_scatter.pdf", fig)
 
 ####

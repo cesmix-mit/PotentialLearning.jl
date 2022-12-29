@@ -9,8 +9,8 @@ struct YAML <: IO
     energy_units :: Unitful.FreeUnits
     distance_units :: Unitful.FreeUnits
 end
-function YAML(; energy_units = u"eV", distance_units = u"Å")
-    YAML(energy_units, distance_units)
+function YAML(element; energy_units = u"eV", distance_units = u"Å")
+    YAML(element, energy_units, distance_units)
 end
 
 function load_yaml(yaml_dict::Dict, yaml::YAML)
