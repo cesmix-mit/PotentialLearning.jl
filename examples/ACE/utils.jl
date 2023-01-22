@@ -13,7 +13,9 @@ end
 #end
 
 #function get_energy_pred_vals(lp, ds)
-#    return [B ⋅ lp.β for B in compute_feature.(get_local_descriptors.(ds), [GlobalSum()])]
+#    Bs = sum.(get_values.(get_local_descriptors.(ds)))
+#    e_pred = dot.(Bs, [lp.β])
+#    return e_pred
 #end
 
 #function get_forces_vals(ds)
@@ -33,7 +35,21 @@ function get_true_values(ds)
 end
 
 function get_pred_values(lp, ds)
-    e_pred = [B ⋅ lp.β for B in compute_feature.(get_local_descriptors.(ds), [GlobalSum()])]
+    Bs = sum.(get_values.(get_local_descriptors.(ds)))
+    e_pred = dot.(Bs, [lp.β])
+    
+#            compute_features(ds, GlobalSum())
+#            
+#            function compute_features(ds::DataSet, f::Feature; dt = LocalDescriptors)
+#                compute_feature.(ds, (f,); dt = dt)
+#            end
+#            
+#            
+#            function compute_feature(c::Configuration, gs::GlobalSum; dt = LocalDescriptors)
+#                compute_feature(get_local_descriptors(c), gs)
+#            end
+
+    
     force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
     f_pred = vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
     return e_pred, f_pred
@@ -44,7 +60,7 @@ end
 
 function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                       e_test_pred, e_test, f_test_pred, f_test,
-                      B_time, dB_time, time_fitting)
+                      B_time, dB_time, learn_time)
     e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
     f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
     e_test_mae, e_test_rmse, e_test_rsq = calc_metrics(e_test_pred, e_test)
@@ -70,6 +86,6 @@ function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                             "f_test_mean_cos"  => f_test_mean_cos,
                             "B_time [s]"       => B_time,
                             "dB_time [s]"      => dB_time,
-                            "time_fitting [s]" => time_fitting)
+                            "learn_time [s]" => learn_time)
     return metrics
 end

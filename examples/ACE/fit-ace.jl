@@ -13,10 +13,10 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "random_seed",          "0",   # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "800", # Training dataset size
-        "n_test_sys",           "200", # Test dataset size
-        "n_body",               "4",
-        "max_deg",              "4",
+        "n_train_sys",          "20", # Training dataset size
+        "n_test_sys",           "20", # Test dataset size
+        "n_body",               "2",
+        "max_deg",              "3",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
