@@ -94,39 +94,26 @@ function InteratomicPotentials.potential_energy(c::Configuration, p::NNBasisPote
     return sum(p.nn(B))
 end
 
-function grad_mlp(nn_params, x0)
-    dsdy(x) = x>0 ? 1 : 0 # Flux.σ(x) * (1 - Flux.σ(x)) 
-    prod = 1; x = x0
-    n_layers = length(nn_params) ÷ 2
-    for i in 1:2:2(n_layers-1)-1  # i : 1, 3
-        y = nn_params[i] * x .+ nn_params[i+1]
-        x =  Flux.relu.(y) # Flux.σ.(y)
-        prod = dsdy.(y) .* nn_params[i] * prod
-    end
-    i = 2(n_layers)-1 
-    prod = nn_params[i] * prod
-    return prod
-end
-
-function grad_mlp(m, x0)
-    ps = Flux.params(m)
-    dsdy(x) = Flux.σ(x) * (1 - Flux.σ(x)) 
-    prod = 1; x = x0
-    n_layers = length(ps) ÷ 2
-    for i in 1:2:2(n_layers-1)-1  # i : 1, 3
-        y = ps[i] * x + ps[i+1]
-        x = Flux.σ.(y)
-        prod = dsdy.(y) .* ps[i] * prod
-    end
-    i = 2(n_layers)-1 
-    prod = ps[i] * prod
-    return reshape(prod, :)
-end
+#function grad_mlp(m, x0)
+#    ps = Flux.params(m)
+#    dsdy(x) = x>0 ? 1 : 0 # Flux.σ(x) * (1 - Flux.σ(x)) 
+#    prod = 1; x = x0
+#    n_layers = length(ps) ÷ 2
+#    for i in 1:2:2(n_layers-1)-1  # i : 1, 3
+#        y = ps[i] * x + ps[i+1]
+#        x = Flux.relu.(y) # Flux.σ.(y)
+#        prod = dsdy.(y) .* ps[i] * prod
+#    end
+#    i = 2(n_layers)-1 
+#    prod = ps[i] * prod
+#    return prod #reshape(prod, :)
+#end
 
 function InteratomicPotentials.force(c::Configuration, p::NNBasisPotential)
     B = sum(get_values(get_local_descriptors(c)))
-    #dnndb = first(gradient(x->sum(nn(x)), B))
-    dnndb = grad_mlp(p.nn, B)
+    dnndb = first(gradient(x->sum(p.nn(x)), B))
+    #dnndb = grad_mlp(p.nn, B)
+    #dnndb = B[1:12]
     dbdr = get_values(get_force_descriptors(c))
     return [[-dnndb ⋅ dbdr[atom][coor] for coor in 1:3]
              for atom in 1:length(dbdr)]
@@ -153,31 +140,20 @@ function loss(ps, ds)
     return w_e * Flux.mse(es_pred, es) #+ w_f * Flux.mse(fs_pred, fs)
 end
 
-#dloss(x, ds) = Flux.gradient(y->loss(y, ds), x)
-#grads = dloss(lp.params, lp.ds)
-#Flux.Optimise.update!([opt], lp.params, grads)
-#dloss(rand(43), ds_train)
-
-#optim = Flux.setup(Flux.Adam(0.01), nn)  # will store optimiser momentum, etc.
-#loss1, grads = Flux.withgradient(nn, ds_train, ace) do m,ds,ace
-#    nnbp = NNBasisPotential(m, ace)
-#    es =      [get_values(get_energy(ds[c])) for c in 1:length(ds)]
-#    es_pred = [potential_energy(ds[c], nnbp) for c in 1:length(ds)]
-#    Flux.mse(es_pred, es)
-#end
-#Flux.update!(optim, nn, grads[1])
 
 losses = []
+optim = Flux.setup(Flux.Adam(0.01), nn)  # will store optimiser momentum, etc.
 for epoch in 1:10
         loss1, grads = Flux.withgradient(nn, ds_train, ace) do m,ds,ace
             nnbp = NNBasisPotential(m, ace)
             es =      [get_values(get_energy(ds[c])) for c in 1:length(ds)]
             es_pred = [potential_energy(ds[c], nnbp) for c in 1:length(ds)]
-
-            #fs =      reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c])) for c in 1:length(ds)]))
-            #fs_pred = reduce(vcat,reduce(vcat,[force(ds[c], nnbp)            for c in 1:length(ds)]))
-            w_e = 1; w_f = 1; 
-            return w_e * Flux.mse(es_pred, es) #+ w_f * Flux.mse(fs_pred, fs)
+            
+            fs =      reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c])) for c in 1:length(ds)]))
+            fs_pred = reduce(vcat,reduce(vcat,[force(ds[c], nnbp)            for c in 1:length(ds)]))
+            
+            w_e = 1; w_f = 1;
+            return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
         end
         Flux.update!(optim, nn, grads[1])
         push!(losses, loss1)  # logging, outside gradient context
