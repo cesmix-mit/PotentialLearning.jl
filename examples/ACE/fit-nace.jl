@@ -16,13 +16,13 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "random_seed",          "0",   # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "800", # Training dataset size
-        "n_test_sys",           "200", # Test dataset size
-        "nn",                   "Chain(Dense(n_desc,3,Flux.sigmoid),Dense(3,1))",
+        "n_train_sys",          "100", # Training dataset size
+        "n_test_sys",           "100", # Test dataset size
+        "nn",                   "Chain(Dense(n_desc,8,Flux.gelu),Dense(8,1))",
         "n_epochs",             "1",
         "n_batches",            "1",
-        "optimiser",            "Adam(0.01)",
-        "epochs",               "100",
+        "optimiser",            "BFGS",
+        "epochs",               "1000",
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
@@ -48,6 +48,8 @@ end
 # Load dataset
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
 ds = load_data(ds_path, ExtXYZ(u"eV", u"Å"))
+
+ds = ds[1:2000]
 
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
@@ -138,31 +140,49 @@ function loss(nn, basis, ds, w_e = 1, w_f = 1)
     return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
 end
 
-# Learn
-println("Training energies and forces...")
+# Learning functions
+println("Learning energies and forces...")
 
-opt = Flux.Adam(0.01) # @eval $(Symbol(input["optimiser"]))() # Flux.Adam(0.01)
-optim = Flux.setup(opt, nn)  # will store optimiser momentum, etc.
-
-epochs = input["epochs"]
-w_e, w_f = input["w_e"], input["w_f"]
-
-∇loss(nn, basis, ds, w_e, w_f) = gradient((nn) -> loss(nn, basis, ds, w_e, w_f), nn)
-
-learn_time = @elapsed begin
+# Flux.jl training
+function learn!(nnbp, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f)
+    optim = Flux.setup(opt, nnbp.nn)  # will store optimiser momentum, etc.
+    ∇loss(nn, basis, ds, w_e, w_f) = gradient((nn) -> loss(nn, basis, ds, w_e, w_f), nn)
     losses = []
     for epoch in 1:epochs
-            # Compute gradient with current parameters and update model
-            grads = ∇loss(nnbp.nn, nnbp.basis, ds_train, w_e, w_f)
-            Flux.update!(optim, nnbp.nn, grads[1])
-            # Logging
-            curr_loss = loss(nnbp.nn, nnbp.basis, ds_train, w_e, w_f)
-            push!(losses, curr_loss)
-            println(curr_loss)
+        # Compute gradient with current parameters and update model
+        grads = ∇loss(nnbp.nn, nnbp.basis, ds, w_e, w_f)
+        Flux.update!(optim, nnbp.nn, grads[1])
+        # Logging
+        curr_loss = loss(nnbp.nn, nnbp.basis, ds, w_e, w_f)
+        push!(losses, curr_loss)
+        println(curr_loss)
     end
 end
 
+# Optimization.jl training
+function learn!(nnbp, ds, opt::Optim.FirstOrderOptimizer, epochs, loss, w_e, w_f)
+    ps, re = Flux.destructure(nnbp.nn)
+    batchloss(ps, p) = loss(re(ps), nnbp.basis, ds_train, w_e, w_f)
+    opt = BFGS()
+    ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
+    prob = OptimizationProblem(∇bacthloss, ps, []) # prob = remake(prob,u0=sol.minimizer)
+    cb = function (p, l) println("Loss: $l"); return false end
+    sol = solve(prob, callback = cb, opt) # reltol = 1e-14
+    ps = sol.u
+    nn = re(ps)
+    global nnbp = NNBasisPotential(nn, ace_basis) # TODO: improve this
+end
+
+# Learn
+w_e, w_f = input["w_e"], input["w_f"]
+opt = @eval $(Symbol(input["optimiser"]))() # Flux.Adam(0.01)
+epochs = input["epochs"]
+learn_time = @elapsed begin
+    learn!(nnbp, ds, opt, epochs, loss, w_e, w_f)
+end
+
 ## Post-process output: calculate metrics, create plots, and save results
+println("Post-processing...")
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset: ")
@@ -191,7 +211,6 @@ e_test_pred, f_test_pred = get_all_energies(ds_test, nnbp), get_all_forces(ds_te
 @savevar path f_test
 @savevar path f_test_pred
 
-learn_time = 0
 metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                        e_test_pred, e_test, f_test_pred, f_test,
                        B_time, dB_time, learn_time)
@@ -208,3 +227,33 @@ f_test_cos = plot_cos(f_test_pred, f_test)
 
 
 
+# Flux.jl training
+#opt = @eval $(Symbol(input["optimiser"]))() # Flux.Adam(0.01)
+#optim = Flux.setup(opt, nn)  # will store optimiser momentum, etc.
+#epochs = input["epochs"]
+#∇loss(nn, basis, ds, w_e, w_f) = gradient((nn) -> loss(nn, basis, ds, w_e, w_f), nn)
+#learn_time = @elapsed begin
+#    losses = []
+#    for epoch in 1:epochs
+#            # Compute gradient with current parameters and update model
+#            grads = ∇loss(nnbp.nn, nnbp.basis, ds_train, w_e, w_f)
+#            Flux.update!(optim, nnbp.nn, grads[1])
+#            # Logging
+#            curr_loss = loss(nnbp.nn, nnbp.basis, ds_train, w_e, w_f)
+#            push!(losses, curr_loss)
+#            println(curr_loss)
+#    end
+#end
+
+#function f1!(nnbp)
+#    ps, re = Flux.destructure(nnbp.nn)
+#    ps = 2ps
+#    nn = re(ps)
+#    global nnbp = NNBasisPotential(nn, ace_basis)
+#end
+#nnbp = NNBasisPotential(nn, ace_basis)
+#ps1, re1 = Flux.destructure(nnbp.nn)
+#println(ps1[1])
+#f1!(nnbp)
+#ps2, re2 = Flux.destructure(nnbp.nn)
+#println(ps2[1])
