@@ -12,10 +12,10 @@ include("utils.jl")
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
-        "random_seed",          "0",   # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "20", # Training dataset size
-        "n_test_sys",           "20", # Test dataset size
-        "n_body",               "2",
+        "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
+        "n_train_sys",          "200",  # Training dataset size
+        "n_test_sys",           "1800", # Test dataset size
+        "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
@@ -55,26 +55,27 @@ wL = input["wL"]
 csp = input["csp"]
 r0 = input["r0"]
 rcutoff = input["rcutoff"]
-ace = ACE(species, body_order, polynomial_degree, wL, csp, r0, rcutoff)
-@savevar path ace
+ace_basis = ACE(species, body_order, polynomial_degree, wL, csp, r0, rcutoff)
+@savevar path ace_basis
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset: ")
 B_time = @elapsed begin
-    e_descr_train = [LocalDescriptors(compute_local_descriptors(sys, ace)) 
+    e_descr_train = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
                                       for sys in ProgressBar(get_system.(ds_train))]
 end
 
 println("Computing force descriptors of training dataset: ")
 dB_time = @elapsed begin
     f_descr_train = [ForceDescriptors([[fi[i, :] for i = 1:3]
-                                       for fi in compute_force_descriptors(sys, ace)])
+                                       for fi in compute_force_descriptors(sys, ace_basis)])
                      for sys in ProgressBar(get_system.(ds_train))]
 end
 
 ds_train = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
 
 # Learn
+println("Learning energies and forces...")
 learn_time = @elapsed begin
     lp = LinearProblem(ds_train)
     learn!(lp)
@@ -85,22 +86,22 @@ end
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset: ")
-e_descr_test = [LocalDescriptors(compute_local_descriptors(sys, ace)) 
+e_descr_test = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
                 for sys in ProgressBar(get_system.(ds_test))]
 
 println("Computing force descriptors of test dataset: ")
 f_descr_test = [ForceDescriptors([[fi[i, :] for i = 1:3]
-                                   for fi in compute_force_descriptors(sys, ace)])
+                                   for fi in compute_force_descriptors(sys, ace_basis)])
                 for sys in ProgressBar(get_system.(ds_test))]
 
 ds_test = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 
 
 # Get true and predicted values
-e_train, f_train = get_true_values(ds_train)
-e_test, f_test = get_true_values(ds_test)
-e_train_pred, f_train_pred = get_pred_values(lp, ds_train)
-e_test_pred, f_test_pred = get_pred_values(lp, ds_test)
+e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
+e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
+e_train_pred, f_train_pred = get_all_energies(ds_train, lp), get_all_forces(ds_train, lp)
+e_test_pred, f_test_pred = get_all_energies(ds_test, lp), get_all_forces(ds_test, lp)
 @savevar path e_train
 @savevar path e_train_pred
 @savevar path f_train

@@ -1,62 +1,44 @@
 using Statistics
 using OrderedCollections
 
+# Split datasets
+
 function Base.split(ds, n, m)
     ii = randperm(length(ds))
     return ds[first(ii, n)], ds[last(ii, m)]
 end
 
-###
+# Auxiliary functions to compute all energies and forces as vectors (Zygote-friendly functions)
 
-#function get_energy_vals(ds)
-#    return get_values.(get_energy.(ds))
-#end
-
-#function get_energy_pred_vals(lp, ds)
-#    Bs = sum.(get_values.(get_local_descriptors.(ds)))
-#    e_pred = dot.(Bs, [lp.β])
-#    return e_pred
-#end
-
-#function get_forces_vals(ds)
-#    return vcat(vcat(get_values.(get_forces.(ds))...)...)
-#end
-
-#function get_forces_pred_vals(ds)
-#    force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
-#    return vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
-#end
-
-
-function get_true_values(ds)
-    e = get_values.(get_energy.(ds))
-    f = vcat(vcat(get_values.(get_forces.(ds))...)...)
-    return e, f
+function get_all_energies(ds::DataSet)
+    return [get_values(get_energy(ds[c])) for c in 1:length(ds)]
 end
 
-function get_pred_values(lp, ds)
+function get_all_forces(ds::DataSet)
+    return reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c]))
+                                    for c in 1:length(ds)]))
+end
+
+function get_all_energies(ds::DataSet, lp::LinearProblem)
     Bs = sum.(get_values.(get_local_descriptors.(ds)))
-    e_pred = dot.(Bs, [lp.β])
-    
-#            compute_features(ds, GlobalSum())
-#            
-#            function compute_features(ds::DataSet, f::Feature; dt = LocalDescriptors)
-#                compute_feature.(ds, (f,); dt = dt)
-#            end
-#            
-#            
-#            function compute_feature(c::Configuration, gs::GlobalSum; dt = LocalDescriptors)
-#                compute_feature(get_local_descriptors(c), gs)
-#            end
-
-    
-    force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
-    f_pred = vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
-    return e_pred, f_pred
+    return dot.(Bs, [lp.β])
 end
 
+function get_all_forces(ds::DataSet, lp::LinearProblem)
+    force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
+    return vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
+end
 
-###
+function get_all_energies(ds::DataSet, nnbp::NNBasisPotential)
+    return [potential_energy(ds[c], nnbp) for c in 1:length(ds)]
+end
+
+function get_all_forces(ds::DataSet, nnbp::NNBasisPotential)
+    return reduce(vcat,reduce(vcat,[force(ds[c], nnbp)
+                                    for c in 1:length(ds)]))
+end
+
+# Metrics
 
 function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                       e_test_pred, e_test, f_test_pred, f_test,

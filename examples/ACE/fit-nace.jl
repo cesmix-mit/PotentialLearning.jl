@@ -15,8 +15,8 @@ include("utils.jl")
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
-        "random_seed",          "100",   # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "200", # Training dataset size
+        "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
+        "n_train_sys",          "200",  # Training dataset size
         "n_test_sys",           "1800", # Test dataset size
         "nn",                   "Chain(Dense(n_desc,8,Flux.relu),Dense(8,1))",
         "n_epochs",             "1",
@@ -227,35 +227,3 @@ f_test_plot = plot_forces(f_test_pred, f_test)
 f_test_cos = plot_cos(f_test_pred, f_test)
 @savefig path f_test_cos
 
-
-
-# Flux.jl training
-#opt = @eval $(Symbol(input["optimiser"]))() # Flux.Adam(0.01)
-#optim = Flux.setup(opt, nn)  # will store optimiser momentum, etc.
-#epochs = input["epochs"]
-#∇loss(nn, basis, ds, w_e, w_f) = gradient((nn) -> loss(nn, basis, ds, w_e, w_f), nn)
-#learn_time = @elapsed begin
-#    losses = []
-#    for epoch in 1:epochs
-#            # Compute gradient with current parameters and update model
-#            grads = ∇loss(nnbp.nn, nnbp.basis, ds_train, w_e, w_f)
-#            Flux.update!(optim, nnbp.nn, grads[1])
-#            # Logging
-#            curr_loss = loss(nnbp.nn, nnbp.basis, ds_train, w_e, w_f)
-#            push!(losses, curr_loss)
-#            println(curr_loss)
-#    end
-#end
-
-#function f1!(nnbp)
-#    ps, re = Flux.destructure(nnbp.nn)
-#    ps = 2ps
-#    nn = re(ps)
-#    global nnbp = NNBasisPotential(nn, ace_basis)
-#end
-#nnbp = NNBasisPotential(nn, ace_basis)
-#ps1, re1 = Flux.destructure(nnbp.nn)
-#println(ps1[1])
-#f1!(nnbp)
-#ps2, re2 = Flux.destructure(nnbp.nn)
-#println(ps2[1])
