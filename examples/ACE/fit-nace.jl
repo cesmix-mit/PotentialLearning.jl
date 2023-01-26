@@ -15,14 +15,14 @@ include("utils.jl")
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
-        "random_seed",          "0",   # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "100", # Training dataset size
-        "n_test_sys",           "100", # Test dataset size
-        "nn",                   "Chain(Dense(n_desc,8,Flux.gelu),Dense(8,1))",
+        "random_seed",          "100",   # Random seed to ensure reproducibility of loading and subsampling.
+        "n_train_sys",          "200", # Training dataset size
+        "n_test_sys",           "1800", # Test dataset size
+        "nn",                   "Chain(Dense(n_desc,8,Flux.relu),Dense(8,1))",
         "n_epochs",             "1",
         "n_batches",            "1",
         "optimiser",            "BFGS",
-        "epochs",               "1000",
+        "epochs",               "100000",
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
@@ -160,14 +160,14 @@ function learn!(nnbp, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_
 end
 
 # Optimization.jl training
-function learn!(nnbp, ds, opt::Optim.FirstOrderOptimizer, epochs, loss, w_e, w_f)
+function learn!(nnbp, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
     ps, re = Flux.destructure(nnbp.nn)
     batchloss(ps, p) = loss(re(ps), nnbp.basis, ds_train, w_e, w_f)
     opt = BFGS()
     ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
     prob = OptimizationProblem(∇bacthloss, ps, []) # prob = remake(prob,u0=sol.minimizer)
     cb = function (p, l) println("Loss: $l"); return false end
-    sol = solve(prob, callback = cb, opt) # reltol = 1e-14
+    sol = solve(prob, opt, maxiters=maxiters, callback = cb) # reltol = 1e-14
     ps = sol.u
     nn = re(ps)
     global nnbp = NNBasisPotential(nn, ace_basis) # TODO: improve this
@@ -180,6 +180,8 @@ epochs = input["epochs"]
 learn_time = @elapsed begin
     learn!(nnbp, ds, opt, epochs, loss, w_e, w_f)
 end
+
+@savevar path Flux.params(nnbp.nn)
 
 ## Post-process output: calculate metrics, create plots, and save results
 println("Post-processing...")
