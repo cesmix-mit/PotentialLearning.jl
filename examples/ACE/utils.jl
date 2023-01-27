@@ -19,12 +19,12 @@ function get_all_forces(ds::DataSet)
                                     for c in 1:length(ds)]))
 end
 
-function get_all_energies(ds::DataSet, lp::LinearProblem)
+function get_all_energies(ds::DataSet, lp::PotentialLearning.LinearProblem)
     Bs = sum.(get_values.(get_local_descriptors.(ds)))
     return dot.(Bs, [lp.β])
 end
 
-function get_all_forces(ds::DataSet, lp::LinearProblem)
+function get_all_forces(ds::DataSet, lp::PotentialLearning.LinearProblem)
     force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
     return vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
 end

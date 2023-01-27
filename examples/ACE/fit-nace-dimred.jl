@@ -17,14 +17,13 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
         "n_train_sys",          "200",  # Training dataset size
-        "n_test_sys",           "1800", # Test dataset size
+        "n_test_sys",           "200", # Test dataset size
         "nn",                   "Chain(Dense(n_desc,8,Flux.relu),Dense(8,1))",
-        "n_epochs",             "1",
+        "epochs",             "100000",
         "n_batches",            "1",
         "optimiser",            "BFGS",
-        "epochs",               "100000",
-        "n_body",               "3",
-        "max_deg",              "3",
+        "n_body",               "6",
+        "max_deg",              "6",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
@@ -80,10 +79,20 @@ dB_time = @elapsed begin
                      for sys in ProgressBar(get_system.(ds_train))]
 end
 
-ds_train = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
+ds_train_1 = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
+
+# Dimension reduction of energy and force descriptors
+n_dim = 20
+λ_pca, W_pca = fit(ds_train_1, PCA(n_dim))
+lll = get_values.(get_local_descriptors.(ds_train_1))
+e_descr_train_red = [LocalDescriptors([W_pca * l for l in ll ]) for ll in lll]
+fff = get_values.(get_force_descriptors.(ds_train_1))
+f_descr_train_red = [ForceDescriptors([[W_pca * fc for fc in f] for f in ff]) for ff in fff]
+
+ds_train = DataSet(ds_train .+ e_descr_train_red .+ f_descr_train_red)
 
 # Define neural network model
-n_desc = length(e_descr_train[1][1])
+n_desc = length(e_descr_train_red[1][1])
 nn = eval(Meta.parse(input["nn"])) # e.g. Chain(Dense(n_desc,2,Flux.relu), Dense(2,1))
 
 # Create the neural network interatomic potential
@@ -184,7 +193,17 @@ f_descr_test = [ForceDescriptors([[fi[i, :] for i = 1:3]
                                    for fi in compute_force_descriptors(sys, ace_basis)])
                 for sys in ProgressBar(get_system.(ds_test))]
 
-ds_test = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
+ds_test_1 = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
+
+# Dimension reduction of energy and force descriptors
+n_dim = 20
+λ_pca, W_pca = fit(ds_test_1, PCA(n_dim))
+lll = get_values.(get_local_descriptors.(ds_test_1))
+e_descr_test_red = [LocalDescriptors([W_pca * l for l in ll ]) for ll in lll]
+fff = get_values.(get_force_descriptors.(ds_test_1))
+f_descr_test_red = [ForceDescriptors([[W_pca * fc for fc in f] for f in ff]) for ff in fff]
+
+ds_test = DataSet(ds_test .+ e_descr_test_red .+ f_descr_test_red)
 
 # Get true and predicted values
 e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
