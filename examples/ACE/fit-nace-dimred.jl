@@ -87,11 +87,8 @@ ds_train_1 = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
 
 
 function fit_pca(d, tol)
-    m = 0
-    dc = reduce(hcat,[d[:,i] for i in 1:size(d)[2]])
-    #m = [mean(d[:,i]) for i in 1:size(d)[2]]
-    #dc = reduce(hcat,[d[:,i] .- m[i] for i in 1:size(d)[2]])
-    #dc = reduce(hcat,[d[:,i] .- mean(d[:,i]) for i in 1:size(d)[2]])
+    m = [mean(d[:,i]) for i in 1:size(d)[2]]
+    dc = reduce(hcat,[d[:,i] .- m[i] for i in 1:size(d)[2]])
     Q = Symmetric(mean(dc[i,:]*dc[i,:]' for i in 1:size(dc,1)))
     λ, ϕ = eigen(Q)
     λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder by column
@@ -100,18 +97,17 @@ function fit_pca(d, tol)
     return λ, W, m
 end
 
-tol = 4
+tol = 10
 
 lll = get_values.(get_local_descriptors.(ds_train_1))
 lll_mat = Matrix(hcat(vcat(lll...)...)')
 λ_l, W_l, m_l = fit_pca(lll_mat, tol)
-e_descr_train_red = [LocalDescriptors([(l' * W_l')' for l in ll ]) for ll in lll]
+e_descr_train_red = [LocalDescriptors([((l .- m_l)' * W_l')' for l in ll ]) for ll in lll]
 
 fff = get_values.(get_force_descriptors.(ds_train_1))
 fff_mat = Matrix(hcat(vcat(vcat(fff...)...)...)')
 λ_f, W_f, m_f = fit_pca(fff_mat, tol)
-f_descr_train_red = [ForceDescriptors([[(fc' * W_f')' for fc in f] for f in ff]) for ff in fff]
-
+f_descr_train_red = [ForceDescriptors([[((fc .- m_f)' * W_f')' for fc in f] for f in ff]) for ff in fff]
 
 ds_train = DataSet(ds_train .+ e_descr_train_red .+ f_descr_train_red)
 
@@ -263,12 +259,12 @@ ds_test_1 = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 lll = get_values.(get_local_descriptors.(ds_test_1))
 lll_mat = Matrix(hcat(vcat(lll...)...)')
 λ_l, W_l, m_l = fit_pca(lll_mat, tol)
-e_descr_test_red = [LocalDescriptors([(l' * W_l')' for l in ll ]) for ll in lll]
+e_descr_test_red = [LocalDescriptors([((l .- m_l)' * W_l')' for l in ll ]) for ll in lll]
 
 fff = get_values.(get_force_descriptors.(ds_test_1))
 fff_mat = Matrix(hcat(vcat(vcat(fff...)...)...)')
 λ_f, W_f, m_f = fit_pca(fff_mat, tol)
-f_descr_test_red = [ForceDescriptors([[(fc' * W_f')' for fc in f] for f in ff]) for ff in fff]
+f_descr_test_red = [ForceDescriptors([[((fc .- m_f)' * W_f')' for fc in f] for f in ff]) for ff in fff]
 
 
 ds_test = DataSet(ds_test .+ e_descr_test_red .+ f_descr_test_red)
