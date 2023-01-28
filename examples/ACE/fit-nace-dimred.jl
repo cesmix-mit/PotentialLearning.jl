@@ -85,20 +85,33 @@ ds_train_1 = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
 
 # λ_pca, W_pca = fit(ds_train_1, PCA()) # Current implementation
 
-ld = vcat(get_values.(get_local_descriptors.(ds_train_1))...)
-ldc = reduce(hcat,[ld[:,i] .- mean(ld[:,i]) for i in 1:size(ld)[2]])
-Q = Symmetric(Symmetric(mean(ldc[i,:]*ldc[i,:]' for i in 1:size(ldc,1))))
-λ, ϕ = eigen(Q)
-λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder by column
-Σ = 1.0 .- cumsum(λ) / sum(λ)
-tol = 0.001
-W = ϕ[:, Σ .> tol]
+
+function fit_pca(d, tol)
+    m = 0
+    dc = reduce(hcat,[d[:,i] for i in 1:size(d)[2]])
+    #m = [mean(d[:,i]) for i in 1:size(d)[2]]
+    #dc = reduce(hcat,[d[:,i] .- m[i] for i in 1:size(d)[2]])
+    #dc = reduce(hcat,[d[:,i] .- mean(d[:,i]) for i in 1:size(d)[2]])
+    Q = Symmetric(mean(dc[i,:]*dc[i,:]' for i in 1:size(dc,1)))
+    λ, ϕ = eigen(Q)
+    λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder by column
+    Σ = 1.0 .- cumsum(λ) / sum(λ)
+    W = ϕ[1:tol, :] # W = ϕ[:, Σ .> tol]
+    return λ, W, m
+end
+
+tol = 4
 
 lll = get_values.(get_local_descriptors.(ds_train_1))
-e_descr_train_red = [LocalDescriptors([l * W for l in ll ]) for ll in lll]
+lll_mat = Matrix(hcat(vcat(lll...)...)')
+λ_l, W_l, m_l = fit_pca(lll_mat, tol)
+e_descr_train_red = [LocalDescriptors([(l' * W_l')' for l in ll ]) for ll in lll]
 
 fff = get_values.(get_force_descriptors.(ds_train_1))
-f_descr_train_red = [ForceDescriptors([[fc * W for fc in f] for f in ff]) for ff in fff]
+fff_mat = Matrix(hcat(vcat(vcat(fff...)...)...)')
+λ_f, W_f, m_f = fit_pca(fff_mat, tol)
+f_descr_train_red = [ForceDescriptors([[(fc' * W_f')' for fc in f] for f in ff]) for ff in fff]
+
 
 ds_train = DataSet(ds_train .+ e_descr_train_red .+ f_descr_train_red)
 
@@ -241,11 +254,22 @@ f_descr_test = [ForceDescriptors([[fi[i, :] for i = 1:3]
 ds_test_1 = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 
 # Dimension reduction of energy and force descriptors
-λ_pca, W_pca = fit(ds_test_1, PCA())
+#λ_pca, W_pca = fit(ds_test_1, PCA())
+#lll = get_values.(get_local_descriptors.(ds_test_1))
+#e_descr_test_red = [LocalDescriptors([W_pca * l for l in ll ]) for ll in lll]
+#fff = get_values.(get_force_descriptors.(ds_test_1))
+#f_descr_test_red = [ForceDescriptors([[W_pca * fc for fc in f] for f in ff]) for ff in fff]
+
 lll = get_values.(get_local_descriptors.(ds_test_1))
-e_descr_test_red = [LocalDescriptors([W_pca * l for l in ll ]) for ll in lll]
+lll_mat = Matrix(hcat(vcat(lll...)...)')
+λ_l, W_l, m_l = fit_pca(lll_mat, tol)
+e_descr_test_red = [LocalDescriptors([(l' * W_l')' for l in ll ]) for ll in lll]
+
 fff = get_values.(get_force_descriptors.(ds_test_1))
-f_descr_test_red = [ForceDescriptors([[W_pca * fc for fc in f] for f in ff]) for ff in fff]
+fff_mat = Matrix(hcat(vcat(vcat(fff...)...)...)')
+λ_f, W_f, m_f = fit_pca(fff_mat, tol)
+f_descr_test_red = [ForceDescriptors([[(fc' * W_f')' for fc in f] for f in ff]) for ff in fff]
+
 
 ds_test = DataSet(ds_test .+ e_descr_test_red .+ f_descr_test_red)
 
