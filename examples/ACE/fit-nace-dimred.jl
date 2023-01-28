@@ -19,11 +19,11 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "n_train_sys",          "200",  # Training dataset size
         "n_test_sys",           "200", # Test dataset size
         "nn",                   "Chain(Dense(n_desc,8,Flux.relu),Dense(8,1))",
-        "epochs",             "100000",
+        "epochs",               "100000",
         "n_batches",            "1",
         "optimiser",            "BFGS",
-        "n_body",               "6",
-        "max_deg",              "6",
+        "n_body",               "3",
+        "max_deg",              "3",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
@@ -82,14 +82,59 @@ end
 ds_train_1 = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
 
 # Dimension reduction of energy and force descriptors
-n_dim = 20
-λ_pca, W_pca = fit(ds_train_1, PCA(n_dim))
+
+# λ_pca, W_pca = fit(ds_train_1, PCA()) # Current implementation
+
+ld = vcat(get_values.(get_local_descriptors.(ds_train_1))...)
+ldc = reduce(hcat,[ld[:,i] .- mean(ld[:,i]) for i in 1:size(ld)[2]])
+Q = Symmetric(Symmetric(mean(ldc[i,:]*ldc[i,:]' for i in 1:size(ldc,1))))
+λ, ϕ = eigen(Q)
+λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder by column
+Σ = 1.0 .- cumsum(λ) / sum(λ)
+tol = 0.001
+W = ϕ[:, Σ .> tol]
+
 lll = get_values.(get_local_descriptors.(ds_train_1))
-e_descr_train_red = [LocalDescriptors([W_pca * l for l in ll ]) for ll in lll]
+e_descr_train_red = [LocalDescriptors([l * W for l in ll ]) for ll in lll]
+
 fff = get_values.(get_force_descriptors.(ds_train_1))
-f_descr_train_red = [ForceDescriptors([[W_pca * fc for fc in f] for f in ff]) for ff in fff]
+f_descr_train_red = [ForceDescriptors([[fc * W for fc in f] for f in ff]) for ff in fff]
 
 ds_train = DataSet(ds_train .+ e_descr_train_red .+ f_descr_train_red)
+
+
+## Dont erase
+#using MultivariateStats, Statistics
+#s = open("a-Hfo2-300K-NVT-6000-NACE/locdesc.dat") do file
+#    read(file, String)
+#end
+#a = eval(Meta.parse(s))
+#b = reduce(hcat,[a[:,i] .- mean(a[:,i]) for i in 1:size(a)[2]])
+#M = MultivariateStats.fit(MultivariateStats.PCA, c)
+#R = predict(M, c)
+
+
+#using MultivariateStats, Statistics
+#a = vcat(get_values.(get_local_descriptors.(ds_train_1))...)
+#b = Matrix(hcat(vcat(get_values.(get_local_descriptors.(ds_train_1))...)...)')
+##c = reduce(hcat,[b[:,1] .- mean(b[:,1]) for i in 1:size(b)[2]])
+
+#Q = Symmetric(mean(di*di' for di in foreachrow(a)))
+
+#using LinearAlgebra
+
+#Qa = Symmetric(Symmetric(mean(a[i,:]*a[i,:]' for i in 1:size(a,1))))
+#Qc = Symmetric(Symmetric(mean(c[i,:]*c[i,:]' for i in 1:size(c,1))))
+
+#λ, ϕ = eigen(Qa)
+#λ, ϕ = λ[end:-1:1], ϕ[end:-1:1, :] # reorder
+
+#Σ = 1.0 .- cumsum(λ) / sum(λ)
+#tol = 0.00001
+#W = ϕ[Σ .> tol, :]
+#λ, W
+
+################################################################################
 
 # Define neural network model
 n_desc = length(e_descr_train_red[1][1])
@@ -196,8 +241,7 @@ f_descr_test = [ForceDescriptors([[fi[i, :] for i = 1:3]
 ds_test_1 = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 
 # Dimension reduction of energy and force descriptors
-n_dim = 20
-λ_pca, W_pca = fit(ds_test_1, PCA(n_dim))
+λ_pca, W_pca = fit(ds_test_1, PCA())
 lll = get_values.(get_local_descriptors.(ds_test_1))
 e_descr_test_red = [LocalDescriptors([W_pca * l for l in ll ]) for ll in lll]
 fff = get_values.(get_force_descriptors.(ds_test_1))
