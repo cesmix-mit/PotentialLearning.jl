@@ -52,7 +52,7 @@ ds = ds[1:2000]
 
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
-ds_train, ds_test = split(ds, n_train, n_test)
+ds_train_0, ds_test_0 = split(ds, n_train, n_test)
 
 # Define ACE parameters
 species = unique(atomic_symbol(get_system(ds[1])))
@@ -69,17 +69,17 @@ ace_basis = ACE(species, body_order, polynomial_degree, wL, csp, r0, rcutoff)
 println("Computing energy descriptors of training dataset: ")
 B_time = @elapsed begin
     e_descr_train = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
-                                      for sys in ProgressBar(get_system.(ds_train))]
+                                      for sys in ProgressBar(get_system.(ds_train_0))]
 end
 
 println("Computing force descriptors of training dataset: ")
 dB_time = @elapsed begin
     f_descr_train = [ForceDescriptors([[fi[i, :] for i = 1:3]
                                        for fi in compute_force_descriptors(sys, ace_basis)])
-                     for sys in ProgressBar(get_system.(ds_train))]
+                     for sys in ProgressBar(get_system.(ds_train_0))]
 end
 
-ds_train_1 = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
+ds_train_1 = DataSet(ds_train_0 .+ e_descr_train .+ f_descr_train)
 
 # Dimension reduction of energy and force descriptors
 
@@ -97,7 +97,7 @@ function fit_pca(d, tol)
     return λ, W, m
 end
 
-tol = 10
+tol = 15
 
 lll = get_values.(get_local_descriptors.(ds_train_1))
 lll_mat = Matrix(hcat(vcat(lll...)...)')
@@ -109,7 +109,7 @@ fff_mat = Matrix(hcat(vcat(vcat(fff...)...)...)')
 λ_f, W_f, m_f = fit_pca(fff_mat, tol)
 f_descr_train_red = [ForceDescriptors([[((fc .- m_f)' * W_f')' for fc in f] for f in ff]) for ff in fff]
 
-ds_train = DataSet(ds_train .+ e_descr_train_red .+ f_descr_train_red)
+ds_train = DataSet(ds_train_0 .+ e_descr_train_red .+ f_descr_train_red)
 
 
 ## Dont erase
@@ -188,7 +188,8 @@ function loss(nn, basis, ds, w_e = 1, w_f = 1)
     nnbp = NNBasisPotential(nn, basis)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nnbp)
     fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nnbp)
-    return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
+    #l2(x) = sum(abs.(x))
+    return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs) #+ 0.01sum(l2, Flux.params(nn))
 end
 
 # Learning functions
@@ -240,14 +241,14 @@ println("Post-processing...")
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset: ")
 e_descr_test = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
-                for sys in ProgressBar(get_system.(ds_test))]
+                for sys in ProgressBar(get_system.(ds_test_0))]
 
 println("Computing force descriptors of test dataset: ")
 f_descr_test = [ForceDescriptors([[fi[i, :] for i = 1:3]
                                    for fi in compute_force_descriptors(sys, ace_basis)])
-                for sys in ProgressBar(get_system.(ds_test))]
+                for sys in ProgressBar(get_system.(ds_test_0))]
 
-ds_test_1 = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
+ds_test_1 = DataSet(ds_test_0 .+ e_descr_test .+ f_descr_test)
 
 # Dimension reduction of energy and force descriptors
 #λ_pca, W_pca = fit(ds_test_1, PCA())
@@ -258,16 +259,14 @@ ds_test_1 = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 
 lll = get_values.(get_local_descriptors.(ds_test_1))
 lll_mat = Matrix(hcat(vcat(lll...)...)')
-λ_l, W_l, m_l = fit_pca(lll_mat, tol)
 e_descr_test_red = [LocalDescriptors([((l .- m_l)' * W_l')' for l in ll ]) for ll in lll]
 
 fff = get_values.(get_force_descriptors.(ds_test_1))
 fff_mat = Matrix(hcat(vcat(vcat(fff...)...)...)')
-λ_f, W_f, m_f = fit_pca(fff_mat, tol)
 f_descr_test_red = [ForceDescriptors([[((fc .- m_f)' * W_f')' for fc in f] for f in ff]) for ff in fff]
 
 
-ds_test = DataSet(ds_test .+ e_descr_test_red .+ f_descr_test_red)
+ds_test = DataSet(ds_test_0 .+ e_descr_test_red .+ f_descr_test_red)
 
 # Get true and predicted values
 e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
