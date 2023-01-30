@@ -18,12 +18,12 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
         "n_train_sys",          "200",  # Training dataset size
         "n_test_sys",           "200", # Test dataset size
-        "nn",                   "Chain(Dense(n_desc,8,Flux.relu),Dense(8,1))",
+        "nn",                   "Chain(Dense(n_desc,8,Flux.leakyrelu),Dense(8,1))",
         "epochs",               "100000",
         "n_batches",            "1",
         "optimiser",            "BFGS",
         "n_body",               "3",
-        "max_deg",              "3",
+        "max_deg",              "4",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
@@ -97,7 +97,7 @@ function fit_pca(d, tol)
     return λ, W, m
 end
 
-tol = 15
+tol = 35
 
 lll = get_values.(get_local_descriptors.(ds_train_1))
 lll_mat = Matrix(hcat(vcat(lll...)...)')
