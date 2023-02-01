@@ -1,9 +1,3 @@
-import Optimization 
-import Optim
-using OptimizationOptimJL
-import Flux
-using Printf
-
 """
     AbstractLearningProblem 
 

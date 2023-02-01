@@ -1,5 +1,4 @@
-
-export get_input, load_dataset, linearize_forces, get_batches
+export get_input, load_datasets, linearize_forces, get_batches
 
 
 """
@@ -52,86 +51,40 @@ end
 
 
 """
-    load_dataset(n_train_sys, n_test_sys, dataset_path, dataset_filename)
-    
-`n_train_sys`: no. of training systems
-`n_test_sys`: no. of test systems
-`dataset_path`: dataset path
-`dataset_filename`: dataset filename
-
-Returns training and test energies, forces, and stresses.
-The input dataset is split into training and test datasets.
-
-"""
-function load_dataset(n_train_sys, n_test_sys, dataset_path, dataset_filename)
-
-    n_sys = n_train_sys + n_test_sys
-    filename = dataset_path*dataset_filename
-    systems, energies, forces, stress =
-                               load_extxyz(filename, max_entries = n_sys)
-    rand_list = randperm(n_sys)
-    train_index, test_index = rand_list[1:n_train_sys], rand_list[n_train_sys+1:n_sys]
-    train_systems, train_energies, train_forces, train_stress =
-                                 systems[train_index], energies[train_index],
-                                 forces[train_index], stress[train_index]
-    test_systems, test_energies, test_forces, test_stress =
-                                 systems[test_index], energies[test_index],
-                                 forces[test_index], stress[test_index]
-    return train_systems, train_energies, train_forces, train_stress,
-           test_systems, test_energies, test_forces, test_stress
-end
-
-
-"""
-    load_dataset(n_train_sys, n_test_sys, dataset_path,
-                 trainingset_filename, testset_filename)
-    
-`n_train_sys`: no. of training systems
-`n_test_sys`: no. of test systems
-`dataset_path`: datasets path
-`trainingset_filename`: training dataset filename
-`testset_filename`: test dataset filename
-
-Returns training and test energies, forces, and stresses.
-Training and test datasets are already defined.
-
-"""
-function load_dataset(n_train_sys, n_test_sys, dataset_path,
-                      trainingset_filename, testset_filename)
-    n_sys = n_train_sys + n_test_sys
-    filename = dataset_path*trainingset_filename
-    train_systems, train_energies, train_forces, train_stress =
-            load_extxyz(filename, max_entries = n_train_sys)
-    filename = dataset_path*testset_filename
-    test_systems, test_energies, test_forces, test_stress =
-            load_extxyz(filename, max_entries = n_test_sys)
-    return train_systems, train_energies, train_forces, train_stress,
-           test_systems, test_energies, test_forces, test_stress
-end
-
-
-"""
-    load_dataset(input)
+    load_datasets(input)
     
 `input`: OrderedDict with input arguments. See `get_defaults_args()`.
 
-Returns training and test energies, forces, and stresses.
+Returns training and test systems, energies, forces, and stresses.
 
 """
-function load_dataset(input)
-    n_train_sys = input["n_train_sys"]
-    n_test_sys = input["n_test_sys"]
-    dataset_path = input["dataset_path"]
-    if "dataset_filename" in keys(input)
-        dataset_filename = input["dataset_filename"]
-        return load_dataset(n_train_sys, n_test_sys, dataset_path,
-                            dataset_filename)
-    else
-        trainingset_filename = input["trainingset_filename"]
-        testset_filename = input["testset_filename"]
-        return load_dataset(n_train_sys, n_test_sys, dataset_path,
-                            trainingset_filename, testset_filename)
+function load_datasets(input)
+    if "dataset_filename" in keys(input) # Load and split dataset
+        # Load dataset
+        filename = input["dataset_path"]*input["dataset_filename"]
+        systems, energies, forces, stress = load_extxyz(filename)
+        # Split dataset
+        split_prop = input["split_prop"]
+        n_sys = length(systems)
+        n_train_sys = round(Int, split_prop * n_sys)
+        n_test_sys = n_sys - n_train_sys
+        rand_list = randperm(n_sys)
+        train_index, test_index = rand_list[1:n_train_sys], rand_list[n_train_sys+1:n_sys]
+        train_sys, train_e, train_f, train_s =
+                                     systems[train_index], energies[train_index],
+                                     forces[train_index], stress[train_index]
+        test_sys, test_e, test_f, test_s =
+                                     systems[test_index], energies[test_index],
+                                     forces[test_index], stress[test_index]
+    else # Load training and test datasets
+        filename = input["dataset_path"]*input["trainingset_filename"]
+        train_sys, train_e, train_f, train_s = load_extxyz(filename)
+        filename = input["dataset_path"]*input["testset_filename"]
+        test_sys, test_e, test_f, test_s = load_extxyz(filename)
     end
+    
+    return train_sys, train_e, train_f, train_s,
+           test_sys, test_e, test_f, test_s
 end
 
 

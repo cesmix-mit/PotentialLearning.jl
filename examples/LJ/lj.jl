@@ -18,7 +18,16 @@ ds, thermo = load_data("examples/LJ/data/lj.yaml", YAML(:Ar, u"eV", u"Å"));
 ds = ds[3:end];
 systems = get_system.(ds);
 positions = position.(systems)
+forces = get_values.(get_forces.(ds))
+po = zeros(length(positions), 13, 3)
+fo = zeros(length(positions), 13, 3)
 
+for (i, p_i) in enumerate(positions)
+    po[i, :, :] = reduce(hcat, ustrip.(p_i))'
+    fo[i, :, :] = reduce(hcat, forces[i])'
+end
+
+energies = get_values.(get_energy.(ds))
 # plot distances 
 # size_inches = (12, 10)
 # size_pt = 72 .* size_inches
@@ -97,15 +106,3 @@ end
 
 
 
-using Flux
-# Range
-xrange = 0:π/99:π
-xs = [ Float32.([x1, x2]) for x1 in xrange for x2 in xrange]
-# NN model: multi-layer perceptron (MLP)
-mlp = Chain(Dense(2,4, Flux.σ),Dense(4,1))
-ps_mlp = Flux.params(mlp)
-E_mlp(x) = sum(mlp(x))
-dE_mlp(x) = first(ForwarDiff.gradient(E_mlp, x))
-# Computing "nested" gradient
-
-Zygote.gradient(x->sum(dE_mlp(x)), ps_mlp)
