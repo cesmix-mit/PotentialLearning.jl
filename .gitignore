@@ -1,5 +1,13 @@
 Manifest.toml
-
+*.DS_Store
+*.yaml
+*.pdf
+*.jld
+*.npz
+*.ace
 # generated docs
 docs/build/
 docs/src/generated/
+
+# data too large for github
+examples/aHfO2/

@@ -5,6 +5,7 @@ An open source Julia library for active learning of interatomic potentials in at
 ## Specific goals
 - Intelligent data subsampling: iteratively query a large pool of unlabeled data to extract a minimum number of training data that would lead to a supervised ML model with superior accuracy compared to a training model with educated handpicking.
     - Via [DPP](), [clustering](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit).
+- Quantity of Interest based dimension reduction through the theory of Active Subspaces.
 - Inference of the optimal values and uncertainties of the model parameters, to propagate them through the atomistic simulation.
     - Interatomic potential hyper-parameter optimization. E.g.  estimation of the optimum cutoff radius.
     - Interatomic potential fitting. The potentials addressed in this package are defined in [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl) and [InteratomicBasisPotentials.jl](https://github.com/cesmix-mit/InteratomicBasisPotentials.jl). E.g. ACE, SNAP, Neural Network Potentials.
