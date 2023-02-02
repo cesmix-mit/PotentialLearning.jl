@@ -7,6 +7,8 @@
     
 Generic LearningProblem that allows the user to pass a logprob(y::params, ds::DataSet) function and its gradient. The gradient should return a vector of logprob with respect to it's params. If the user does not have a gradient function available, then Flux can provide one for it (provided that logprob is of the form above).
 """
+abstract type AbstractLearningProblem end
+
 struct LearningProblem{T<:Real} <: AbstractLearningProblem 
     ds      :: DataSet
     logprob :: Function 
