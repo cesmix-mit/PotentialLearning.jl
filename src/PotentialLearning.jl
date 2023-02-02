@@ -25,7 +25,7 @@ include("SubsetSelection/subsetselector.jl")
 include("DimensionReduction/dimension_reduction.jl")
 
 # Learning problems 
-include("Learning/learning.jl")
+include("Learning/learn.jl")
 
 # Metrics 
 # include("Metrics/metrics.jl") 
