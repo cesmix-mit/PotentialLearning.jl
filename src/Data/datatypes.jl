@@ -147,6 +147,7 @@ function ForceDescriptors(fd::Vector{<:Matrix{T}}) where T<:Real
     ForceDescriptors(ForceDescriptor.(fd)) 
 end
 
+Base.size(fd::ForceDescriptors)  = size(fd.b)
 Base.length(fd::ForceDescriptors)  = length(fd.b)
 Base.getindex(fd::ForceDescriptors, i::Int)  = fd.b[i]
 Base.getindex(fd::ForceDescriptors, i::Vector{<:Int})  = fd.b[i]

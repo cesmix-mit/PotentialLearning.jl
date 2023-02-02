@@ -1,5 +1,6 @@
 using Statistics
 using OrderedCollections
+using Plots
 
 # Split datasets
 
@@ -29,11 +30,11 @@ function get_all_forces(ds::DataSet, lp::PotentialLearning.LinearProblem)
     return vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
 end
 
-function get_all_energies(ds::DataSet, nnbp::NNBasisPotential)
+function get_all_energies(ds::DataSet, nnbp::NeuralNetworkBasisPotential)
     return [potential_energy(ds[c], nnbp) for c in 1:length(ds)]
 end
 
-function get_all_forces(ds::DataSet, nnbp::NNBasisPotential)
+function get_all_forces(ds::DataSet, nnbp::NeuralNetworkBasisPotential)
     return reduce(vcat,reduce(vcat,[force(ds[c], nnbp)
                                     for c in 1:length(ds)]))
 end
@@ -70,4 +71,15 @@ function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                             "dB_time [s]"      => dB_time,
                             "learn_time [s]" => learn_time)
     return metrics
+end
+
+# Plots
+
+function plot_forces_2(f_pred, f_true)
+    r0 = floor(minimum(f_true)); r1 = ceil(maximum(f_true))
+    plot( f_true, f_pred, seriestype = :scatter, markerstrokewidth=0,
+          label="", xlabel = "F DFT | eV/Å", ylabel = "F predicted | eV/Å", 
+          xlims = (r0, r1), ylims = (r0, r1))
+    p = plot!( r0:r1, r0:r1, label="")
+    return p
 end

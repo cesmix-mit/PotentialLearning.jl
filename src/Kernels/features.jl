@@ -58,6 +58,10 @@ function compute_feature(c::Configuration, gm::GlobalMean; dt = LocalDescriptors
     compute_feature(get_local_descriptors(c), gm)
 end
 
+function compute_feature(c::Configuration, gs::GlobalSum; dt = LocalDescriptors)
+    compute_feature(get_local_descriptors(c), gs)
+end
+
 function compute_feature(c::Configuration, cm::CorrelationMatrix; dt = LocalDescriptors)
     compute_feature(c.data[dt], cm)
 end

@@ -9,12 +9,12 @@ using ProgressBars
 include("utils.jl")
 
 # Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000/",
+args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-37/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
         "n_train_sys",          "200",  # Training dataset size
-        "n_test_sys",           "1800", # Test dataset size
+        "n_test_sys",           "100",  # Test dataset size
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",

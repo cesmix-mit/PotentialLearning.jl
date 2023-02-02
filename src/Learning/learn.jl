@@ -15,7 +15,7 @@ struct LearningProblem{T<:Real} <: AbstractLearningProblem
 end
 
 function LearningProblem(ds :: DataSet, logprob :: Function, params :: Vector{T}) where T
-    ∇logprob(x, ds) = Flux.gradient(y->f(y, ds), x)
+    ∇logprob(x, ds) = Flux.gradient(y->logprob(y, ds), x)
     LearningProblem(ds, logprob, ∇logprob, params)
 end
 
@@ -26,10 +26,10 @@ Attempts to fit the parameters lp.params in the learning problem lp using gradie
 """
 function learn!(lp::LearningProblem; num_steps = 100 :: Int, opt = Flux.Optimisers.Adam()) 
     for step = 1:num_steps 
-        if step % (num_steps ÷ 10) == 0
+        #if step % (num_steps ÷ 10) == 0
             err = @sprintf("%1.3e", lp.logprob(lp.params, lp.ds))
-            println("Iteration #$(step): \t log(p(x)) = $err")
-        end
+            println("Iteration #$(step): \t Batch log(p(x)) = ", lp.logprob(lp.params, lp.ds))
+        #end
         grads = lp.∇logprob(lp.params, lp.ds)
         Flux.Optimise.update!(opt, lp.params, grads)
     end
@@ -44,7 +44,7 @@ function learn!(lp::LearningProblem, ss::SubsetSelector; num_steps = 100 :: Int,
         inds = get_random_subset(ss)
         if step % (num_steps ÷ 10) == 0
             err = @sprintf("%1.3e", lp.logprob(lp.params, lp.ds[inds]))
-            println("Iteration #$(step): \t Batch log(p(x)) = $err")
+            println("Iteration #$(step): \t Batch log(p(x)) = ", lp.logprob(lp.params, lp.ds[inds]))
         end
         grads = lp.∇logprob(lp.params, lp.ds[inds])
         Flux.Optimise.update!(opt, lp.params, grads)

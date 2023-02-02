@@ -10,20 +10,21 @@ using OptimizationOptimJL
 using Random
 using ProgressBars
 include("utils.jl")
+#using GraphNeuralNetworks
 
 # Load input parameters
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NACE/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "200",  # Training dataset size
-        "n_test_sys",           "200", # Test dataset size
+        "n_train_sys",          "100",  # Training dataset size
+        "n_test_sys",           "200",  # Test dataset size
         "nn",                   "Chain(Dense(n_desc,8,Flux.leakyrelu),Dense(8,1))",
         "epochs",               "100000",
         "n_batches",            "1",
         "optimiser",            "BFGS",
-        "n_body",               "3",
-        "max_deg",              "4",
+        "n_body",               "3",#3 #3
+        "max_deg",              "4",#3 #4
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
@@ -97,7 +98,7 @@ function fit_pca(d, tol)
     return λ, W, m
 end
 
-tol = 35
+tol = 50 #26 #35
 
 lll = get_values.(get_local_descriptors.(ds_train_1))
 lll_mat = Matrix(hcat(vcat(lll...)...)')
@@ -148,12 +149,13 @@ ds_train = DataSet(ds_train_0 .+ e_descr_train_red .+ f_descr_train_red)
 # Define neural network model
 n_desc = length(e_descr_train_red[1][1])
 nn = eval(Meta.parse(input["nn"])) # e.g. Chain(Dense(n_desc,2,Flux.relu), Dense(2,1))
+nn = Chain(Dense(n_desc,2,Flux.leakyrelu),Dense(2,2,Flux.leakyrelu),Dense(2,1))
 
 # Create the neural network interatomic potential
 nnbp = NNBasisPotential(nn, ace_basis)
 
 # Auxiliary functions. TODO: add this to InteratomicBasisPotentials? ###########
-function InteratomicPotentials.potential_energy(c::Configuration, p::NNBasisPotential)
+function InteratomicPotentials.potential_energy(c::Configuration, p::NeuralNetworkBasisPotential)
     B = sum(get_values(get_local_descriptors(c)))
     return sum(p.nn(B))
 end
@@ -173,7 +175,7 @@ end
 #    return prod #reshape(prod, :)
 #end
 
-function InteratomicPotentials.force(c::Configuration, p::NNBasisPotential)
+function InteratomicPotentials.force(c::Configuration, p::NeuralNetworkBasisPotential)
     B = sum(get_values(get_local_descriptors(c)))
     dnndb = first(gradient(x->sum(p.nn(x)), B)) # grad_mlp(p.nn, B)
     dbdr = get_values(get_force_descriptors(c))
@@ -216,22 +218,41 @@ function learn!(nnbp, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w
     ps, re = Flux.destructure(nnbp.nn)
     batchloss(ps, p) = loss(re(ps), nnbp.basis, ds_train, w_e, w_f)
     opt = BFGS()
-    ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
+    #∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
+    ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoZygote()) # Optimization.AutoZygote()
     prob = OptimizationProblem(∇bacthloss, ps, []) # prob = remake(prob,u0=sol.minimizer)
     cb = function (p, l) println("Loss: $l"); return false end
     sol = solve(prob, opt, maxiters=maxiters, callback = cb) # reltol = 1e-14
     ps = sol.u
     nn = re(ps)
     global nnbp = NNBasisPotential(nn, ace_basis) # TODO: improve this
+    #global nnbp = GNNBasisPotential(nn, ace_basis) # TODO: improve this
 end
+
+#function learn!(nnbp, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
+#    ps, re = Flux.destructure(nnbp.nn)
+#    batchloss(ps, p) = loss(re(ps), nnbp.basis, ds_train, w_e, w_f)
+#    opt = NelderMead()
+#    prob = OptimizationProblem(batchloss, ps, [])
+#    cb = function (p, l) println("Loss: $l"); return false end
+#    sol = solve(prob, opt, maxiters=maxiters, callback = cb) # reltol = 1e-14
+#    ps = sol.u
+#    nn = re(ps)
+#    global nnbp = NNBasisPotential(nn, ace_basis) # TODO: improve this
+#end
 
 # Learn
 w_e, w_f = input["w_e"], input["w_f"]
 opt = @eval $(Symbol(input["optimiser"]))() # Flux.Adam(0.01)
 epochs = input["epochs"]
 learn_time = @elapsed begin
-    learn!(nnbp, ds, opt, epochs, loss, w_e, w_f)
-end
+    learn!(nnbp, ds_train, opt, epochs, loss, w_e, w_f)
+end 
+opt = Flux.Adam(0.01)
+learn_time = @elapsed begin
+    learn!(nnbp, ds_train, opt, epochs, loss, w_e, w_f)
+end 
+
 
 @savevar path Flux.params(nnbp.nn)
 
@@ -291,7 +312,7 @@ metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
 e_test_plot = plot_energy(e_test_pred, e_test)
 @savefig path e_test_plot
 
-f_test_plot = plot_forces(f_test_pred, f_test)
+f_test_plot = plot_forces_2(f_test_pred, f_test)
 @savefig path f_test_plot
 
 f_test_cos = plot_cos(f_test_pred, f_test)
