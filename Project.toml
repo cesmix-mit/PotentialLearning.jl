@@ -4,12 +4,16 @@ authors = ["CESMIX Team"]
 version = "0.1.0"
 
 [deps]
+ACE1 = "e3f9bc04-086e-409a-ba78-e9769fe067bb"
+ACEbase = "14bae519-eb20-449c-a949-9c58ed33163e"
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
 DPP = "2673d5e8-682c-11e9-2dfd-471b09c6c819"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+InteratomicBasisPotentials = "37c59853-c2ad-4e3a-930c-a41b2395fb19"
 InteratomicPotentials = "a9efe35a-c65d-452d-b8a8-82646cd5cb04"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+JuLIP = "945c410c-986d-556a-acb1-167a618e0462"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
