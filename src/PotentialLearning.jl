@@ -16,7 +16,7 @@ include("Data/data.jl")
 include("Kernels/kernels.jl")
 
 # Data input/output
-include("IO/io.jl")
+include("io/io.jl")
 
 # Subset selection
 include("SubsetSelection/subsetselector.jl")
