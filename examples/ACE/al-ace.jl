@@ -43,28 +43,19 @@ end
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
 ds = load_data(ds_path, ExtXYZ(u"eV", u"Å"))
 
-ds = ds[1:2000]
-
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 ds_train, ds_test = split(ds, n_train, n_test)
 
-# Define clusters
-using StaticArrays
+# Calculate clusters
 function PotentialLearning.get_values(pos::Vector{<:SVector})
     return [ SVector([p[i].val for i in 1:3 ]...) for p in pos]
 end
-function sample(c, n)
-    return [ c[rand(1:length(c))] for _ in 1:n]
-end
 pos = get_positions.(ds_train)
-flat_pos = [ reduce(vcat, get_values(p)) for p in pos ]
-X = reduce(hcat, flat_pos)
-n_clusters = 3 
-R = kmeans(X, 3)
+X = reduce(hcat, [reduce(vcat, get_values(p)) for p in pos])
+n_clusters = 3
+R = kmeans(X, n_clusters)
 a = assignments(R) # get the assignments of points to clusters
-c = counts(R) # get the cluster sizes
-M = R.centers # get the cluster centers
 clusters = [findall(x->x==i, a) for i in 1:n_clusters]
 
 # Define ACE parameters
@@ -78,12 +69,12 @@ rcutoff = input["rcutoff"]
 ace_basis = ACE(species, body_order, polynomial_degree, wL, csp, r0, rcutoff)
 @savevar path ace_basis
 
-function learn_old!(lp, ds)
+function learn_normeq!(lp)
     w_e = 1; w_f = 1
     
     B_train = reduce(hcat, lp.B)'
     dB_train = reduce(hcat, lp.dB)'
-    e_train, f_train = get_all_energies(ds), get_all_forces(ds)
+    e_train, f_train = lp.e, reduce(vcat, lp.f)
     
     # Calculate A and b.
     A = [B_train; dB_train]
@@ -97,58 +88,60 @@ function learn_old!(lp, ds)
     copyto!(lp.β, β)
 end
 
-# increase training dataset and fit ACE until reach threasholds
-curr_e_descr_train = []
-curr_f_descr_train = []
-curr_ds_train = []
-ds_train_0 = []
+# Iteratively increase training dataset and fit ACE until reach threasholds
+
+
+function increase_dataset!(ds_cur, conf_cur, e_des_cur, f_des_cur, ds, clusters, ace_basis)
+
+    # Select new configurations by sampling from clusters
+    sample(c, n) = [c[rand(1:length(c))] for _ in 1:n]
+    inds = reduce(vcat, [sample(c, 2) for c in clusters])
+    conf_new = ds[inds]
+    
+    # Compute energy and force descriptors of new sampled configurations
+    println("Computing energy descriptors of training dataset: ")
+    e_des_new = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
+                 for sys in ProgressBar(get_system.(conf_new))]
+    println("Computing force descriptors of training dataset: ")
+    f_des_new = [ForceDescriptors([[fi[i, :] for i = 1:3]
+                                    for fi in compute_force_descriptors(sys, ace_basis)])
+                 for sys in ProgressBar(get_system.(conf_new))]
+
+    # Update current configurations, energy and force descriptors, and dataset
+    push!(conf_cur, conf_new...)
+    push!(e_des_cur, e_des_new...)
+    push!(f_des_cur, f_des_new...)
+    
+    return DataSet(conf_cur .+ e_des_cur .+ f_des_cur)
+    #copyto!(ds_cur, DataSet(conf_cur .+ e_des_cur .+ f_des_cur)) 
+    
+end
+
+ds_train_cur = []
+conf_train_cur = []
+e_des_train_cur = []
+f_des_train_cur = []
+lp = []
 e_train_mae = f_train_mae = 100.0
-B_time = dB_time = learn_time = 0.0
 while e_train_mae > 10.0 || f_train_mae > 10.0 
 
-    # Sample from clusters
-    inds = reduce(vcat, [sample(c, 2) for c in clusters])
-    global new_ds_train = ds_train[inds]
-    
-    # Update training dataset by adding energy and force descriptors
-    println("Computing energy descriptors of training dataset: ")
-    new_e_descr_train = new_f_descr_train = [] 
-    global B_time = @elapsed begin
-        new_e_descr_train = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
-                                          for sys in ProgressBar(get_system.(new_ds_train))]
-    end
+    # Increase training dataset
+    global ds_train_cur = increase_dataset!(ds_train_cur, conf_train_cur, e_des_train_cur,
+                                     f_des_train_cur, ds_train, clusters, ace_basis)
 
-    println("Computing force descriptors of training dataset: ")
-    global dB_time = @elapsed begin
-        new_f_descr_train = [ForceDescriptors([[fi[i, :] for i = 1:3]
-                                           for fi in compute_force_descriptors(sys, ace_basis)])
-                         for sys in ProgressBar(get_system.(new_ds_train))]
-    end
-
-    push!(curr_e_descr_train, new_e_descr_train...)
-    push!(curr_f_descr_train, new_f_descr_train...)
-    if length(curr_ds_train) > 0
-        global curr_ds_train = curr_ds_train .+ new_ds_train
-    else
-        global curr_ds_train = new_ds_train
-    end
-    ds_train_0 = DataSet(curr_ds_train .+ curr_e_descr_train .+ curr_f_descr_train)
-
-    # Learn
+    # Learn ACE parameters using increased training dataset
     println("Learning energies and forces...")
-    global learn_time = @elapsed begin
-        lp = LinearProblem(ds_train_0)
-        learn_old!(lp, ds_train_0)
-    end
+    global lp = LinearProblem(ds_train_cur)
+    learn_normeq!(lp)
 
     # Get true and predicted values
-    e_train, f_train = get_all_energies(ds_train_0), get_all_forces(ds_train_0)
-    e_train_pred, f_train_pred = get_all_energies(ds_train_0, lp), get_all_forces(ds_train_0, lp)
+    e_train, f_train = get_all_energies(ds_train_cur), get_all_forces(ds_train_cur)
+    e_train_pred, f_train_pred = get_all_energies(ds_train_cur, lp), get_all_forces(ds_train_cur, lp)
     
     # Compute metrics
-    e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
-    f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
-       
+    global e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
+    global f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
+    
 end
 
 # Post-process output: calculate metrics, create plots, and save results
@@ -167,9 +160,9 @@ ds_test = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 
 
 # Get true and predicted values
-e_train, f_train = get_all_energies(ds_train_0), get_all_forces(ds_train_0)
+e_train, f_train = get_all_energies(ds_train_cur), get_all_forces(ds_train_cur)
 e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
-e_train_pred, f_train_pred = get_all_energies(ds_train_0, lp), get_all_forces(ds_train_0, lp)
+e_train_pred, f_train_pred = get_all_energies(ds_train_cur, lp), get_all_forces(ds_train_cur, lp)
 e_test_pred, f_test_pred = get_all_energies(ds_test, lp), get_all_forces(ds_test, lp)
 @savevar path e_train
 @savevar path e_train_pred
@@ -181,6 +174,7 @@ e_test_pred, f_test_pred = get_all_energies(ds_test, lp), get_all_forces(ds_test
 @savevar path f_test_pred
 
 # Compute metrics
+B_time = dB_time = learn_time = 0.0
 metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                        e_test_pred, e_test, f_test_pred, f_test,
                        B_time, dB_time, learn_time)
