@@ -9,14 +9,14 @@ using ProgressBars
 include("utils.jl")
 
 # Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-37/",
+args = ["experiment_path",      "a-Hfo2-300K-NVT-6000/",
         "dataset_path",         "../../../data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
-        "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "200",  # Training dataset size
-        "n_test_sys",           "100",  # Test dataset size
+        "random_seed",          "100",   # Random seed to ensure reproducibility of loading and subsampling.
+        "n_train_sys",          "4800",  # Training dataset size
+        "n_test_sys",           "1200",  # Test dataset size
         "n_body",               "3",
-        "max_deg",              "3",
+        "max_deg",              "4",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
@@ -41,11 +41,12 @@ end
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
 ds = load_data(ds_path, ExtXYZ(u"eV", u"Å"))
 
-ds = ds[1:2000]
-
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 ds_train, ds_test = split(ds, n_train, n_test)
+
+# Start measuring learning time
+learn_time = @elapsed begin
 
 # Define ACE parameters
 species = unique(atomic_symbol(get_system(ds[1])))
@@ -76,10 +77,11 @@ ds_train = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
 
 # Learn
 println("Learning energies and forces...")
-learn_time = @elapsed begin
-    lp = LinearProblem(ds_train)
-    learn!(lp)
-end
+
+lp = LinearProblem(ds_train)
+learn_normeq!(lp)#learn!(lp)
+
+end # end of "learn_time = @elapsed begin"
 
 
 # Post-process output: calculate metrics, create plots, and save results

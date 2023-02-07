@@ -51,18 +51,22 @@ ds = load_data(ds_path, ExtXYZ(u"eV", u"Å"))
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 ds_train, ds_test = split(ds, n_train, n_test)
 
+# Start measuring learning time
 learn_time = @elapsed begin
 
 # Calculate clusters
 function PotentialLearning.get_values(pos::Vector{<:SVector})
     return [ SVector([p[i].val for i in 1:3 ]...) for p in pos]
 end
-pos = get_positions.(ds_train)
-X = reduce(hcat, [reduce(vcat, get_values(p)) for p in pos])
+function get_clusters(n_clusters, ds)
+    pos = get_positions.(ds)
+    X = reduce(hcat, [reduce(vcat, get_values(p)) for p in pos])
+    R = kmeans(X, n_clusters)
+    a = assignments(R) # get the assignments of points to clusters
+    clusters = [findall(x->x==i, a) for i in 1:n_clusters]
+end
 n_clusters = input["n_clusters"]
-R = kmeans(X, n_clusters)
-a = assignments(R) # get the assignments of points to clusters
-clusters = [findall(x->x==i, a) for i in 1:n_clusters]
+clusters = get_clusters(n_clusters, ds_train)
 
 # Define ACE parameters
 species = unique(atomic_symbol(get_system(ds[1])))
@@ -75,31 +79,11 @@ rcutoff = input["rcutoff"]
 ace_basis = ACE(species, body_order, polynomial_degree, wL, csp, r0, rcutoff)
 @savevar path ace_basis
 
-function learn_normeq!(lp)
-    w_e = 1; w_f = 1
-    
-    B_train = reduce(hcat, lp.B)'
-    dB_train = reduce(hcat, lp.dB)'
-    e_train, f_train = lp.e, reduce(vcat, lp.f)
-    
-    # Calculate A and b.
-    A = [B_train; dB_train]
-    b = [e_train; f_train]
-
-    # Calculate coefficients β.
-    Q = Diagonal([w_e * ones(length(e_train));
-                  w_f * ones(length(f_train))])
-    β = (A'*Q*A) \ (A'*Q*b)
-
-    copyto!(lp.β, β)
-end
-
+# Active learning of ACE parameters:
 # Iteratively increase training dataset and fit ACE until reach threasholds
-ds_train_cur = []
-conf_train_cur = []
-e_des_train_cur = []
-f_des_train_cur = []
-lp = []
+println("Starting active learing of ACE parameters...\n")
+lp = []; ds_train_cur = []; conf_train_cur = []
+e_des_train_cur = []; f_des_train_cur = []
 sample_size = input["sample_size"]
 e_mae_threshold = input["e_mae_threshold"]
 f_mae_threshold = input["f_mae_threshold"]
@@ -110,7 +94,7 @@ while e_train_mae > e_mae_threshold || f_train_mae > f_mae_threshold
     global conf_train_cur, e_des_train_cur, f_des_train_cur, ds_train_cur,
            ds_train_cur, lp, e_train_mae, f_train_mae, i
 
-    println("Iteration: $i")
+    println("Active learning iteration: $i")
 
     # Select new configurations by sampling from clusters
     sample(c, n) = [c[rand(1:length(c))] for _ in 1:n]
@@ -152,9 +136,13 @@ while e_train_mae > e_mae_threshold || f_train_mae > f_mae_threshold
     i += 1
 end
 
+println("Active learning process completed.\n")
+
 end # end of "learn_time = @elapsed begin"
 
 # Post-process output: calculate metrics, create plots, and save results
+
+println("Start of post-processing: generate metrics and plots")
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset: ")
@@ -184,7 +172,7 @@ e_test_pred, f_test_pred = get_all_energies(ds_test, lp), get_all_forces(ds_test
 @savevar path f_test_pred
 
 # Compute metrics
-B_time = dB_time = 0.0
+B_time = dB_time = -1
 metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                        e_test_pred, e_test, f_test_pred, f_test,
                        B_time, dB_time, learn_time)
