@@ -14,7 +14,8 @@ Returns a random subset of the input vectors.
 
 """
 function random_subsample(systems, energies, forces, stress; max_sys = length(systems))
-    n = length(systems); max_sys = min(max_sys, n)
+    n = length(systems)
+    max_sys = min(max_sys, n)
     rand_list = randperm(n)[1:max_sys]
     return systems[rand_list], energies[rand_list], forces[rand_list], stress[rand_list]
 end

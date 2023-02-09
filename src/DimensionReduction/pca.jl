@@ -6,8 +6,8 @@ Use SVD to compute the PCA of the design matrix of descriptors. (using Force des
 
 If tol is a float then the number of components to keep is determined by the smallest n such that relative percentage of variance explained by keeping the leading n principle components is greater than 1 - tol. If tol is an int, then we return the components corresponding to the tol largest eigenvalues.
 """
-struct PCA{T <: Real} <: DimensionReducer
-    tol :: T
+struct PCA{T<:Real} <: DimensionReducer
+    tol::T
 end
 
 function PCA(; tol = 0.01)
@@ -19,9 +19,9 @@ end
 
 Fits a linear dimension reduction routine using PCA on the global descriptors in the dataset ds. 
 """
-function fit(ds::DataSet, pca :: PCA)
-    d = try 
-        vcat(get_values.(get_local_descriptors.(ds))...)
+function fit(ds::DataSet, pca::PCA)
+    d = try
+        [sum(get_values(get_local_descriptors(di))) for di in ds]
     catch
         error("No local descriptors found in DataSet")
     end

@@ -1,13 +1,14 @@
 module PotentialLearning
 
+using Printf
 using LinearAlgebra, Statistics, Random, Distributions
 using Unitful, UnitfulAtomic, AtomsBase
 using StaticArrays
-using Zygote 
+using Zygote
 using InteratomicPotentials
 
 # Custom Adjoints for StaticVectors
-@Zygote.adjoint (T::Type{<:SVector})(x::AbstractVector) = T(x), dv -> (nothing, dv)
+Zygote.@adjoint (T::Type{<:SVector})(x::AbstractVector) = T(x), dv -> (nothing, dv)
 
 ## Data structs 
 include("Data/data.jl")
@@ -25,7 +26,7 @@ include("SubsetSelection/subsetselector.jl")
 include("DimensionReduction/dimension_reduction.jl")
 
 # Learning problems 
-include("Learning/learn.jl")
+include("Learning/learning.jl")
 
 # Metrics 
 # include("Metrics/metrics.jl") 

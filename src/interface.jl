@@ -5,7 +5,7 @@
 ################################################################################
 
 using AtomsBase
-using InteratomicPotentials 
+using InteratomicPotentials
 using InteratomicBasisPotentials
 using OrderedCollections
 using IterTools
@@ -15,7 +15,7 @@ using Statistics
 using Optimization
 using OptimizationOptimJL
 using UnitfulAtomic
-using Unitful 
+using Unitful
 using Flux
 using Flux.Data: DataLoader
 using Random

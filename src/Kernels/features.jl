@@ -16,9 +16,9 @@ struct GlobalSum <: Feature end
 GlobalSum(nothing) = GlobalSum
 
 
-function compute_feature(B::LocalDescriptors, gm::GlobalSum) where T
+function compute_feature(B::LocalDescriptors, gm::GlobalSum) where {T}
     sum(get_values(B))
-end 
+end
 
 """
         GlobalMean{T}
@@ -29,9 +29,9 @@ struct GlobalMean <: Feature end
 GlobalMean(nothing) = GlobalMean
 
 
-function compute_feature(B::LocalDescriptors, gm::GlobalMean) where T
+function compute_feature(B::LocalDescriptors, gm::GlobalMean) where {T}
     mean(get_values(B))
-end 
+end
 
 #####################################################
 #####################################################
@@ -45,13 +45,15 @@ CorrelationMatrix produces a global descriptor that is the correlation matrix of
 struct CorrelationMatrix <: Feature end
 CorrelationMatrix(nothing) = CorrelationMatrix
 
-function compute_feature(B::LocalDescriptors, cm::CorrelationMatrix) 
-    Symmetric(mean(Bi*Bi' for Bi in get_values(B)))
+function compute_feature(B::LocalDescriptors, cm::CorrelationMatrix)
+    Symmetric(mean(Bi * Bi' for Bi in get_values(B)))
 end
 
-function compute_feature(dB::ForceDescriptors, cm::CorrelationMatrix) 
+function compute_feature(dB::ForceDescriptors, cm::CorrelationMatrix)
     ## Remember that dB_i is a 3 vector of descriptors of length dim 
-    CorrelationMatrix(   Symmetric(   mean(reduce(hcat, dBi)*reduce(hcat,dBi)' for dBi in get_values(dB))   )   )
+    CorrelationMatrix(
+        Symmetric(mean(reduce(hcat, dBi) * reduce(hcat, dBi)' for dBi in get_values(dB))),
+    )
 end
 
 function compute_feature(c::Configuration, gm::GlobalMean; dt = LocalDescriptors)

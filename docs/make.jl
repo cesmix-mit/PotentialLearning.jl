@@ -1,11 +1,16 @@
-    pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add PotentialLearning to environment stack
+pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add PotentialLearning to environment stack
 
 using PotentialLearning
 using Documenter
 using DocumenterCitations
 using Literate
 
-DocMeta.setdocmeta!(PotentialLearning, :DocTestSetup, :(using PotentialLearning); recursive = true)
+DocMeta.setdocmeta!(
+    PotentialLearning,
+    :DocTestSetup,
+    :(using PotentialLearning);
+    recursive = true,
+)
 
 bib = CitationBibliography(joinpath(@__DIR__, "citations.bib"))
 
@@ -23,7 +28,8 @@ bib = CitationBibliography(joinpath(@__DIR__, "citations.bib"))
 
 #examples = [title => joinpath("generated", string(name, ".md")) for (title, name) in examples]
 
-makedocs(bib;
+makedocs(
+    bib;
     modules = [PotentialLearning],
     authors = "CESMIX-MIT",
     repo = "https://github.com/cesmix-mit/PotentialLearning.jl/blob/{commit}{path}#{line}",
@@ -33,17 +39,14 @@ makedocs(bib;
         canonical = "https://cesmix-mit.github.io/PotentialLearning.jl",
         assets = String[],
     ),
-    pages = [
-        "Home" => "index.md",
-        "API" => "api.md",
-    ],
+    pages = ["Home" => "index.md", "API" => "api.md"],
     doctest = true,
     linkcheck = true,
-    strict = false
+    strict = false,
 )
 
 deploydocs(;
     repo = "github.com/cesmix-mit/PotentialLearning.jl",
     devbranch = "main",
-    push_preview = true
+    push_preview = true,
 )
