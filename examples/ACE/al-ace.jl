@@ -11,20 +11,20 @@ using StaticArrays
 include("utils.jl")
 
 # Load input parameters
-args = ["experiment_path",      "AL-a-Hfo2-300K-NVT-6000/",
+args = ["experiment_path",      "AL-HfO2sg137n6_921/",#"a-Hfo2-300K-NVT-6000/",
         "dataset_path",         "../../../data/",
-        "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
+        "dataset_filename",     "HfO2sg137n6_921.xyz",#"a-Hfo2-300K-NVT-6000.extxyz",
         "random_seed",          "100",  # Random seed to ensure reproducibility of loading and subsampling.
-        "n_train_sys",          "4800",  # Training dataset size
-        "n_test_sys",           "1200",  # Test dataset size
+        "n_train_sys",          "736",  #"4800",  # Training dataset size
+        "n_test_sys",           "185",  #"1200",  # Test dataset size
         "n_clusters",           "20",
         "sample_size",          "3",
         "e_mae_threshold",      "0.2",
         "f_mae_threshold",      "0.2",
         "body_order",           "3",
-        "polynomial_degree",    "4",
+        "polynomial_degree",    "3",
         "r0",                   "1.0",
-        "rcutoff",              "5.0",
+        "rcutoff",              "7.0",
         "wL",                   "1.0",
         "csp",                  "1.0",
         "w_e",                  "1.0",
@@ -103,13 +103,11 @@ while e_train_mae > e_mae_threshold || f_train_mae > f_mae_threshold
     println("New sampled configurations: $inds")
     
     # Compute energy and force descriptors of new sampled configurations
-    println("Computing energy descriptors of new sampled configurations")
-    e_des_new = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
-                 for sys in ProgressBar(get_system.(conf_new))]
-    println("Computing force descriptors of new sampled configurations")
-    f_des_new = [ForceDescriptors([[fi[i, :] for i = 1:3]
-                                    for fi in compute_force_descriptors(sys, ace_basis)])
-                 for sys in ProgressBar(get_system.(conf_new))]
+    println("Computing energy descriptors of training dataset...")
+    e_des_new = compute_local_descriptors(conf_new, ace_basis)
+    println("Computing force descriptors of training dataset...")
+    f_des_new = compute_force_descriptors(conf_new, ace_basis)
+    GC.gc()
 
     # Update current configurations, energy and force descriptors, and dataset
     push!(conf_train_cur, conf_new...)
@@ -120,7 +118,8 @@ while e_train_mae > e_mae_threshold || f_train_mae > f_mae_threshold
     # Learn ACE parameters using increased training dataset
     println("Learning energies and forces...")
     lp = LinearProblem(ds_train_cur)
-    learn_normeq!(lp)
+    w_e = input["w_e"]; w_f = input["w_f"]
+    learn!(lp, w_e, w_f) #learn!(lp)
 
     # Get true and predicted values
     e_train, f_train = get_all_energies(ds_train_cur), get_all_forces(ds_train_cur)
@@ -128,13 +127,15 @@ while e_train_mae > e_mae_threshold || f_train_mae > f_mae_threshold
     
     # Compute metrics
     e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
-    f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)    
+    f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
     println("e_train_mae: $e_train_mae, e_train_rmse: $e_train_rmse, e_train_rsq: $e_train_rsq")
     println("f_train_mae: $f_train_mae, f_train_rmse: $f_train_rmse, f_train_rsq: $f_train_rsq \n")
     
     # Update iteration number
     i += 1
 end
+
+@savevar path lp.β
 
 println("Active learning process completed.\n")
 
@@ -145,15 +146,10 @@ end # end of "learn_time = @elapsed begin"
 println("Start of post-processing: generate metrics and plots")
 
 # Update test dataset by adding energy and force descriptors
-println("Computing energy descriptors of test dataset: ")
-e_descr_test = [LocalDescriptors(compute_local_descriptors(sys, ace_basis)) 
-                for sys in ProgressBar(get_system.(ds_test))]
-
-println("Computing force descriptors of test dataset: ")
-f_descr_test = [ForceDescriptors([[fi[i, :] for i = 1:3]
-                                   for fi in compute_force_descriptors(sys, ace_basis)])
-                for sys in ProgressBar(get_system.(ds_test))]
-
+println("Computing energy descriptors of test dataset...")
+e_descr_test = compute_local_descriptors(ds_test, ace_basis)
+println("Computing force descriptors of test dataset...")
+f_descr_test = compute_force_descriptors(ds_test, ace_basis)
 ds_test = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
 
 

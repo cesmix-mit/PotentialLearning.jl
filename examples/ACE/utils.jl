@@ -6,7 +6,48 @@ using Plots
 
 function Base.split(ds, n, m)
     ii = randperm(length(ds))
-    return ds[first(ii, n)], ds[last(ii, m)]
+    return @views ds[first(ii, n)], ds[last(ii, m)]
+end
+
+
+# Compute descriptors of a basis system and dataset
+function InteratomicBasisPotentials.compute_local_descriptors(ds::DataSet, basis::BasisSystem)
+    e_des = Vector{LocalDescriptors}(undef, length(ds))
+    #for (j, sys) in ProgressBar(zip(1:length(ds), get_system.(ds)))
+    Threads.@threads for (j, sys) in ProgressBar(collect(enumerate(get_system.(ds))))
+        e_des[j] = LocalDescriptors(compute_local_descriptors(sys, basis))
+    end
+    return e_des
+end
+
+function InteratomicBasisPotentials.compute_force_descriptors(ds::DataSet, basis::BasisSystem)
+    f_des = Vector{ForceDescriptors}(undef, length(ds))
+    #for (j, sys) in ProgressBar(zip(1:length(ds), get_system.(ds)))
+    Threads.@threads for (j, sys) in ProgressBar(collect(enumerate(get_system.(ds))))
+        f_des[j] = ForceDescriptors([[fi[i, :] for i = 1:3] 
+                                     for fi in compute_force_descriptors(sys, basis)])
+    end
+    return f_des
+end
+
+# Learning function using normal equations
+function PotentialLearning.learn!(lp, w_e, w_f)
+
+    @views B_train = reduce(hcat, lp.B)'
+    @views dB_train = reduce(hcat, lp.dB)'
+    @views e_train = lp.e
+    @views f_train = reduce(vcat, lp.f)
+    
+    # Calculate A and b.
+    @views A = [B_train; dB_train]
+    @views b = [e_train; f_train]
+
+    # Calculate coefficients β.
+    Q = Diagonal([w_e * ones(length(e_train));
+                  w_f * ones(length(f_train))])
+    β = (A'*Q*A) \ (A'*Q*b)
+
+    copyto!(lp.β, β)
 end
 
 # Auxiliary functions to compute all energies and forces as vectors (Zygote-friendly functions)
