@@ -60,7 +60,7 @@ Alternatively, you can open the Julia REPL first, and then include `fit-ace.jl`.
     $ julia
 ```
 ```julia
-    $ include("fit-ace.jl")
+    julia> include("fit-ace.jl")
 ```
 
 ## Installation
@@ -106,11 +106,12 @@ Type `]`, then:
 Clone repository in your work directory and change branch
 ```shell
     $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git
+    $ cd PotentialLearning.jl
     $ git checkout ace-examples
 ```
 Access to ACE example folder and open a Julia REPL
 ```shell
-    $ cd PotentialLearning.jl/examples/ACE
+    $ cd examples/ACE
     $ julia
 ```
 Activate and instantiate
