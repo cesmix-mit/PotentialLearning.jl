@@ -33,6 +33,36 @@ The input parameters are listed below:
 | w_f                  | Force weight                                              | 1.0                       |
 
 
+```shell
+    $ julia fit-ace.jl  experiment_path       a-Hfo2-300K-NVT-6000/ \
+                        dataset_path          data/ \
+                        dataset_filename      a-Hfo2-300K-NVT-6000.extxyz \
+                        random_seed           100 \
+                        n_train_sys           800 \
+                        n_test_sys            200 \
+                        n_body                3 \
+                        max_deg               3 \
+                        r0                    1.0 \
+                        rcutoff               5.0 \
+                        wL                    1.0 \
+                        csp                   1.0 \
+                        w_e                   1.0 \
+                        w_f                   1.0
+```
+
+In addition, you can run the experiments with default parameters (parameters shown above).
+```shell
+    $ julia fit-ace.jl
+```
+
+Alternatively, you can open the Julia REPL first, and then include `fit-ace.jl`.
+```shell
+    $ julia
+```
+```julia
+    $ include("fit-ace.jl")
+```
+
 ## Installation
 
 ### Install Julia on Ubuntu
@@ -87,36 +117,4 @@ Activate and instantiate
 ```julia
     pkg> activate .
     pkg> instantiate
-```
-
-### Run fitting experiment
-
-```shell
-    $ julia fit-ace.jl  experiment_path       a-Hfo2-300K-NVT-6000/ \
-                        dataset_path          data/ \
-                        dataset_filename      a-Hfo2-300K-NVT-6000.extxyz \
-                        random_seed           100 \
-                        n_train_sys           800 \
-                        n_test_sys            200 \
-                        n_body                3 \
-                        max_deg               3 \
-                        r0                    1.0 \
-                        rcutoff               5.0 \
-                        wL                    1.0 \
-                        csp                   1.0 \
-                        w_e                   1.0 \
-                        w_f                   1.0
-```
-
-In addition, you can run the experiments with default parameters (parameters shown above).
-```shell
-    $ julia fit-ace.jl
-```
-
-Alternatively, you can open the Julia REPL first, and then include `fit-ace.jl`.
-```shell
-    $ julia
-```
-```julia
-    $ include("fit-ace.jl")
 ```
