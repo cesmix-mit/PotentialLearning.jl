@@ -99,6 +99,7 @@ Type `]`, then:
     pkg> registry add https://github.com/JuliaRegistries/General
     pkg> registry add https://github.com/cesmix-mit/CESMIX.git 
     pkg> registry add https://github.com/JuliaMolSim/MolSim.git
+    pkg> registry add https://github.com/ACEsuit/ACEregistry
 ```
 
 ### Clone repository, change branch, and install dependencies
