@@ -90,7 +90,7 @@ Restart the terminal
 
 ### Add registries
 
-Open a Julia REPL and add registries: General, CESMIX, and MolSim.
+Open a Julia REPL and add registries: General, CESMIX, MolSim, and ACE.
 ```shell
     $ julia
 ```
