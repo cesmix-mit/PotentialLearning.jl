@@ -1,6 +1,6 @@
 ## Fitting ACE example
 
-In the folder `ACE-examples`, you will find a basic integrated example that allows you to fit different DFT datasets using ACE.
+This folder contains an example on how to fit a DFT dataset using ACE.
 
 
 ### Chose a DFT dataset
@@ -58,22 +58,30 @@ Alternative: add line to `.shellrc`
 Restart the terminal
 
 
-### Clone this branch, add registries, and install dependencies
+### Add registries
 
-Clone branch in your work directory
+Open a Julia REPL and add registries: General, CESMIX, and MolSim.
 ```shell
-    $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git
-```
-Go to ACE examples folder and open a Julia REPL
-```shell
-    $ cd PotentialLearning.jl/examples/ACE
     $ julia
 ```
-Add registries: General, CESMIX, and MolSim. Type `[`, then:
+Type `]`, then:
 ```julia
     pkg> registry add https://github.com/JuliaRegistries/General
     pkg> registry add https://github.com/cesmix-mit/CESMIX.git 
     pkg> registry add https://github.com/JuliaMolSim/MolSim.git
+```
+
+### Clone repository, change branch, and install dependencies
+
+Clone repository in your work directory and change branch
+```shell
+    $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git
+    $ git checkout ace-examples
+```
+Access to ACE example folder and open a Julia REPL
+```shell
+    $ cd PotentialLearning.jl/examples/ACE
+    $ julia
 ```
 Activate and instantiate
 ```julia
@@ -81,24 +89,8 @@ Activate and instantiate
     pkg> instantiate
 ```
 
-<!--Install dependencies-->
+### Run fitting experiment
 
-<!--```julia-->
-<!--    pkg> add https://github.com/dahtah/DPP.jl.git-->
-<!--    pkg> add AtomsBase-->
-<!--    pkg> add Unitful-->
-<!--    pkg> add UnitfulAtomic-->
-<!--    pkg> add InteratomicPotentials -->
-<!--    pkg> add InteratomicBasisPotentials-->
-<!--    pkg> add PotentialLearning-->
-<!--    pkg> add JulIP-->
-<!--    pkg> add ACE1-->
-<!--    pkg> add OrderedCollections-->
-<!--    pkg> add ProgressBars-->
-<!--    pkg> add Plots-->
-<!--```-->
-
-Run fitting experiment
 ```shell
     $ julia fit-ace.jl  experiment_path       a-Hfo2-300K-NVT-6000/ \
                         dataset_path          data/ \
@@ -121,7 +113,7 @@ In addition, you can run the experiments with default parameters (parameters sho
     $ julia fit-ace.jl
 ```
 
-Alternatively, you can open Julia REPL first, and then include `fit-ace.jl`.
+Alternatively, you can open the Julia REPL first, and then include `fit-ace.jl`.
 ```shell
     $ julia
 ```
