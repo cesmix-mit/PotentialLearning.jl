@@ -1,6 +1,6 @@
 using AtomsBase
-using Unitful 
-using UnitfulAtomic 
+using Unitful
+using UnitfulAtomic
 using StaticArrays
 
 include("extxyz.jl")

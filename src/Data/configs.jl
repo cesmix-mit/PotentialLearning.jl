@@ -1,6 +1,6 @@
 abstract type ConfigurationDataSet end
 struct Configuration <: ConfigurationDataSet
-    data :: Dict{DataType, CFG_TYPE}
+    data::Dict{DataType,CFG_TYPE}
 end
 """
     Configuration(data::Union{AtomsBase.FlexibleSystem, ConfigurationData} )
@@ -21,10 +21,10 @@ Configurations can be added together, which merges the data dictionaries
     '''
 
 """
-function Configuration(data::CFG_TYPE...) 
-    Configuration(Dict{DataType, CFG_TYPE}(zip(typeof.(data), data)))
+function Configuration(data::CFG_TYPE...)
+    Configuration(Dict{DataType,CFG_TYPE}(zip(typeof.(data), data)))
 end
-function Base.show(io::IO, c::Configuration) 
+function Base.show(io::IO, c::Configuration)
     types = string(collect(keys(c.data)))[10:end-1]
     print(io, "Configuration{S, $types}")
 end
@@ -40,7 +40,7 @@ end
 Retrieves the AtomsBase system (if available) in the Configuration c. 
 """
 function get_system(c::Configuration)
-    i = findall( keys(c.data) .<: AtomsBase.AbstractSystem )[1]
+    i = findall(keys(c.data) .<: AtomsBase.AbstractSystem)[1]
     collect(values(c.data))[i]
 end
 """
@@ -73,29 +73,44 @@ get_forces(c::Configuration) = c.data[Forces]
 Retrieves the force descriptors (if available) in the Configuration c. 
 """
 get_force_descriptors(c::Configuration) = c.data[ForceDescriptors]
+
+function Base.:*(W::Matrix{T}, c::Configuration) where {T<:Real}
+    if ForceDescriptors in keys(c.data)
+        c.data[ForceDescriptors] = W * c.data[ForceDescriptors]
+    end
+    if LocalDescriptors in keys(c.data)
+        c.data[LocalDescriptors] = W * c.data[LocalDescriptors]
+    end
+    c
+end
+
 """
     DataBase 
 Abstract type for DataSets. 
 """
-abstract type DataBase end 
+abstract type DataBase end
 """
     DataSet 
 Struct that holds vector of configuration. Most operations in PotentialLearning are built around the DataSet structure.
 """
-struct DataSet <: DataBase 
-    Configurations :: Vector{Configuration}
+struct DataSet <: DataBase
+    Configurations::Vector{Configuration}
 end
 
 Base.length(ds::DataSet) = length(ds.Configurations)
 Base.getindex(ds::DataSet, i::Int) = ds.Configurations[i]
 Base.getindex(ds::DataSet, i::Vector{<:Int}) = DataSet(ds.Configurations[i])
-Base.getindex(ds::DataSet, i::Union{UnitRange{<:Int}, StepRange{<:Int, <:Int}}) = DataSet(ds.Configurations[i])
+Base.getindex(ds::DataSet, i::Union{UnitRange{<:Int},StepRange{<:Int,<:Int}}) =
+    DataSet(ds.Configurations[i])
 Base.firstindex(ds::DataSet) = ds[1]
 Base.lastindex(ds::DataSet) = length(ds)
-Base.iterate(ds::DataSet, state=1) = state > length(ds) ? nothing : (ds[state], state+1)
+Base.iterate(ds::DataSet, state = 1) = state > length(ds) ? nothing : (ds[state], state + 1)
 
+function Base.:*(W::Matrix{T}, ds::DataSet) where {T<:Real}
+    DataSet((W,) .* ds)
+end
 
-function Base.show(io::IO, ds::DataSet) 
+function Base.show(io::IO, ds::DataSet)
     print(io, "DataSet{num_configs = $(length(ds.Configurations))} \n")
     print(io, "\t $(ds.Configurations[1])")
     if length(ds) > 1

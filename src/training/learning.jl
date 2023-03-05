@@ -8,4 +8,3 @@ export learn!, LinearProblem, UnivariateLinearProblem, CovariateLinearProblem
 
 include("learn.jl")
 include("linear.jl")
-

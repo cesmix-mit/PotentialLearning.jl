@@ -15,7 +15,7 @@ using Test
     @testset "Subset Selector.jl" begin
         include("subset_selector/subset_selector.jl")
     end
-    @testset "Dimension Reduction.jl" begin 
+    @testset "Dimension Reduction.jl" begin
         include("dimension_reduction/dimension_reduction.jl")
     end
 end

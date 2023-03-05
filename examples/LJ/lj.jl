@@ -61,21 +61,21 @@ ds = DataSet(ds)
 # then s(x) = A*x + b 
 
 struct l
-    A 
-    b
+    A::Any
+    b::Any
 end
 (ℓ::l)(x) = ℓ.A * x .+ ℓ.b
 ll = l(I(8) + zeros(8, 8), zeros(8))
 
 tr∇s(x) = 8.0
-loss(ll, x) = tr∇s(x) + 0.5*norm(ll(x))^2 
-∇θloss(ll, x) = first(gradient(ell->loss(ell, x), ll))
-function loss(ll::l, c::Configuration) 
+loss(ll, x) = tr∇s(x) + 0.5 * norm(ll(x))^2
+∇θloss(ll, x) = first(gradient(ell -> loss(ell, x), ll))
+function loss(ll::l, c::Configuration)
     ld = get_values(get_local_descriptors(c))
-    l = mean( loss.( (ll, ), ld)  )
-    g = ∇θloss.( (ll, ), ld)
-    gA = Symmetric(mean(map(x->x.A, g)))
-    gb = mean(map(x->x.b, g))
+    l = mean(loss.((ll,), ld))
+    g = ∇θloss.((ll,), ld)
+    gA = Symmetric(mean(map(x -> x.A, g)))
+    gb = mean(map(x -> x.b, g))
     l, gA, gb
 end
 
@@ -92,17 +92,12 @@ for i = 1:50
         gb += gb_temp / 100.0
     end
 
-    if i%1 == 0
-        println("i = $i  l = $(round(l_temp, digits=3)) |gA| = $(norm(gA)) |gb| = $(norm(gb))")
+    if i % 1 == 0
+        println(
+            "i = $i  l = $(round(l_temp, digits=3)) |gA| = $(norm(gA)) |gb| = $(norm(gb))",
+        )
     end
 
-    broadcast!(-, ll.A, ll.A, γ*gA)
-    broadcast!(-, ll.b, ll.b, γ*gb)
+    broadcast!(-, ll.A, ll.A, γ * gA)
+    broadcast!(-, ll.b, ll.b, γ * gb)
 end
-
-
-
-
-
-
-

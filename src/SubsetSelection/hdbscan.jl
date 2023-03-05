@@ -1,6 +1,6 @@
 using HDBSCAN
 struct hDBSCAN <: SubsetSelector
-    h ::  HDBSCAN.HdbscanResult
+    h::HDBSCAN.HdbscanResult
 end
 """
     hDBSCAN(lp :: LinearProblem, min_cluster_size::Int) <: SubsetSelector
@@ -13,7 +13,7 @@ function hDBSCAN(lp::LinearProblem, min_cluster_size::Int)
     h = hdbscan(X'; min_cluster_size = min_cluster_size)
     hDBSCAN(h)
 end
-function get_random_subset(hdbscan::hDBSCAN, batch_size :: Int)
+function get_random_subset(hdbscan::hDBSCAN, batch_size::Int)
     indices = Int[]
     assignments = hdbscan.h.assignments
     for i in unique(assignments)

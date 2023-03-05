@@ -11,9 +11,9 @@ Simplifies the saving of a variable.
 
 """
 macro savevar(path, var)
-     quote
+    quote
         write($(esc(path)) * $(string(var)) * ".dat", string($(esc(var))))
-     end
+    end
 end
 
 
@@ -47,4 +47,3 @@ macro savefig(path, fig)
         savefig($(esc(fig)), $(esc(path)) * $(string(fig)) * ".png")
     end
 end
-

@@ -8,12 +8,20 @@ using PotentialLearning
 
 #################### Importing Data ###################
 # Import Raw Data
-energies, descriptors = JLD.load("examples/aHfO2/data/aHfO2_diverse_descriptors_3600.jld", "energies", "descriptors")
-energies1, descriptors1 = JLD.load("examples/aHfO2/data/aHfO2_diverse_descriptors_3601_6000.jld", "energies", "descriptors")
+energies, descriptors = JLD.load(
+    "examples/aHfO2/data/aHfO2_diverse_descriptors_3600.jld",
+    "energies",
+    "descriptors",
+)
+energies1, descriptors1 = JLD.load(
+    "examples/aHfO2/data/aHfO2_diverse_descriptors_3601_6000.jld",
+    "energies",
+    "descriptors",
+)
 energies = [energies; energies1];
 descriptors = [descriptors; descriptors1]
 # Create structs for data types 
-energies = Energy.(energies, (u"eV", ))
+energies = Energy.(energies, (u"eV",))
 descriptors = LocalDescriptors.(descriptors)
 
 
@@ -39,29 +47,34 @@ dpp_cm_fo = kDPP(cms, RBF(Forstner(716)); batch_size = 20)
 
 dpps = [dpp_gm_dp, dpp_gm_rbf, dpp_cm_dp, dpp_cm_fo]
 ips = get_inclusion_prob.(dpps)
-ks = [ dppi.K.L[triu(trues(360,360), 1)] for dppi in dpps]
+ks = [dppi.K.L[triu(trues(360, 360), 1)] for dppi in dpps]
 
 ################### Plots #####################
 
 
 size_inches = (16, 16)
 size_pt = 72 .* size_inches
-fig = Figure(resolution = size_pt, fontsize =12)
+fig = Figure(resolution = size_pt, fontsize = 12)
 labels = [L"D: GM+DP", L"D: GM+RBF", L"D: CM+DP", L"D: CM+FO"]
-iplabels = [L"IP: $GM+DP$", L"IP: $GM+RBF$",
-         L"IP: $CM+DP$", L"IP: $CM+FO$"]
+iplabels = [L"IP: $GM+DP$", L"IP: $GM+RBF$", L"IP: $CM+DP$", L"IP: $CM+FO$"]
 for i = 1:4
     for j = 1:(i-1)
-        ax = Axis(fig[i, j], xlabel=labels[j], ylabel = labels[i])
+        ax = Axis(fig[i, j], xlabel = labels[j], ylabel = labels[i])
         scatter!(ax, ks[j], ks[i], color = (:red, 0.2), markersize = 1.0)
     end
     ax = Axis(fig[i, i], xlabel = labels[i], xlabelcolor = :red, ylabelcolor = :red)
-    ax1 = Axis(fig[i, i], xlabel = iplabels[i], xlabelcolor = :blue, xaxisposition = :top, yaxisposition = :right)
+    ax1 = Axis(
+        fig[i, i],
+        xlabel = iplabels[i],
+        xlabelcolor = :blue,
+        xaxisposition = :top,
+        yaxisposition = :right,
+    )
     hist!(ax, ks[i], color = (:red, 0.4))
     hist!(ax1, ips[i], color = (:blue, 0.4))
 
     for j = i+1:4
-        ax = Axis(fig[i, j], xlabel=iplabels[j], ylabel = iplabels[i])
+        ax = Axis(fig[i, j], xlabel = iplabels[j], ylabel = iplabels[i])
         scatter!(ax, ips[j], ips[i], color = (:blue, 0.2), markersize = 4.0)
     end
 

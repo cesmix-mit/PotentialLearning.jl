@@ -32,15 +32,15 @@ for information about how to define the input arguments.
 """
 function get_input(args)
     input = OrderedDict()
-    for (key, val) in partition(args,2,2)
+    for (key, val) in partition(args, 2, 2)
         val = replace(val, " " => "")
         # if val is a boolean
         if val == "true" || val == "false"
             val = val == "true"
-        # if val is a vector, e.g. "[1.5,1.5]"
+            # if val is a vector, e.g. "[1.5,1.5]"
         elseif val[1] == '['
             val = to_num.(split(val[2:end-1], ","))
-        # if val is a number, e.g. 1.5 or 1
+            # if val is a number, e.g. 1.5 or 1
         elseif tryparse(Float64, val) != nothing
             val = to_num(val)
         end
@@ -61,7 +61,7 @@ Returns training and test systems, energies, forces, and stresses.
 function load_datasets(input)
     if "dataset_filename" in keys(input) # Load and split dataset
         # Load dataset
-        filename = input["dataset_path"]*input["dataset_filename"]
+        filename = input["dataset_path"] * input["dataset_filename"]
         systems, energies, forces, stress = load_extxyz(filename)
         # Split dataset
         split_prop = input["split_prop"]
@@ -70,21 +70,22 @@ function load_datasets(input)
         n_test_sys = n_sys - n_train_sys
         rand_list = randperm(n_sys)
         train_index, test_index = rand_list[1:n_train_sys], rand_list[n_train_sys+1:n_sys]
-        train_sys, train_e, train_f, train_s =
-                                     systems[train_index], energies[train_index],
-                                     forces[train_index], stress[train_index]
-        test_sys, test_e, test_f, test_s =
-                                     systems[test_index], energies[test_index],
-                                     forces[test_index], stress[test_index]
+        train_sys, train_e, train_f, train_s = systems[train_index],
+        energies[train_index],
+        forces[train_index],
+        stress[train_index]
+        test_sys, test_e, test_f, test_s = systems[test_index],
+        energies[test_index],
+        forces[test_index],
+        stress[test_index]
     else # Load training and test datasets
-        filename = input["dataset_path"]*input["trainingset_filename"]
+        filename = input["dataset_path"] * input["trainingset_filename"]
         train_sys, train_e, train_f, train_s = load_extxyz(filename)
-        filename = input["dataset_path"]*input["testset_filename"]
+        filename = input["dataset_path"] * input["testset_filename"]
         test_sys, test_e, test_f, test_s = load_extxyz(filename)
     end
-    
-    return train_sys, train_e, train_f, train_s,
-           test_sys, test_e, test_f, test_s
+
+    return train_sys, train_e, train_f, train_s, test_sys, test_e, test_f, test_s
 end
 
 
@@ -120,22 +121,31 @@ end
 Returns the data loaders for training and test of energies and forces.
 
 """
-function get_batches(n_batches, B_train, B_train_ext, e_train, dB_train, f_train,
-                     B_test, B_test_ext, e_test, dB_test, f_test)
-    
+function get_batches(
+    n_batches,
+    B_train,
+    B_train_ext,
+    e_train,
+    dB_train,
+    f_train,
+    B_test,
+    B_test_ext,
+    e_test,
+    dB_test,
+    f_test,
+)
+
     bs_train_e = floor(Int, length(B_train) / n_batches)
-    train_loader_e   = DataLoader((B_train, e_train), batchsize=bs_train_e, shuffle=true)
+    train_loader_e = DataLoader((B_train, e_train), batchsize = bs_train_e, shuffle = true)
     bs_train_f = floor(Int, length(dB_train) / n_batches)
-    train_loader_f   = DataLoader((B_train_ext, dB_train, f_train),
-                                   batchsize=bs_train_f, shuffle=true)
+    train_loader_f =
+        DataLoader((B_train_ext, dB_train, f_train), batchsize = bs_train_f, shuffle = true)
 
     bs_test_e = floor(Int, length(B_test) / n_batches)
-    test_loader_e   = DataLoader((B_test, e_test), batchsize=bs_test_e, shuffle=true)
+    test_loader_e = DataLoader((B_test, e_test), batchsize = bs_test_e, shuffle = true)
     bs_test_f = floor(Int, length(dB_test) / n_batches)
-    test_loader_f   = DataLoader((B_test_ext, dB_test, f_test),
-                                  batchsize=bs_test_f, shuffle=true)
-    
+    test_loader_f =
+        DataLoader((B_test_ext, dB_test, f_test), batchsize = bs_test_f, shuffle = true)
+
     return train_loader_e, train_loader_f, test_loader_e, test_loader_f
 end
-
-
