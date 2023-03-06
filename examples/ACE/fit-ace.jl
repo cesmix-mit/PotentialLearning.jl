@@ -43,7 +43,7 @@ ds = load_data(ds_path, ExtXYZ(u"eV", u"Å"))
 
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
-ds_train, ds_test = split(ds, n_train, n_test)
+conf_train, conf_test = split(ds, n_train, n_test)
 
 # Start measuring learning time
 learn_time = @elapsed begin
@@ -60,11 +60,11 @@ ace_basis = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(ds_train, ace_basis)
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace_basis)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(ds_train, ace_basis)
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace_basis)
 GC.gc()
-ds_train = DataSet(ds_train .+ e_descr_train .+ f_descr_train)
+ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 
 # Learn
 println("Learning energies and forces...")
@@ -80,11 +80,11 @@ end # end of "learn_time = @elapsed begin"
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(ds_test, ace_basis)
+e_descr_test = compute_local_descriptors(conf_test, ace_basis)
 println("Computing force descriptors of test dataset...")
-f_descr_test = compute_force_descriptors(ds_test, ace_basis)
+f_descr_test = compute_force_descriptors(conf_test, ace_basis)
 GC.gc()
-ds_test = DataSet(ds_test .+ e_descr_test .+ f_descr_test)
+ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
 
 # Get true and predicted values
