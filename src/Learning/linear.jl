@@ -165,7 +165,7 @@ function learn!(lp::CovariateLinearProblem; α = 1e-8)
         logpdf(MvNormal(p[3] * x[3:end], exp(x[2]) + p[5]), p[4])
     g = Optimization.OptimizationFunction(f, Optimization.AutoForwardDiff())
 
-    x0 = [lp.β..., log(lp.σe[1]), log(lp.σf[1])]
+    x0 = [log(lp.σe[1]), log(lp.σf[1]), lp.β...]
     p = [AtAe, Atbe, AtAf, Atbf, α]
     prob = Optimization.OptimizationProblem(g, x0, p)
     sol = Optimization.solve(prob, Optim.BFGS())
