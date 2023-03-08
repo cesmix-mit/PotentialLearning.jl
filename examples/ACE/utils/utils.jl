@@ -1,5 +1,6 @@
 using Statistics
 using OrderedCollections
+using StaticArrays
 using IterTools
 using CSV
 using ProgressBars

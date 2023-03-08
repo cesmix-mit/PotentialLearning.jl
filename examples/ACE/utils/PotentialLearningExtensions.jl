@@ -1,5 +1,7 @@
 import PotentialLearning
 
+include("xyz.jl")
+
 # Get input parameters from OrderedDict
 
 """
@@ -60,7 +62,7 @@ function Base.split(ds, n, m)
 end
 
 
-# Learning function using normal equations
+# Learning function using weigthed least squares
 
 function learn!(lp, w_e, w_f)
 
@@ -79,6 +81,8 @@ function learn!(lp, w_e, w_f)
     β = (A'*Q*A) \ (A'*Q*b)
 
     copyto!(lp.β, β)
+    copyto!(lp.σe, w_e)
+    copyto!(lp.σf, w_f)
 end
 
 

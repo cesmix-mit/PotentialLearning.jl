@@ -9,9 +9,11 @@ include("utils/utils.jl")
 
 
 # Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000/", 
+args = ["experiment_path",      "a-Hfo2-300K-NVT-6000/",
         "dataset_path",         "data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
+        "energy_units",         "eV",
+        "distance_units",       "Å",
         "random_seed",          "100",
         "n_train_sys",          "800",
         "n_test_sys",           "200",
@@ -39,7 +41,8 @@ end
 
 # Load dataset
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
-ds = load_data(ds_path, ExtXYZ(u"eV", u"Å"))
+energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
+ds = load_data(ds_path, energy_units, distance_units)
 
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]

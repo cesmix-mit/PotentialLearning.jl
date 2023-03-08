@@ -1,3 +1,5 @@
+# TODO: units are hardcoded
+
 """
     plot_energy(e_pred, e_true)
     
@@ -10,7 +12,7 @@ Returns an energy plot.
 function plot_energy(e_pred, e_true)
     r0 = minimum(e_true); r1 = maximum(e_true); rs = (r1-r0)/10
     plot( e_true, e_pred, seriestype = :scatter, markerstrokewidth=0,
-          label="", xlabel = "E DFT | eV/atom", ylabel = "E predicted | eV/atom")
+          label="", xlabel = "E DFT | eV", ylabel = "E predicted | eV/atom")
     p = plot!( r0:rs:r1, r0:rs:r1, label="")
     return p
 end
