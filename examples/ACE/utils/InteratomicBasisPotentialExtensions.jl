@@ -1,5 +1,8 @@
 include("ace.jl")
+include("NNIAP.jl")
 
+
+Base.size(fd::ForceDescriptors) = (length(fd), )
 
 # Compute descriptors of a basis system and dataset
 function compute_local_descriptors(ds::DataSet, basis::BasisSystem)
