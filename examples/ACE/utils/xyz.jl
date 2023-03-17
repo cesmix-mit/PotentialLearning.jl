@@ -26,7 +26,7 @@ end
     load_data(file, ext::XYZ; nmax = Inf, T = Float64)
     Load configuration from an xyz file into a DataSet
 """
-function PotentialLearning.load_data(file, ext::XYZ; nmax = Inf, T = Float64)
+function load_data(file, ext::XYZ; nmax = Inf, T = Float64)
     configs = Configuration[]
     open(file, "r") do io
         count = 1
@@ -35,7 +35,7 @@ function PotentialLearning.load_data(file, ext::XYZ; nmax = Inf, T = Float64)
             line = readline(io)
             num_atoms = parse(Int, line)
             line = readline(io)
-            energy = Energy(parse(Float64, line), ext.energy_units)
+            energy = Energy(parse(T, line), ext.energy_units)
             atoms = Vector{AtomsBase.Atom}(undef, num_atoms)
             forces = Force[]
             for i = 1:num_atoms
@@ -90,11 +90,11 @@ function load_data(file, extxyz::ExtXYZ; nmax = Inf, T = Float64)
 
             line = readline(io)
             lattice_line = match(r"Lattice=\"(.*?)\" ", line).captures[1]
-            lattice = parse.(Float64, split(lattice_line)) * extxyz.distance_units
+            lattice = parse.(T, split(lattice_line)) * extxyz.distance_units
             box = [lattice[1:3], lattice[4:6], lattice[7:9]]
             energy = try
                 energy_line = match(r"energy=(.*?) ", line).captures[1]
-                energy = parse(Float64, energy_line)
+                energy = parse(T, energy_line)
                 Energy(energy, extxyz.energy_units)
             catch
                 Energy(NaN, extxyz.energy_units)
