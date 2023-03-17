@@ -20,6 +20,8 @@ The input parameters are listed below:
 | experiment_path      | Experiment path                                           | a-Hfo2-300K-NVT-6000/     |
 | dataset_path         | Dataset path                                              | data/                     |
 | dataset_filename     | Dataset filename                                          | a-Hfo2-300K-NVT-6000.exyz |
+| energy_units         | Energy units                                              | eV                        |
+| distance_units       | Distance units                                            | Å                         |
 | random_seed          | Random seed of the current experiment                     | 100                       |
 | n_train_sys          | No. of atomic systems in training dataset                 | 800                       |
 | n_test_sys           | No. of atomic systems in test dataset                     | 200                       |
@@ -37,6 +39,8 @@ The input parameters are listed below:
     $ julia fit-ace.jl  experiment_path       a-Hfo2-300K-NVT-6000/ \
                         dataset_path          data/ \
                         dataset_filename      a-Hfo2-300K-NVT-6000.extxyz \
+                        energy_units,         eV, \
+                        distance_units,       Å, \
                         random_seed           100 \
                         n_train_sys           800 \
                         n_test_sys            200 \
