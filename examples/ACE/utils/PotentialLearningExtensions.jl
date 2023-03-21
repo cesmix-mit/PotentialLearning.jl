@@ -95,10 +95,22 @@ function reduce_desc(λ_l, W_l, m_l, lll, λ_f, W_f, m_f, fff)
 end
 
 
+# LBasisPotential is not exported in InteratomicBasisPotentials.jl / basis_potentials.jl
+# These functions should be removed once export issue is fixed.
+struct LBasisPotential
+    basis
+    β
+end
+function LBasisPotential(basis)
+    return LBasisPotential(basis, zeros(length(basis)))
+end
+
+
 # New learning function based on weigthed least squares ########################
+function learn!(lb::LBasisPotential, ds::DataSet; w_e = 1.0, w_f = 1.0)
 
-function learn!(lp, w_e, w_f)
-
+    lp = PotentialLearning.LinearProblem(ds)
+    
     @views B_train = reduce(hcat, lp.B)'
     @views dB_train = reduce(hcat, lp.dB)'
     @views e_train = lp.e
@@ -113,11 +125,11 @@ function learn!(lp, w_e, w_f)
                   w_f * ones(length(f_train))])
     β = (A'*Q*A) \ (A'*Q*b)
 
-    copyto!(lp.β, β)
-    copyto!(lp.σe, w_e)
-    copyto!(lp.σf, w_f)
+    #copyto!(lp.β, β)
+    #copyto!(lp.σe, w_e)
+    #copyto!(lp.σf, w_f)
+    copyto!(lb.β, β)
 end
-
 
 # Auxiliary functions to compute all energies and forces as vectors (Zygote-friendly functions)
 
@@ -130,14 +142,14 @@ function get_all_forces(ds::DataSet)
                                     for c in 1:length(ds)]))
 end
 
-function get_all_energies(ds::DataSet, lp::PotentialLearning.LinearProblem)
+function get_all_energies(ds::DataSet, lb::LBasisPotential)
     Bs = sum.(get_values.(get_local_descriptors.(ds)))
-    return dot.(Bs, [lp.β])
+    return dot.(Bs, [lb.β])
 end
 
-function get_all_forces(ds::DataSet, lp::PotentialLearning.LinearProblem)
+function get_all_forces(ds::DataSet, lb::LBasisPotential)
     force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
-    return vcat([dB' * lp.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
+    return vcat([dB' * lb.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
 end
 
 

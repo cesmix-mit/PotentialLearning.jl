@@ -2,6 +2,7 @@
 ACE1 = "e3f9bc04-086e-409a-ba78-e9769fe067bb"
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 DPP = "2673d5e8-682c-11e9-2dfd-471b09c6c819"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 InteratomicBasisPotentials = "37c59853-c2ad-4e3a-930c-a41b2395fb19"
