@@ -140,7 +140,24 @@ function learn!(lp::UnivariateLinearProblem; α = 1e-8)
     copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * Q))
     lp
 end
+"""
+    learn!(lp::UnivariateLinearProblem; var = 1.0)
 
+Fit a univariate Gaussian distribution for the equation y = Aβ + ϵ, where β are model coefficients and the noise has known variance ϵ ∼ N(0, var). Fitting is done via standard linear least squares.  
+"""
+function learn!(lp::UnivariateLinearProblem; var = 1.0)
+    # Form design matrices 
+    A = reduce(hcat, lp.iv_data)'
+    b = lp.dv_data
+
+    Q = Diagonal(var * ones(length(b)))
+    β = (A'*Q*A) \ (A'*Q*b)
+
+    copyto!(lp.β, β)
+    copyto!(lp.σ, var)
+    copyto!(lp.Σ, Q))
+    lp
+end
 """
     learn!(lp::CovariateLinearProblem; α = 1e-8)
 
@@ -180,6 +197,32 @@ function learn!(lp::CovariateLinearProblem; α = 1e-8)
     copyto!(lp.Σ, Symmetric(Q))
     lp
 end
+"""
+    learn!(lp::CovariateLinearProblem; var = [1.0, 1.0])
+
+Fit a Gaussian distribution for the equation y = Aβ + ϵ, where β are model coefficients, A are energy and force descriptors, y are energy and force data, and the noise has known variance ϵ ∼ N(0, var[1]) in energies and ϵ ∼ N(0, var[2]) in forces. Fitting is done via standard linear least squares.  
+"""
+function learn!(lp::CovariateLinearProblem; var = [1.0, 1.0])
+    # Form design matrices 
+    B = reduce(hcat, lp.B)'     # energy descriptors
+    dB = reduce(hcat, lp.dB)'   # force descriptors
+    e = lp.e                    # energy data
+    f = reduce(vcat, lp.f)      # force data
+
+    A = [B; dB]
+    b = [e; f]
+
+    Q = Diagonal([var[1] * ones(length(e));
+                  var[2] * ones(length(f))])
+    β = (A'*Q*A) \ (A'*Q*b)
+    
+    copyto!(lp.β, β)
+    copyto!(lp.σe, var[1])
+    copyto!(lp.σf, var[2])
+    copyto!(lp.Σ, Q))
+    lp
+end
+
 """
     learn!(lp::UnivariateLinearProblem, ss::SubsetSelector; α = 1e-8)
 
@@ -277,6 +320,26 @@ function learn!(
 )
     linear_problem = LinearProblem(ds)
     learn!(linear_problem; α = α)
+    copy!(lb.β, linear_problem.β)
+    if return_cov
+        lb, linear_problem.Σ
+    else
+        lb
+    end
+end
+"""
+    learn!(lb::LBasisPotential, ds::DataSet var::Union{Real, Vector{<:Real}}; return_cov = true)
+
+Fits the linear basis potential lb using data from DataSet and user-specified noise variance. Optionally returns the posterior covariance over the parameters. 
+"""
+function learn!(
+    lb::InteratomicPotentials.LinearBasisPotential,
+    ds::DataSet,
+    var::Union{Real, Vector{<:Real}};
+    return_cov = true,
+)
+    linear_problem = LinearProblem(ds)
+    learn!(linear_problem; var = var)
     copy!(lb.β, linear_problem.β)
     if return_cov
         lb, linear_problem.Σ
