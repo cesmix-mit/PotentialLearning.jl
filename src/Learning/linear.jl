@@ -60,6 +60,7 @@ function LinearProblem(ds::DataSet; T = Float64)
 
     d_flag, descriptors, energies = try
         true, sum.(get_values.(get_local_descriptors.(ds))), get_values.(get_energy.(ds))
+    catch
         false, 0.0, 0.0
     end
     fd_flag, force_descriptors, forces = try
