@@ -59,8 +59,7 @@ Construct a LinearProblem by detecting if there are energy descriptors and/or fo
 function LinearProblem(ds::DataSet; T = Float64)
 
     d_flag, descriptors, energies = try
-        true, compute_features(ds, GlobalSum()), get_values.(get_energy.(ds))
-    catch
+        true, sum.(get_values.(get_local_descriptors.(ds))), get_values.(get_energy.(ds))
         false, 0.0, 0.0
     end
     fd_flag, force_descriptors, forces = try
@@ -147,7 +146,7 @@ end
 Fit a Gaussian distribution by finding the MLE of the following log probability:
     ℓ(β, σe, σf) = -0.5*(e - A_e *β)'*(e - A_e * β) / σe - 0.5*(f - A_f *β)'*(f - A_f * β) / σf - log(σe) - log(σf)
 
-through an optimization proceedure. 
+through an optimization procedure. 
 """
 function learn!(lp::CovariateLinearProblem; α = 1e-8)
     # Regularizaiton parameter α
