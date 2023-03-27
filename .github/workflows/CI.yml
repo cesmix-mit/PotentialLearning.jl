@@ -43,6 +43,7 @@ jobs:
             Pkg.Registry.add("General")
             Pkg.Registry.add(RegistrySpec(url = "https://github.com/cesmix-mit/CESMIX.git"))
             Pkg.Registry.add(RegistrySpec(url = "https://github.com/JuliaMolSim/MolSim.git"))
+            Pkg.add(url="https://github.com/dahtah/DPP.jl.git")
           '
         shell: bash
       - uses: julia-actions/julia-buildpkg@v1
