@@ -16,7 +16,7 @@ struct GlobalSum <: Feature end
 GlobalSum(nothing) = GlobalSum
 
 
-function compute_feature(B::LocalDescriptors, gm::GlobalSum) where {T}
+function compute_feature(B::LocalDescriptors, gm::GlobalSum)
     sum(get_values(B))
 end
 
@@ -29,7 +29,7 @@ struct GlobalMean <: Feature end
 GlobalMean(nothing) = GlobalMean
 
 
-function compute_feature(B::LocalDescriptors, gm::GlobalMean) where {T}
+function compute_feature(B::LocalDescriptors, gm::GlobalMean)
     mean(get_values(B))
 end
 
