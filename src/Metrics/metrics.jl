@@ -51,7 +51,7 @@ function get_metrics(
     f_test,
     B_time,
     dB_time,
-    time_fitting,
+    learn_time,
 )
     e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
     f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
@@ -86,7 +86,7 @@ function get_metrics(
         "f_test_mean_cos" => f_test_mean_cos,
         "B_time [s]" => B_time,
         "dB_time [s]" => dB_time,
-        "time_fitting [s]" => time_fitting,
+        "learn_time [s]" => learn_time,
     )
     return metrics
 end
