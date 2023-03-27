@@ -1,3 +1,7 @@
+# Run this script:
+#   $ julia --project=./ --threads=4
+#   julia> include("fit-dimred-ace.jl")
+
 using AtomsBase
 using Unitful, UnitfulAtomic
 using InteratomicPotentials 
@@ -9,18 +13,15 @@ include("utils/utils.jl")
 
 
 # Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-PCAL-ACE/",
+args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-DIMRED-ACE/",
         "dataset_path",         "data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "energy_units",         "eV",
         "distance_units",       "Å",
         "random_seed",          "100",
-        "n_train_sys",          "800",
+        "n_train_sys",          "200",
         "n_test_sys",           "200",
-        "e_mae_tol",            "0.2",
-        "f_mae_tol",            "0.2",
-        "n_clusters",           "10",
-        "sample_size",          "10",
+        "n_red_desc",           "5", # no. of reduced descriptors
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
@@ -65,18 +66,29 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
           rcutoff = input["rcutoff"])
 @savevar path ace
 
+# Update training dataset by adding energy and force descriptors
+println("Computing energy descriptors of training dataset...")
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace)
+println("Computing force descriptors of training dataset...")
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace)
+GC.gc()
+ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
+n_desc = length(e_descr_train[1][1])
+
+# Dimension reduction of energy and force descriptors of training dataset
+reduce_descriptors = input["n_red_desc"] > 0
+if reduce_descriptors
+    n_desc_old = n_desc
+    n_desc = input["n_red_desc"]
+    pca = PCAState(tol = n_desc, m = zeros(n_desc_old))
+    fit!(ds_train, pca)
+    transform!(ds_train, pca)
+end
+
 # Learn
 println("Learning energies and forces...")
-ds_train = conf_train
-lb = LBasisPotential(ace)
-pcal = PCALProblem(lb;
-                   e_mae_tol = input["e_mae_tol"],
-                   f_mae_tol = input["f_mae_tol"],
-                   n_clusters = input["n_clusters"],
-                   sample_size = input["sample_size"],
-                   w_e = input["w_e"],
-                   w_f = input["w_f"])
-learn!(pcal, ds_train)
+lb = LBasisPotential(ace, zeros(n_desc))
+learn!(lb, ds_train; w_e = input["w_e"], w_f = input["w_f"]) # learn!(lb, ds_train)
 
 end # end of "learn_time = @elapsed begin"
 
@@ -92,6 +104,10 @@ f_descr_test = compute_force_descriptors(conf_test, ace)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
+# Dimension reduction of energy and force descriptors of test dataset
+if reduce_descriptors
+    transform!(ds_test, pca)
+end
 
 # Get true and predicted values
 e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
@@ -108,7 +124,6 @@ e_test_pred, f_test_pred = get_all_energies(ds_test, lb), get_all_forces(ds_test
 @savevar path f_test_pred
 
 # Compute metrics
-B_time = dB_time = 0.0
 metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                        e_test_pred, e_test, f_test_pred, f_test,
                        B_time, dB_time, learn_time)

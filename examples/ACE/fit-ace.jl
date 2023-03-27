@@ -1,3 +1,7 @@
+# Run this script:
+#   $ julia --project=./ --threads=4
+#   julia> include("fit-ace.jl")
+
 using AtomsBase
 using Unitful, UnitfulAtomic
 using InteratomicPotentials 
@@ -15,8 +19,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-ACE/",
         "energy_units",         "eV",
         "distance_units",       "Å",
         "random_seed",          "100",
-        "n_train_sys",          "800",
-        "n_test_sys",           "100",
+        "n_train_sys",          "200",
+        "n_test_sys",           "200",
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
