@@ -30,6 +30,6 @@ include("DimensionReduction/dimension_reduction.jl")
 include("Learning/learning.jl")
 
 # Metrics 
-# include("Metrics/metrics.jl") 
+include("Metrics/metrics.jl") 
 
 end
