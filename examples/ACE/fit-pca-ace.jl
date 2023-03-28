@@ -13,7 +13,7 @@ include("utils/utils.jl")
 
 
 # Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-DIMRED-ACE/",
+args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-PCA-ACE/",
         "dataset_path",         "data/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "energy_units",         "eV",
@@ -78,17 +78,16 @@ n_desc = length(e_descr_train[1][1])
 # Dimension reduction of energy and force descriptors of training dataset
 reduce_descriptors = input["n_red_desc"] > 0
 if reduce_descriptors
-    n_desc_old = n_desc
     n_desc = input["n_red_desc"]
-    pca = PCAState(tol = n_desc, m = zeros(n_desc_old))
+    pca = PCAState(tol = n_desc)
     fit!(ds_train, pca)
     transform!(ds_train, pca)
 end
 
 # Learn
 println("Learning energies and forces...")
-lb = LBasisPotential(ace, zeros(n_desc))
-learn!(lb, ds_train; w_e = input["w_e"], w_f = input["w_f"]) # learn!(lb, ds_train)
+lb = LBasisPotential(ace)
+learn!(lb, ds_train; w_e = input["w_e"], w_f = input["w_f"], intercept = true) # learn!(lb, ds_train)
 
 end # end of "learn_time = @elapsed begin"
 
