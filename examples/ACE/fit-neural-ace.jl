@@ -19,9 +19,9 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "distance_units",       "Å",
         "random_seed",          "100",
         "n_train_sys",          "200",
-        "n_test_sys",           "1800",
-        "n_desc",               "26", # reduce descriptor dimension
-        "nn",                   "Chain(Dense(n_desc,8,Flux.relu),Dense(8,1))",
+        "n_test_sys",           "200",
+        "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
+        "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
         "n_epochs",             "10000",
         "n_batches",            "1",
         "optimiser",            "Adam(0.1)", # e.g. Adam(0.01) or BFGS()
@@ -78,10 +78,12 @@ GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 
 # Dimension reduction of energy and force descriptors of training dataset
-reduce_descriptors = input["n_desc"] > 0
-if reduce_descriptors 
-    λ_l, W_l, m_l, lll, λ_f, W_f, m_f, fff = get_dim_red_pars(ds_train, input["n_desc"])
-    e_descr_train, f_descr_train = reduce_desc(λ_l, W_l, m_l, lll, λ_f, W_f, m_f, fff)
+reduce_descriptors = input["n_red_desc"] > 0
+if reduce_descriptors
+    n_desc = input["n_red_desc"]
+    pca = PCAState(tol = n_desc)
+    fit!(ds_train, pca)
+    transform!(ds_train, pca)
 end
 n_desc = length(e_descr_train[1][1])
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
@@ -119,13 +121,11 @@ if reduce_descriptors
 end
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
-
 # Get true and predicted values
 e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
 e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
 e_train_pred, f_train_pred = get_all_energies(ds_train, nace), get_all_forces(ds_train, nace)
 e_test_pred, f_test_pred = get_all_energies(ds_test, nace), get_all_forces(ds_test, nace)
-
 @savevar path e_train
 @savevar path e_train_pred
 @savevar path f_train
@@ -135,17 +135,17 @@ e_test_pred, f_test_pred = get_all_energies(ds_test, nace), get_all_forces(ds_te
 @savevar path f_test
 @savevar path f_test_pred
 
+# Compute metrics
 metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                        e_test_pred, e_test, f_test_pred, f_test,
                        B_time, dB_time, learn_time)
 @savecsv path metrics
 
+# Plot and save results
 e_test_plot = plot_energy(e_test_pred, e_test)
 @savefig path e_test_plot
-
 f_test_plot = plot_forces(f_test_pred, f_test)
 @savefig path f_test_plot
-
 f_test_cos = plot_cos(f_test_pred, f_test)
 @savefig path f_test_cos
 

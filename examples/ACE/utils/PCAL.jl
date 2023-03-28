@@ -78,17 +78,23 @@ function learn!(pcal::PCALProblem, ds::DataSet)
 end
 
 # Calculate clusters of dataset ################################################
-function get_clusters(n_clusters, ds)
-    pos = get_positions.(ds)
-    X = reduce(hcat, [reduce(vcat, get_values(p)) for p in pos])
-    R = kmeans(X', n_clusters)
-    a = assignments(R) # get the assignments of points to clusters
-    return clusters = [findall(x->x==i, a) for i in 1:n_clusters]
-end
-
-# Auxiliary functions ##########################################################
-function PotentialLearning.get_values(pos::Vector{<:SVector})
-    return [SVector([p[i].val for i in 1:3 ]...) for p in pos]
+function get_clusters(ds; eps = 0.05, minpts = 10)
+    # Create distance matrix
+    n = length(ds); d = zeros(n, n)
+    for i in 1:n
+        p1 = Matrix(hcat(get_values.(get_positions(ds[i]))...)')
+        for j in i+1:n
+            p2 = Matrix(hcat(get_values.(get_positions(ds[j]))...)')
+            d[i,j] = kabsch_rmsd(p1, p2)
+            d[j,i] = d[i,j]
+        end
+    end
+    d = Symmetric(d)
+    # Create clusters using dbscan
+    c = dbscan(d, eps, minpts)
+    a = c.assignments # get the assignments of points to clusters
+    clusters = [findall(x->x==i, a) for i in 1:n_clusters]
+    return clusters
 end
 
 

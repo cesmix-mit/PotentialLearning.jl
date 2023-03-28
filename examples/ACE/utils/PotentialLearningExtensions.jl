@@ -65,12 +65,64 @@ end
 # New functions to reduce dimension of dataset descriptors #####################
 # TODO: adapt these functions to current interfaces
 
-function fit_pca(d, tol)
-    m = [mean(d[:,i]) for i in 1:size(d)[2]]
-    dc = reduce(hcat,[d[:,i] .- m[i] for i in 1:size(d)[2]])
-    Q = Symmetric(mean(dc[i,:]*dc[i,:]' for i in 1:size(dc,1)))
-    λ, ϕ = eigen(Q)
-    λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder by column
+mutable struct PCAState <: DimensionReducer
+    tol
+    λ
+    W
+    m
+end
+
+function PCAState(; tol = 0.01, λ = [], W = [], m = [])
+    PCAState(tol, λ, W, m)
+end
+
+function fit!(ds::DataSet, pca::PCAState)
+    d = try
+        #vcat(get_values.(get_local_descriptors.(ds))...) # use local desc
+        sum.(get_values.(get_local_descriptors.(ds))) # use global desc
+    catch
+        error("No local descriptors found in DataSet")
+    end
+    d = try
+        f = get_values.(get_force_descriptors.(ds))
+        ff = vcat(vcat(fd...)...)
+        return vcat(d, ff)
+    catch
+        d
+    end
+    if pca.m == []
+        pca.m = sum(d) / length(d)
+    end
+    dm = d .- [pca.m] # center desc
+    pca.λ, pca.W = select_eigendirections(dm, pca.tol)
+    nothing
+end
+
+function transform!(ds::DataSet, dr::DimensionReducer)
+    ds̃ = try
+        ldc = get_values.(get_local_descriptors.(ds))
+        ml = dr.m / length(ldc[1]) # compute local mean
+        ldc_new = [LocalDescriptors([(dr.W' * (l .- ml)) for l in ld])
+                   for ld in ldc]
+        ds .+ ldc_new
+    catch
+        ds
+    end
+    ds̃ = try
+        fdc = get_values.(get_force_descriptors.(ds))
+        fdc_new = [ForceDescriptors([[(dr.W' * (fc .- dr.m)) for fc in f] for f in fd])
+                   for fd in fdc]
+        ds̃ .+ fdc_new
+    catch
+        ds̃
+    end
+    ds̃ = DataSet(ds̃)
+    copyto!(ds.Configurations, ds̃.Configurations)
+end
+
+function PotentialLearning.select_eigendirections(d::Vector{T}, tol::Int) where {T<:Vector{<:Real}}
+    λ, ϕ = PotentialLearning.compute_eigen(d)
+    λ, ϕ = λ[end:-1:1], ϕ[:,end:-1:1] # reorder by columns instead of rows
     Σ = 1.0 .- cumsum(λ) / sum(λ)
     W = ϕ[1:tol, :] # W = ϕ[:, Σ .> tol]
     return λ, W, m
@@ -97,38 +149,70 @@ end
 
 # LBasisPotential is not exported in InteratomicBasisPotentials.jl / basis_potentials.jl
 # These functions should be removed once export issue is fixed.
-struct LBasisPotential
+mutable struct LBasisPotential
     basis
     β
+    β0
 end
 function LBasisPotential(basis)
-    return LBasisPotential(basis, zeros(length(basis)))
+    return LBasisPotential(basis, zeros(length(basis)), 0.0)
 end
 
 
 # New learning function based on weigthed least squares ########################
-function learn!(lb::LBasisPotential, ds::DataSet; w_e = 1.0, w_f = 1.0)
+#function learn!(lb::LBasisPotential, ds::DataSet; w_e = 1.0, w_f = 1.0)
 
+#    lp = PotentialLearning.LinearProblem(ds)
+#    
+#    @views B_train = reduce(hcat, lp.B)'
+#    @views dB_train = reduce(hcat, lp.dB)'
+#    @views e_train = lp.e
+#    @views f_train = reduce(vcat, lp.f)
+#    
+#    # Calculate A and b.
+#    @views A = [B_train; dB_train]
+#    @views b = [e_train; f_train]
+
+#    # Calculate coefficients β.
+#    Q = Diagonal([w_e * ones(length(e_train));
+#                  w_f * ones(length(f_train))])
+#    β = (A'*Q*A) \ (A'*Q*b)
+
+#    #copyto!(lp.β, β)
+#    #copyto!(lp.σe, w_e)
+#    #copyto!(lp.σf, w_f)
+#    copyto!(lb.β, β)
+#end
+
+# Learn with intercept
+function learn!(lb::LBasisPotential, ds::DataSet; w_e = 1.0, w_f = 1.0, intercept = false)
     lp = PotentialLearning.LinearProblem(ds)
-    
+
     @views B_train = reduce(hcat, lp.B)'
     @views dB_train = reduce(hcat, lp.dB)'
     @views e_train = lp.e
     @views f_train = reduce(vcat, lp.f)
     
     # Calculate A and b.
-    @views A = [B_train; dB_train]
+    if intercept
+        int_col = ones(size(B_train, 1)+size(dB_train, 1))
+        @views A = hcat(int_col, [B_train; dB_train])
+    else
+        @views A = [B_train; dB_train]
+    end
     @views b = [e_train; f_train]
 
     # Calculate coefficients β.
     Q = Diagonal([w_e * ones(length(e_train));
                   w_f * ones(length(f_train))])
-    β = (A'*Q*A) \ (A'*Q*b)
+    βs = (A'*Q*A) \ (A'*Q*b)
 
-    #copyto!(lp.β, β)
-    #copyto!(lp.σe, w_e)
-    #copyto!(lp.σf, w_f)
-    copyto!(lb.β, β)
+    if intercept
+        lb.β0 = βs[1]
+        lb.β = βs[2:end]
+    else
+        lb.β =  βs
+    end
 end
 
 # Auxiliary functions to compute all energies and forces as vectors (Zygote-friendly functions)
@@ -144,12 +228,12 @@ end
 
 function get_all_energies(ds::DataSet, lb::LBasisPotential)
     Bs = sum.(get_values.(get_local_descriptors.(ds)))
-    return dot.(Bs, [lb.β])
+    return lb.β0 .+ dot.(Bs, [lb.β])
 end
 
 function get_all_forces(ds::DataSet, lb::LBasisPotential)
     force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
-    return vcat([dB' * lb.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
+    return vcat([lb.β0 .+  dB' * lb.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
 end
 
 
