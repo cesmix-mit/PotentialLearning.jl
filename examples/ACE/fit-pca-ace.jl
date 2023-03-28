@@ -1,6 +1,6 @@
 # Run this script:
 #   $ julia --project=./ --threads=4
-#   julia> include("fit-dimred-ace.jl")
+#   julia> include("fit-pca-ace.jl")
 
 using AtomsBase
 using Unitful, UnitfulAtomic

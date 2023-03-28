@@ -23,8 +23,9 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-PCAL-ACE/",
         "n_test_sys",           "200",
         "e_mae_tol",            "0.2",
         "f_mae_tol",            "0.2",
-        "n_clusters",           "10",
         "sample_size",          "10",
+        "eps",                  "0.05",
+        "minpts",               "10",
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
@@ -76,8 +77,9 @@ lb = LBasisPotential(ace)
 pcal = PCALProblem(lb;
                    e_mae_tol = input["e_mae_tol"],
                    f_mae_tol = input["f_mae_tol"],
-                   n_clusters = input["n_clusters"],
                    sample_size = input["sample_size"],
+                   eps = input["eps"],
+                   minpts = input["minpts"],
                    w_e = input["w_e"],
                    w_f = input["w_f"])
 learn!(pcal, ds_train)
