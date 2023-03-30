@@ -79,9 +79,38 @@ function learn!(pcal::PCALProblem, ds::DataSet)
 
 end
 
-# Calculate clusters of dataset ################################################
-function get_clusters(ds; eps = 0.05, minpts = 10)
-    # Create distance matrix
+function periodic_rmsd(p1::Array{Float64,2}, p2::Array{Float64,2}, box_lengths::Array{Float64,1})
+    n_atoms = size(p1, 1)
+    distances = zeros(n_atoms)
+    for i in 1:n_atoms
+        d = p1[i, :] - p2[i, :]
+        # If d is larger than half the box length subtract box length
+        d = d .- round.(d ./ box_lengths) .* box_lengths
+        distances[i] = norm(d)
+    end
+    return sqrt(mean(distances .^2))
+end
+
+function distance_matrix_periodic(ds::DataSet)
+    n = length(ds); d = zeros(n, n)
+    box = bounding_box(get_system(ds[1]))
+    box_lengths = [get_values(box[i])[i] for i in 1:3]
+    for i in 1:n
+        if bounding_box(get_system(ds[i])) != box
+            error("Periodic box must be the same for all configurations.")
+        end
+        pi = Matrix(hcat(get_values.(get_positions(ds[i]))...)')
+        for j in i+1:n
+            pj = Matrix(hcat(get_values.(get_positions(ds[j]))...)')
+            d[i,j] = periodic_rmsd(pi, pj, box_lengths)
+            d[j,i] = d[i,j]
+        end
+    end
+    return d
+end
+
+
+function distance_matrix_kabsch(ds::DataSet)
     n = length(ds); d = zeros(n, n)
     for i in 1:n
         p1 = Matrix(hcat(get_values.(get_positions(ds[i]))...)')
@@ -91,7 +120,17 @@ function get_clusters(ds; eps = 0.05, minpts = 10)
             d[j,i] = d[i,j]
         end
     end
-    d = Symmetric(d)
+    return d
+end
+
+# Calculate clusters of dataset ################################################
+function get_clusters(ds; eps = 0.05, minpts = 10)
+    # Create distance matrix
+    if any(boundary_conditions(get_system(ds[1])) .== [Periodic()])
+        d = Symmetric(distance_matrix_periodic(ds))
+    else
+        d = Symmetric(distance_matrix_kabsch(ds))
+    end
     # Create clusters using dbscan
     c = dbscan(d, eps, minpts)
     a = c.assignments # get the assignments of points to clusters
