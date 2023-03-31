@@ -26,7 +26,7 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-PCAL-ACE/",
         "e_mae_tol",            "0.2",
         "f_mae_tol",            "0.2",
         "sample_size",          "10",
-        "eps",                  "0.05",
+        "eps",                  "0.5",
         "minpts",               "10",
         "n_body",               "3",
         "max_deg",              "3",
@@ -61,9 +61,9 @@ conf_train, conf_test = split(ds, n_train, n_test)
 
 # Start hyperopt loop
 ho = @thyperopt for i = 18,
-                   body_order_h = [2,3,4],
+                   body_order_h = [2,3],
                    polynomial_degree_h = [3,4],
-                   rcutoff_h = [4,5,6]
+                   rcutoff_h = [5]
 
 # Define ACE
 ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
