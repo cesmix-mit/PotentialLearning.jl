@@ -6,6 +6,8 @@ using PotentialLearning
 using LinearAlgebra
 using Random
 include("utils/utils.jl")
+using CUDA
+using BenchmarkTools
 
 
 # Load input parameters
@@ -48,8 +50,11 @@ ds = load_data(ds_path, energy_units, distance_units)
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 conf_train, conf_test = split(ds, n_train, n_test)
 
+println("GPU identified? ", CUDA.functional())
+
 # Start measuring learning time
 learn_time = @elapsed begin
+
 
 # Define ACE
 ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
@@ -74,8 +79,16 @@ println("Learning energies and forces...")
 lb = LBasisPotential(ace)
 learn!(lb, ds_train; w_e = input["w_e"], w_f = input["w_f"]) # learn!(lb, ds_train)
 
+
+# end #end of btimes (the function is run 5 times)
+
+# println("This is btime:", b_learn_time)
 end # end of "learn_time = @elapsed begin"
 
+println("This is the learn time:", learn_time)
+
+
+#=
 @savevar path lb.β
 
 # Post-process output: calculate metrics, create plots, and save results
@@ -117,3 +130,4 @@ f_test_plot = plot_forces(f_test_pred, f_test)
 f_test_cos = plot_cos(f_test_pred, f_test)
 @savefig path f_test_cos
 
+=#

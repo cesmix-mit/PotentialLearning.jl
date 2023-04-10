@@ -1,5 +1,6 @@
 using Flux
 using Optim
+using CUDA
 
 # Neural network interatomic potential
 mutable struct NNIAP
@@ -20,7 +21,7 @@ function force(c::Configuration, nnaip::NNIAP)
     B = sum(get_values(get_local_descriptors(c)))
     dnndb = first(gradient(x->sum(nnaip.nn(x)), B)) 
     dbdr = get_values(get_force_descriptors(c))
-    return [[-dnndb ⋅ dbdr[atom][coor] for coor in 1:3]
+    return [[-dnndb ⋅ dbdr[atom][coor] for coor in 1:3] 
              for atom in 1:length(dbdr)]
 end
 
@@ -65,14 +66,40 @@ end
 # NNIAP learning functions #####################################################
 
 # Flux.jl training
+# function learn!(nnaip, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f)
+#     optim = Flux.setup(opt, nnaip.nn)  # will store optimiser momentum, etc.
+#     ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+#     losses = []
+#     for epoch in 1:epochs
+#         # Compute gradient with current parameters and update model
+#         grads = ∇loss(nnaip.nn, nnaip.iap, ds, w_e, w_f)
+#         Flux.update!(optim, nnaip.nn, grads[1])
+#         # Logging
+#         curr_loss = loss(nnaip.nn, nnaip.iap, ds, w_e, w_f)
+#         push!(losses, curr_loss)
+#         println(curr_loss)
+#     end
+# end
+
 function learn!(nnaip, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f)
-    optim = Flux.setup(opt, nnaip.nn)  # will store optimiser momentum, etc.
-    ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+    # move model, iap, and dataset to GPU
+    nnaip.nn = Flux.Optimise.gpu(nnaip.nn)
+    nnaip.iap = Flux.Optimise.gpu(nnaip.iap)
+    ds = Flux.Optimise.gpu.(ds)
+    
+    #Change optimizer so it works on the GPU
+    optim = Flux.Optimise.update!(opt, nnaip.nn) 
+    if CUDA.functional()
+        ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(gpu(nn), gpu(iap), gpu.(ds), w_e, w_f), nn)
+    else
+        ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+    end
+
     losses = []
     for epoch in 1:epochs
-        # Compute gradient with current parameters and update model
-        grads = ∇loss(nnaip.nn, nnaip.iap, ds, w_e, w_f)
-        Flux.update!(optim, nnaip.nn, grads[1])
+        CUDA.@sync grads = ∇loss(nnaip.nn, nnaip.iap, ds, w_e, w_f)
+        # grads = ∇loss(nnaip.nn, nnaip.iap, ds, w_e, w_f)
+        Flux.Optimise.update!(optim, nnaip.nn, grads[1])
         # Logging
         curr_loss = loss(nnaip.nn, nnaip.iap, ds, w_e, w_f)
         push!(losses, curr_loss)
