@@ -319,6 +319,7 @@ function learn!(
 )
     linear_problem = LinearProblem(ds)
     learn!(linear_problem; α = α)
+    copy!(lb.β, linear_problem.β)
     if return_cov
         lb, linear_problem.Σ
     else
@@ -338,6 +339,7 @@ function learn!(
 )
     linear_problem = LinearProblem(ds)
     learn!(linear_problem, var)
+    copy!(lb.β, linear_problem.β)
     if return_cov
         lb, linear_problem.Σ
     else
@@ -358,6 +360,7 @@ function learn!(
 )
     linear_problem = LinearProblem(ds)
     learn!(linear_problem, ss; α = α)
+    copy!(lb.β, linear_problem.β)
     if return_cov
         lb, linear_problem.Σ
     else
