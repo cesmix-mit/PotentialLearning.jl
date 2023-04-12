@@ -11,7 +11,7 @@ using PotentialLearning
 # Import Raw Data
 
 # Import configurations 
-ds, thermo = load_data("examples/Sodium/data/liquify_sodium.yaml", YAML(u"eV", u"Å"));
+ds, thermo = load_data("examples/Sodium/data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"));
 ds, thermo = ds[220:end], thermo[220:end];
 systems = get_system.(ds);
 
@@ -23,7 +23,7 @@ rcutoff = 5.0 # cutoff radius
 wL = 1.0 # Defaults, See ACE.jl documentation 
 csp = 1.0 # Defaults, See ACE.jl documentation
 ace = ACE([:Na], n_body, max_deg, wL, csp, r0, rcutoff)
-# local_descriptors = compute_local_descriptors.(systems, (ace,))
+local_descriptors = compute_local_descriptors.(systems, (ace,))
 # force_descriptors = compute_force_descriptors.(systems, (ace,))
 lb = LBasisPotential(ace)
 
@@ -88,8 +88,7 @@ save("examples/Sodium/figures/energy_error_training_test_scatter.pdf", fig)
 ######################## ACE MD data ######################
 
 # Import configurations 
-ds_ace, thermo_ace =
-    load_data("examples/Sodium/data/liquify_sodium_ace.yaml", YAML(u"eV", u"Å"));
+ds_ace, thermo_ace = load_data("examples/Sodium/data/liquify_sodium_ace.yaml", YAML(:Na, u"eV", u"Å"));
 ds_ace, thermo_ace = ds_ace[220:end], thermo_ace[220:end]
 systems_ace = get_system.(ds_ace);
 local_descriptors_ace =
@@ -191,7 +190,7 @@ ACE1pack.Export.export_ace("examples/Sodium/data/parameters.ace", IP);
 
 
 ace = ACE(params...)
-ds, thermo = load_data("examples/Sodium/data/liquify_sodium.yaml", YAML(u"eV", u"Å"));
+ds, thermo = load_data("examples/Sodium/data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"));
 lb = LBasisPotential(ace)
 local_descriptors = compute_local_descriptors(systems, ace)
 force_descriptors = compute_force_descriptors(systems, ace)
