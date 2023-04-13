@@ -59,7 +59,7 @@ Construct a LinearProblem by detecting if there are energy descriptors and/or fo
 function LinearProblem(ds::DataSet; T = Float64)
 
     d_flag, descriptors, energies = try
-        true, compute_features(ds, GlobalSum()), get_values.(get_energy.(ds))
+        true, sum.(get_values.(get_local_descriptors.(ds))), get_values.(get_energy.(ds))
     catch
         false, 0.0, 0.0
     end
@@ -147,7 +147,7 @@ end
 Fit a Gaussian distribution by finding the MLE of the following log probability:
     ℓ(β, σe, σf) = -0.5*(e - A_e *β)'*(e - A_e * β) / σe - 0.5*(f - A_f *β)'*(f - A_f * β) / σf - log(σe) - log(σf)
 
-through an optimization proceedure. 
+through an optimization procedure. 
 """
 function learn!(lp::CovariateLinearProblem; α = 1e-8)
     # Regularizaiton parameter α
@@ -165,7 +165,7 @@ function learn!(lp::CovariateLinearProblem; α = 1e-8)
         logpdf(MvNormal(p[3] * x[3:end], exp(x[2]) + p[5]), p[4])
     g = Optimization.OptimizationFunction(f, Optimization.AutoForwardDiff())
 
-    x0 = [lp.β..., log(lp.σe[1]), log(lp.σf[1])]
+    x0 = [log(lp.σe[1]), log(lp.σf[1]), lp.β...]
     p = [AtAe, Atbe, AtAf, Atbf, α]
     prob = Optimization.OptimizationProblem(g, x0, p)
     sol = Optimization.solve(prob, Optim.BFGS())
