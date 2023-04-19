@@ -7,38 +7,36 @@ mutable struct NNIAP
     iap
 end
 
-
-# Neural network potential formulation using global descriptors to compute energy
-# See https://docs.google.com/presentation/d/1XI9zqF_nmSlHgDeFJqq2dxdVqiiWa4Z-WJKvj0TctEk/edit#slide=id.g169df3c161f_63_123
-
-function potential_energy(c::Configuration, nniap::NNIAP)
-    Bs = sum(get_values(get_local_descriptors(c)))
-    return sum(nniap.nn(Bs))
-end
-
-function force(c::Configuration, nniap::NNIAP)
-    B = sum(get_values(get_local_descriptors(c)))
-    dnndb = first(gradient(x->sum(nniap.nn(x)), B)) 
-    dbdr = get_values(get_force_descriptors(c))
-    return [[-dnndb ⋅ dbdr[atom][coor] for coor in 1:3]
-             for atom in 1:length(dbdr)]
-end
-
-
-# Neural network potential formulation using local descriptors to compute energy
+# Neural network potential formulation using local descriptors to compute energy and forces
 # See 10.1103/PhysRevLett.98.146401
 #     https://fitsnap.github.io/Pytorch.html
 
+function potential_energy(c::Configuration, nniap::NNIAP)
+    Bs = get_values(get_local_descriptors(c))
+    return sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
+end
+
+function force(c::Configuration, nniap::NNIAP)
+    Bs = get_values(get_local_descriptors(c))
+    dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
+    dbdr = get_values(get_force_descriptors(c))
+    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3]
+             for atom in 1:length(dbdr)]
+end
+
+# Neural network potential formulation using global descriptors to compute energy and forces
+# See https://docs.google.com/presentation/d/1XI9zqF_nmSlHgDeFJqq2dxdVqiiWa4Z-WJKvj0TctEk/edit#slide=id.g169df3c161f_63_123
+
 #function potential_energy(c::Configuration, nniap::NNIAP)
-#    Bs = get_values(get_local_descriptors(c))
-#    return sum([sum(nniap.nn(B)) for B in Bs])
+#    Bs = sum(get_values(get_local_descriptors(c)))
+#    return sum(nniap.nn(Bs))
 #end
 
 #function force(c::Configuration, nniap::NNIAP)
-#    Bs = get_values(get_local_descriptors(c))
-#    dnndb = [first(gradient(x->sum(nniap.nn(x)), B)) for B in Bs]
+#    B = sum(get_values(get_local_descriptors(c)))
+#    dnndb = first(gradient(x->sum(nniap.nn(x)), B)) 
 #    dbdr = get_values(get_force_descriptors(c))
-#    return [[-dnndb[atom] ⋅ dbdr[atom][coor] for coor in 1:3]
+#    return [[-dnndb ⋅ dbdr[atom][coor] for coor in 1:3]
 #             for atom in 1:length(dbdr)]
 #end
 

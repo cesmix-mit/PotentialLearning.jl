@@ -22,11 +22,11 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "energy_units",         "eV",
         "distance_units",       "Å",
         "random_seed",          "100",
-        "n_train_sys",          "200",
-        "n_test_sys",           "200",
-        "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
+        "n_train_sys",          "100",
+        "n_test_sys",           "100",
+        "n_red_desc",           "26", # No. of reduced descriptors. O: don't apply reduction
         "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
-        "n_epochs",             "10000",
+        "n_epochs",             "100",
         "n_batches",            "1",
         "optimiser",            "Adam(0.01)", # e.g. Adam(0.01) or BFGS()
         "n_body",               "3",
@@ -35,7 +35,7 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "rcutoff",              "5.0",
         "wL",                   "1.0",
         "csp",                  "1.0",
-        "w_e",                  "1.0",
+        "w_e",                  "0.01",
         "w_f",                  "1.0"]
 args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
