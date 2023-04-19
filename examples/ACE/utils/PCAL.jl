@@ -90,7 +90,7 @@ function get_clusters(ds; eps = 0.05, minpts = 10)
         end
     end
     d = Symmetric(d)
-    # Create cluster using dbscan
+    # Create clusters using dbscan
     c = dbscan(d, eps, minpts)
     a = c.assignments # get the assignments of points to clusters
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]

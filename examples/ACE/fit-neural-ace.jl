@@ -25,7 +25,7 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "n_train_sys",          "200",
         "n_test_sys",           "200",
         "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
-        "nn",                   "Chain(Dense(n_desc,16,Flux.relu),Dense(16,1))",
+        "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
         "n_epochs",             "10000",
         "n_batches",            "1",
         "optimiser",            "Adam(0.01)", # e.g. Adam(0.01) or BFGS()
@@ -85,9 +85,8 @@ n_desc = length(e_descr_train[1][1])
 # Dimension reduction of energy and force descriptors of training dataset
 reduce_descriptors = input["n_red_desc"] > 0
 if reduce_descriptors
-    n_desc_old = n_desc
     n_desc = input["n_red_desc"]
-    pca = PCAState(tol = n_desc, m = zeros(n_desc_old))
+    pca = PCAState(tol = n_desc)
     fit!(ds_train, pca)
     transform!(ds_train, pca)
 end
@@ -122,13 +121,11 @@ if reduce_descriptors
     transform!(ds_test, pca)
 end
 
-
 # Get true and predicted values
 e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
 e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
 e_train_pred, f_train_pred = get_all_energies(ds_train, nace), get_all_forces(ds_train, nace)
 e_test_pred, f_test_pred = get_all_energies(ds_test, nace), get_all_forces(ds_test, nace)
-
 @savevar path e_train
 @savevar path e_train_pred
 @savevar path f_train
@@ -138,17 +135,17 @@ e_test_pred, f_test_pred = get_all_energies(ds_test, nace), get_all_forces(ds_te
 @savevar path f_test
 @savevar path f_test_pred
 
+# Compute metrics
 metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
                        e_test_pred, e_test, f_test_pred, f_test,
                        B_time, dB_time, learn_time)
 @savecsv path metrics
 
+# Plot and save results
 e_test_plot = plot_energy(e_test_pred, e_test)
 @savefig path e_test_plot
-
 f_test_plot = plot_forces(f_test_pred, f_test)
 @savefig path f_test_plot
-
 f_test_cos = plot_cos(f_test_pred, f_test)
 @savefig path f_test_cos
 
