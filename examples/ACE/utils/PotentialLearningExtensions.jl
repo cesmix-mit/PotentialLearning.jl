@@ -214,24 +214,26 @@ end
 #    # Calculate A and b.
 #    @views A = [B_train; dB_train]
 #    @views b = [e_train; f_train]
-function get_all_energies(ds::DataSet)
-    return [get_values(get_energy(ds[c])) for c in 1:length(ds)]
-end
 
 #    # Calculate coefficients β.
 #    Q = Diagonal([w_e * ones(length(e_train));
 #    β = (A'*Q*A) \ (A'*Q*b)
 #                  w_f * ones(length(f_train))])
-function get_all_forces(ds::DataSet)
-    return reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c]))
-                                    for c in 1:length(ds)]))
-end
-
 #    #copyto!(lp.β, β)
 #    #copyto!(lp.σe, w_e)
 #    #copyto!(lp.σf, w_f)
 #    copyto!(lb.β, β)
 #end
+
+function get_all_energies(ds::DataSet)
+    return [get_values(get_energy(ds[c])) for c in 1:length(ds)]
+end
+
+function get_all_forces(ds::DataSet)
+    return reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c]))
+                                    for c in 1:length(ds)]))
+end
+
 
 # Learn with intercept
 function learn!(lb::LBasisPotential, ds::DataSet; w_e = 1.0, w_f = 1.0, intercept = false)
@@ -266,7 +268,7 @@ end
 
 # Auxiliary functions to compute all energies and forces as vectors (Zygote-friendly functions)
 
-end
+
 
 function get_all_forces(ds::DataSet)
     return reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c]))

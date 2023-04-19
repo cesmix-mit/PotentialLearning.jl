@@ -21,9 +21,9 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-PCA-ACE/",
         "random_seed",          "100",
         "n_train_sys",          "200",
         "n_test_sys",           "200",
-        "n_red_desc",           "5", # no. of reduced descriptors
+        "n_red_desc",           "20", # no. of reduced descriptors
         "n_body",               "3",
-        "max_deg",              "3",
+        "max_deg",              "4",
         "r0",                   "1.0",
         "rcutoff",              "5.0",
         "wL",                   "1.0",

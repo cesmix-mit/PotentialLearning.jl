@@ -77,14 +77,9 @@ lb = LBasisPotential(ace)
 pcal = PCALProblem(lb;
                    e_mae_tol = input["e_mae_tol"],
                    f_mae_tol = input["f_mae_tol"],
-<<<<<<< HEAD:examples/ACE/fit-pcal-ace.jl
-                   n_clusters = input["n_clusters"],
-                   sample_size = input["sample_size"],
-=======
                    sample_size = input["sample_size"],
                    eps = input["eps"],
                    minpts = input["minpts"],
->>>>>>> e927065... Progress on PCAL.:examples/ACE/fit-ace-pcal.jl
                    w_e = input["w_e"],
                    w_f = input["w_f"])
 learn!(pcal, ds_train)
