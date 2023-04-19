@@ -6,15 +6,17 @@ struct PCALProblem
     iap
     e_mae_tol
     f_mae_tol
-    n_clusters
     sample_size
+    eps
+    minpts
     w_e
     w_f
 end
 
-function PCALProblem(iap; e_mae_tol = 0.2, f_mae_tol = 0.2,
-                     n_clusters = 10, sample_size = 10, w_e = 1, w_f = 1)
-    return PCALProblem(iap, e_mae_tol, f_mae_tol, n_clusters, sample_size, w_e, w_f)
+function PCALProblem(iap; e_mae_tol = 0.2, f_mae_tol = 0.2, sample_size = 10,
+                     eps = 0.05, minpts = 10, w_e = 1, w_f = 1)
+    return PCALProblem(iap, e_mae_tol, f_mae_tol, sample_size,
+                       eps, minpts, w_e, w_f)
 end
 
 
@@ -28,7 +30,7 @@ function learn!(pcal::PCALProblem, ds::DataSet)
     e_mae, e_rmse, e_rsq = Inf, Inf, Inf
     f_mae, f_rmse, f_rsq = Inf, Inf, Inf
     i = 1
-    clusters = get_clusters(pcal.n_clusters, ds)
+    clusters = get_clusters(ds, eps = pcal.eps, minpts = pcal.minpts)
     while ( e_mae > pcal.e_mae_tol || f_mae > pcal.f_mae_tol ) && length(ds_cur) < length(ds)
 
         println("Active learning iteration: $i")
@@ -93,6 +95,7 @@ function get_clusters(ds; eps = 0.05, minpts = 10)
     # Create clusters using dbscan
     c = dbscan(d, eps, minpts)
     a = c.assignments # get the assignments of points to clusters
+    n_clusters = maximum(a)
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]
     return clusters
 end
