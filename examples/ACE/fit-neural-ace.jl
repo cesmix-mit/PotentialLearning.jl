@@ -24,8 +24,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "random_seed",          "100",
         "n_train_sys",          "100",
         "n_test_sys",           "100",
-        "n_red_desc",           "26", # No. of reduced descriptors. O: don't apply reduction
-        "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
+        "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
+        "nn",                   "Chain(Dense(n_desc,32,relu),Dense(32,1))",
         "n_epochs",             "100",
         "n_batches",            "1",
         "optimiser",            "Adam(0.01)", # e.g. Adam(0.01) or BFGS()
