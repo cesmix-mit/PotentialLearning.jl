@@ -20,8 +20,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-GNNACE/",
         "energy_units",         "eV",
         "distance_units",       "Å",
         "random_seed",          "100",
-        "n_train_sys",          "200",
-        "n_test_sys",           "200",
+        "n_train_sys",          "100",
+        "n_test_sys",           "100",
 #        "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
 #        "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
 #        "n_epochs",             "10000",
@@ -34,7 +34,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-GNNACE/",
         "wL",                   "1.0",
         "csp",                  "1.0",
         "w_e",                  "1.0",
-        "w_f",                  "1.0"]
+#        "w_f",                  "1.0"
+        ]
 
 args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
@@ -71,9 +72,9 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace)
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace)
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
 GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 n_desc = length(e_descr_train[1][1])
@@ -107,32 +108,28 @@ for c in ds_train
 end
 
 # Define GNN model
-
 device = Flux.cpu
-model = GNNChain(GCNConv(n_desc => 64),
-                 BatchNorm(64),     # Apply batch normalization on node features (nodes dimension is batch dimension)
-                 x -> relu.(x),
-                 GCNConv(64 => 64, relu),
-                 GlobalPool(mean),  # aggregate node-wise features into graph-wise features
-                 Dense(64, 1)) |> device
-
+model = GNNChain(GCNConv(n_desc => 16),
+                 GCNConv(16 => 16, relu),
+                 Dense(16, 1)) |> device
 ps = Flux.params(model)
 opt = Adam(1f-4)
 
-
 # Training
+loss(g::GNNGraph) = Flux.mse(first(model(g, g.x)), g.z)
 
-# loss(g::GNNGraph) = mean((sum(model(g, g.x, g.y)) - g.z).^2)
-loss(g::GNNGraph) = mean((sum(model(g, g.x)) - g.z).^2)
-
-for epoch in 1:100
+for epoch in 1:50000
     for g in all_graphs
-        g = g |> device
+        g = g |> device 
         grad = gradient(() -> loss(g), ps)
         Flux.Optimise.update!(opt, ps, grad)
     end
-
+    
     @info (; epoch, train_loss=mean(loss.(all_graphs)))
 end
 
+# Plot
+es = [sum(model(g, g.x)) for g in all_graphs]
+es_true = [g.z for g in all_graphs]
+scatter(es, es_true)
 
