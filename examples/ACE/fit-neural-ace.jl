@@ -75,9 +75,9 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace)
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace)
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
 GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 n_desc = length(e_descr_train[1][1])
