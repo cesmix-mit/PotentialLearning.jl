@@ -13,26 +13,20 @@ end
 # See 10.1103/PhysRevLett.98.146401
 #     https://fitsnap.github.io/Pytorch.html
 
-function potential_energy(c::Configuration, nniap::NNIAP, _device="gpu")
-    if _device == "gpu"
-        Bs = get_values(get_local_descriptors(c)) |> gpu
-    else
-        Bs = get_values(get_local_descriptors(c))
-    end
-    # s = nniap.nn(Bs[1])
+function potential_energy(c::Configuration, nniap::NNIAP, _device=gpu)
+    Bs = get_values(get_local_descriptors(c)) |> _device
     s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
-    # s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
     return s
 end
 
 function potential_energy(c::Configuration, nniap::NNIAP)
-    Bs = get_values(get_local_descriptors(c)) |> gpu
+    Bs = get_values(get_local_descriptors(c))
     s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
     return s
 end
 
 function force(c::Configuration, nniap::NNIAP, _device)
-    if _device != "gpu"
+    if _device != gpu
         return force(c, nniap)
     end
 
@@ -69,7 +63,7 @@ end
 
 # Loss function ################################################################
 function gpu_loss(nn, iap, ds, w_e = 1, w_f = 1)
-    _device = "gpu"
+    _device = gpu
     nniap = NNIAP(nn, iap)
     println(ds)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap, _device)
@@ -80,7 +74,6 @@ function gpu_loss(nn, iap, ds, w_e = 1, w_f = 1)
 
     e_error = w_e * Flux.mse(es_pred, es) |> cpu
     fs = fs|> gpu
-    # fs_pred = fs_pred |> cpu
     f_error = w_f * Flux.mse(fs_pred, fs) |> cpu
     total_error = e_error + f_error
     return total_error
@@ -132,15 +125,16 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
 end
 
 function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f,_device)
-    if _device == "gpu"
+    optim = Flux.setup(opt, nniap.nn)
+    if _device == gpu
         nniap.nn = nniap.nn|> gpu
         nniap.iap = nniap.iap|> gpu
         ds  = ds |> gpu
+        optim = Flux.gpu(optim)
     end
 
-    optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    optim = Flux.gpu(optim)
-    if _device == "gpu"
+      # will store optimiser momentum, etc
+    if _device == gpu
         ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
     else
         ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
@@ -149,6 +143,7 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     for epoch in 1:epochs
         # Compute gradient with current parameters and update model
         grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+        @assert 0 == 1
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
         curr_loss = loss(nniap.nn, nniap.iap, ds, _device, ds, w_e, w_f)
