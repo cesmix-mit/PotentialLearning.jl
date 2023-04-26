@@ -41,7 +41,7 @@ function force(c::Configuration, nniap::NNIAP)
     Bs = get_values(get_local_descriptors(c))
     dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
     dbdr = get_values(get_force_descriptors(c))
-    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)] |> gpu
+    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
 end
 
 # Neural network potential formulation using global descriptors to compute energy and forces
@@ -125,27 +125,25 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
 end
 
 function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f,_device)
-    optim = Flux.setup(opt, nniap.nn)
-    if _device == gpu
-        nniap.nn = nniap.nn|> gpu
-        nniap.iap = nniap.iap|> gpu
-        ds  = ds |> gpu
-        optim = Flux.gpu(optim)
+    if _device != gpu
+        println("nooooooo")
+        return learn!(nniap, ds, opt, epochs, loss, w_e, w_f)
     end
 
-      # will store optimiser momentum, etc
-    if _device == gpu
-        ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
-    else
-        ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
-    end 
+    optim = Flux.setup(opt, nniap.nn)
+    nniap.nn = nniap.nn|> gpu
+    nniap.iap = nniap.iap|> gpu
+    ds  = ds |> gpu
+    optim = Flux.gpu(optim)
+
+    ∇gpu_loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
     losses = []
     for epoch in 1:epochs
         # Compute gradient with current parameters and update model
-        grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+        grads = ∇gpu_loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
-        curr_loss = loss(nniap.nn, nniap.iap, ds, _device, ds, w_e, w_f)
+        curr_loss = gpu_loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         push!(losses, curr_loss)
         println(curr_loss)
     end
