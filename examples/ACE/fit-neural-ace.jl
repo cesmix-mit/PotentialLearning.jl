@@ -14,6 +14,7 @@ using OptimizationOptimJL
 using Random
 include("utils/utils.jl")
 
+_device = gpu
 
 # Load input parameters
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
@@ -87,12 +88,13 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32, _device=_device)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32, _device=_device)
+
 GC.gc()
-ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
-n_desc = length(e_descr_train[1][1])
+ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train) |> _device
+n_desc = length(e_descr_train[1][1]) |> _device
 
 # Dimension reduction of energy and force descriptors of training dataset
 reduce_descriptors = input["n_red_desc"] > 0
@@ -110,8 +112,8 @@ nace = NNIAP(nn, ace)
 # Learn
 println("Learning energies and forces...")
 w_e, w_f = input["w_e"], input["w_f"]
-w_e = Float32(w_e)
-w_f = Float32(w_f)
+w_e = Float32(w_e) |> _device
+w_f = Float32(w_f) |> _device
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
 

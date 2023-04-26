@@ -132,9 +132,6 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
 end
 
 function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f,_device)
-    w_e = Float32(w_e)
-    w_f = Float32(w_f)
-
     if _device == "gpu"
         nniap.nn = nniap.nn|> gpu
         nniap.iap = nniap.iap|> gpu
@@ -142,7 +139,7 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     end
 
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    # optim = Flux.gpu(optim)
+    optim = Flux.gpu(optim)
     if _device == "gpu"
         ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
     else
@@ -152,7 +149,6 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     for epoch in 1:epochs
         # Compute gradient with current parameters and update model
         grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
-        @assert 0 == 1
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
         curr_loss = loss(nniap.nn, nniap.iap, ds, _device, ds, w_e, w_f)
