@@ -1,5 +1,7 @@
 using Flux
 using Optim
+using Zygote
+
 
 # Neural network interatomic potential
 mutable struct NNIAP
@@ -11,17 +13,41 @@ end
 # See 10.1103/PhysRevLett.98.146401
 #     https://fitsnap.github.io/Pytorch.html
 
+function potential_energy(c::Configuration, nniap::NNIAP, _device="gpu")
+    if _device == "gpu"
+        Bs = get_values(get_local_descriptors(c)) |> gpu
+    else
+        Bs = get_values(get_local_descriptors(c))
+    end
+    # s = nniap.nn(Bs[1])
+    s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
+    # s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
+    return s
+end
+
 function potential_energy(c::Configuration, nniap::NNIAP)
+    Bs = get_values(get_local_descriptors(c)) |> gpu
+    s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
+    return s
+end
+
+function force(c::Configuration, nniap::NNIAP, _device)
+    if _device != "gpu"
+        return force(c, nniap)
+    end
+
     Bs = get_values(get_local_descriptors(c))
-    return sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
+    nniap.nn = nniap.nn |> cpu
+    dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
+    dbdr = get_values(get_force_descriptors(c)) 
+    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)] |> gpu
 end
 
 function force(c::Configuration, nniap::NNIAP)
     Bs = get_values(get_local_descriptors(c))
     dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
     dbdr = get_values(get_force_descriptors(c))
-    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3]
-             for atom in 1:length(dbdr)]
+    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)] |> gpu
 end
 
 # Neural network potential formulation using global descriptors to compute energy and forces
@@ -42,6 +68,25 @@ end
 
 
 # Loss function ################################################################
+function gpu_loss(nn, iap, ds, w_e = 1, w_f = 1)
+    _device = "gpu"
+    nniap = NNIAP(nn, iap)
+    println(ds)
+    es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap, _device)
+    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap, _device)
+    #println(es_pred)
+    #es = es |> cpu
+    # es_pred = es_pred |> cpu
+
+    e_error = w_e * Flux.mse(es_pred, es) |> cpu
+    fs = fs|> gpu
+    # fs_pred = fs_pred |> cpu
+    f_error = w_f * Flux.mse(fs_pred, fs) |> cpu
+    total_error = e_error + f_error
+    return total_error
+end
+ 
+
 function loss(nn, iap, ds, w_e = 1, w_f = 1)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
@@ -51,13 +96,21 @@ end
 
 
 # Auxiliary functions ##########################################################
+function get_all_energies(ds::DataSet, nniap::NNIAP, _device)
+    return [potential_energy(ds[c], nniap, _device) for c in 1:length(ds)]
+end
+
+
 function get_all_energies(ds::DataSet, nniap::NNIAP)
     return [potential_energy(ds[c], nniap) for c in 1:length(ds)]
 end
 
+function get_all_forces(ds::DataSet, nniap::NNIAP, _device)
+    return reduce(vcat,reduce(vcat,[force(ds[c], nniap, _device) for c in 1:length(ds)]))
+end
+
 function get_all_forces(ds::DataSet, nniap::NNIAP)
-    return reduce(vcat,reduce(vcat,[force(ds[c], nniap)
-                                    for c in 1:length(ds)]))
+    return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
 end
 
 # NNIAP learning functions #####################################################
@@ -75,6 +128,37 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
         curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         push!(losses, curr_loss)
         println(curr_loss)
+    end
+end
+
+function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f,_device)
+    w_e = Float32(w_e)
+    w_f = Float32(w_f)
+
+    if _device == "gpu"
+        nniap.nn = nniap.nn|> gpu
+        nniap.iap = nniap.iap|> gpu
+        ds  = ds |> gpu
+    end
+
+    optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
+    # optim = Flux.gpu(optim)
+    if _device == "gpu"
+        ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
+    else
+        ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
+    end 
+    losses = []
+    for epoch in 1:epochs
+        # Compute gradient with current parameters and update model
+        grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+        @assert 0 == 1
+        Flux.update!(optim, nniap.nn, grads[1])
+        # Logging
+        curr_loss = loss(nniap.nn, nniap.iap, ds, _device, ds, w_e, w_f)
+        push!(losses, curr_loss)
+        println(curr_loss)
+        # @assert 0 == 1
     end
 end
 

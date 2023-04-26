@@ -55,22 +55,34 @@ end
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
 energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
 ds = load_data(ds_path, energy_units, distance_units)
-
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 conf_train, conf_test = split(ds, n_train, n_test)
 
 # Start measuring learning time
 learn_time = @elapsed begin #learn_time = 0.0
+# wL = Float32(input["wL"])
+# csp = Float32(input["csp"])
+# r0 = Float32(input["r0"])
+# rcutoff = Float32(input["rcutoff"])
 
-# Define ACE parameters
 ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
           body_order = input["n_body"],
           polynomial_degree = input["max_deg"],
           wL = input["wL"],
-          csp = input["csp"],
-          r0 = input["r0"],
+          csp = csp = input["csp"],
+          r0 = input["rcutoff"],
           rcutoff = input["rcutoff"])
+
+
+# Define ACE parameters
+# ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
+#           body_order = input["n_body"],
+#           polynomial_degree = input["max_deg"],
+#           wL = wL,
+#           csp = csp, #input["csp"],
+#           r0 = r0,
+#           rcutoff = input["rcutoff"])
 @savevar path ace
 
 # Update training dataset by adding energy and force descriptors
@@ -98,12 +110,16 @@ nace = NNIAP(nn, ace)
 # Learn
 println("Learning energies and forces...")
 w_e, w_f = input["w_e"], input["w_f"]
+w_e = Float32(w_e)
+w_f = Float32(w_f)
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
-learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
+
+learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, "gpu")
 
 end # end of "learn_time = @elapsed begin"
 
+@assert 0 == 1
 @savevar path Flux.params(nace.nn)
 
 # Post-process output: calculate metrics, create plots, and save results
