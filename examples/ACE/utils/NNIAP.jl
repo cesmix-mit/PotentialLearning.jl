@@ -22,7 +22,8 @@ function potential_energy(c::Configuration, nniap::NNIAP, _device=gpu)
 end
 
 function potential_energy(c::Configuration, nniap::NNIAP)
-    Bs = get_values(get_local_descriptors(c))
+    nniap.nn = nniap.nn |>cpu
+    Bs = get_values(get_local_descriptors(c)) |> cpu
     s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
     return s
 end
@@ -40,26 +41,34 @@ function force(c::Configuration, nniap::NNIAP, _device)
 end
 
 function force(c::Configuration, nniap::NNIAP, local_descriptors) # new
-    # Bs = local_descriptors
-    # println("This is Bs:", size(Bs))
-    # println("This is Bs:", typeof(Bs))
-    #Bs = [rand(Float32, 26) for _ in 1:96]
-    #Bs = reduce(hcat, Bs)
-
-    Bs = local_descriptors
-    # a = nniap.nn(Bs)
-    dnndb = first(gradient(x->sum(nniap.nn(x)), Bs))
-    # nniap.nn = nniap.nn |> cpu
+    nniap.nn = nniap.nn |> gpu
+    e₁ = ones(Float32, 96) |> gpu
+    fₙ = x-> dot(nniap.nn(x), e₁) 
+    gₙ(x) = gradient(fₙ, x)
+    #a = rand(Float32, 26) |> gpu
+    # println(first(gₙ(local_descriptors)))
+    dnndb = first(gₙ(local_descriptors))#gradient(x->sum(nniap.nn(x), local_descriptors)
+    # dnndb = first(gradient(x->sum(nniap.nn(x)), local_descriptors))
     # dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
-    dbdr = get_values(get_force_descriptors(c))
-    return [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
-    # return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)] |> gpu
+    force_descriptors = [rand(Float32, 3) for _ in 1:96]
+    dbdr =  reduce(hcat,force_descriptors) |> cpu # |> gpu # dummy force descriptors 
+    # dnndb = dnndb |> cpu
+    # dbdr = get_values(get_force_descriptors(c))
+    dnndb = dnndb |> cpu
+    dbbdr =dbbdr |> cpu 
+    # s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
+    s = [[-sum(dnndb .⋅ [1.0]) for coor in 1:3] for atom in 1:length(dbdr)]
+    return  s
 end
 
 function force(c::Configuration, nniap::NNIAP)
     Bs = get_values(get_local_descriptors(c))
     dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
     dbdr = get_values(get_force_descriptors(c))
+    # println(dbdr)
+    # println("shape", size(dbdr))
+    # println(dbdr[1])
+    # println("shape 1", size(dbdr[1]))
     return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
 end
 
@@ -105,15 +114,7 @@ end
 
 function loss(nn, iap,  batch, true_energy, local_descriptors, w_e=1, w_f=1)
     nniap = NNIAP(nn, iap)
-    #Bs_cat = reduce(hcat, local_descriptors)
-    #println(Bs_cat)
-    #println(size(Bs_cat))
-    #es_pred = sum(sum(nn(Bs_cat)))
-    #es_pred = sum(nn(Bs_cat))
     es_pred = sum(sum(nn(local_descriptors)))
-    #a = Flux.mse(es_pred, true_energy) 
-    #@assert 89 == 2
-    # es_pred = sum(sum([nn(B_atom) for B_atom in Bs]))
     fs, fs_pred = get_all_forces(batch), get_all_forces(batch, nniap, local_descriptors)
     return w_e * Flux.mse(es_pred, true_energy) + w_f * Flux.mse(fs_pred, fs)
 end
@@ -169,7 +170,6 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
         curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         push!(losses, curr_loss)
         println(curr_loss)
-        @assert 0 == 1
     end
 end
 
@@ -201,7 +201,7 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     nniap.nn = nniap.nn|> _device
     nniap.iap = nniap.iap|> _device
     ds  = ds |> _device
-    # optim = Flux.gpu(optim)
+    optim = optim |> _device
     ∇loss(nn, iap, batch, true_energy, local_descriptors) = gradient((nn) -> loss(nn, iap, batch, true_energy, local_descriptors), nn)
     losses = []
     batch_lists = batch_and_shuffle(collect(1:length(ds)), n_batches)
@@ -216,10 +216,9 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
         grads = ∇loss(nniap.nn, nniap.nn, ds_batch, true_energy, local_descriptors)
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
-        curr_loss = loss(nniap.nn, nniap.iap, ds_batch, w_e, w_f)
+        curr_loss = loss(nniap.nn, nniap.iap, ds_batch, true_energy, local_descriptors)
         push!(losses, curr_loss)
         println(curr_loss)
-        @assert 8 == 10
     end
 end
 

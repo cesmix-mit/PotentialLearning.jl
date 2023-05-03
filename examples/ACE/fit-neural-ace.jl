@@ -105,9 +105,11 @@ w_f = Float32(w_f) |> _device
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
 
-#learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, cpu)
-
-learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, 1.0, 1.0, cpu, 1)
+# learn!(nace |> cpu, ds_train |> cpu, opt |> cpu, n_epochs, loss, w_e, w_f)
+# learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, cpu)
+n_batches = 1
+_device = gpu
+learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 
 
 end # end of "learn_time = @elapsed begin"
