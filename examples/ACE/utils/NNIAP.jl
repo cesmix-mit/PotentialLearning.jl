@@ -45,19 +45,14 @@ function force(c::Configuration, nniap::NNIAP, local_descriptors) # new
     e₁ = ones(Float32, 96) |> gpu
     fₙ = x-> dot(nniap.nn(x), e₁) 
     gₙ(x) = gradient(fₙ, x)
-    #a = rand(Float32, 26) |> gpu
-    # println(first(gₙ(local_descriptors)))
-    dnndb = first(gₙ(local_descriptors))#gradient(x->sum(nniap.nn(x), local_descriptors)
-    # dnndb = first(gradient(x->sum(nniap.nn(x)), local_descriptors))
-    # dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
+    dnndb = first(gₙ(local_descriptors))
     force_descriptors = [rand(Float32, 3) for _ in 1:96]
-    dbdr =  reduce(hcat,force_descriptors) |> cpu # |> gpu # dummy force descriptors 
-    # dnndb = dnndb |> cpu
-    # dbdr = get_values(get_force_descriptors(c))
+    dbdr =  reduce(hcat,force_descriptors) |> cpu
+    dbdr = get_values(get_force_descriptors(c))
     dnndb = dnndb |> cpu
     dbbdr =dbbdr |> cpu 
-    # s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
-    s = [[-sum(dnndb .⋅ [1.0]) for coor in 1:3] for atom in 1:length(dbdr)]
+    s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
+    # s = [[-sum(dnndb .⋅ [1.0]) for coor in 1:3] for atom in 1:length(dbdr)]
     return  s
 end
 
