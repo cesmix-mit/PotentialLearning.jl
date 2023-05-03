@@ -3,7 +3,7 @@ using AtomsBase, Unitful, UnitfulAtomic, StaticArrays
 using InteratomicPotentials, InteratomicBasisPotentials
 using CairoMakie
 using JLD
-using DPP
+using Determinantal
 push!(Base.LOAD_PATH, dirname(@__DIR__))
 using PotentialLearning
 
