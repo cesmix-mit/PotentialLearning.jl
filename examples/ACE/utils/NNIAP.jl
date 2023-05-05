@@ -48,8 +48,16 @@ function force(c::Configuration, nn, local_descriptors) # new
     #force_descriptors = [rand(Float32, 3) for _ in 1:96]
     #dbdr =  reduce(hcat,force_descriptors) |> cpu
     dbdr = get_values(get_force_descriptors(c)) |> cpu
+    first_dim = length(dbdr)
+    second_dim = length(dbdr[1])
+    #third_dim = length(dbdr[1][1])
+    dbdr_reshaped = [dbdr[i][j]  for i in 1:first_dim for j in 1:second_dim]
     # dbdr = [[rand(Float32, 26) for _ in 1:3] for _ in 1:96] |> cpu
-    s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
+    # println(dnndb .⋅ dbdr)
+    println(dbdr[1:4])
+    s = -sum(dnndb .⋅ dbdr_reshaped)
+    # s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
+    @assert 0 == 1
     #@assert 0 == 1
     #println(s)
     #@assert 0 == 1
