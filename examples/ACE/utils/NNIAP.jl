@@ -40,20 +40,39 @@ function force(c::Configuration, nniap::NNIAP, _device)
     return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)] |> gpu
 end
 
-function force(c::Configuration, nniap::NNIAP, local_descriptors) # new
-    nniap.nn = nniap.nn |> gpu
-    e₁ = ones(Float32, 96) |> gpu
-    fₙ = x-> dot(nniap.nn(x), e₁) 
+function force(c::Configuration, nn, local_descriptors) # new
+    e₁ = ones(Float32, 96)
+    fₙ = x-> dot(nn(x), e₁) 
     gₙ(x) = gradient(fₙ, x)
-    dnndb = first(gₙ(local_descriptors))
-    force_descriptors = [rand(Float32, 3) for _ in 1:96]
-    dbdr =  reduce(hcat,force_descriptors) |> cpu
-    dbdr = get_values(get_force_descriptors(c))
-    dnndb = dnndb |> cpu
-    dbbdr =dbbdr |> cpu 
+    dnndb = first(gₙ(local_descriptors)) #|> cpu
+    #force_descriptors = [rand(Float32, 3) for _ in 1:96]
+    #dbdr =  reduce(hcat,force_descriptors) |> cpu
+    #dbdr = get_values(get_force_descriptors(c))
+    dbdr = [[rand(Float32, 26) for _ in 1:3] for _ in 1:96] 
+
+   #print(size(c))
+    #println(c)
+    #println(c[1])
+    # dnndb = dnndb |> cpu
+    # dbdr = dbdr |> cpu
+    # println(size(dnndb)) [[1,2], [2,3], [4,5]]
+    # println(size(dbdr))
+    # println(size(dbdr[1]))
+    # println(size(dbdr[1][1]))
+    # println(dbdr[1][1][1])
+    # println(dbdr[1][1][1][1])
+    # println(size(dnndb .⋅ dbdr[1][1]))
+    # println(sum(dnndb .⋅ dbdr[1][1]))
+    # a = dnndb .⋅ dbdr[1][1]
+    # println(dbdr[1])
+    # b = [-sum(dnndb .⋅ dbdr[1][coor]) for coor in 1:3]
+    # println(b)
     s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
+    #@assert 0 == 1
+    #println(s)
+    #@assert 0 == 1
     # s = [[-sum(dnndb .⋅ [1.0]) for coor in 1:3] for atom in 1:length(dbdr)]
-    return  s
+    return s
 end
 
 function force(c::Configuration, nniap::NNIAP)
@@ -110,7 +129,7 @@ end
 function loss(nn, iap,  batch, true_energy, local_descriptors, w_e=1, w_f=1)
     nniap = NNIAP(nn, iap)
     es_pred = sum(sum(nn(local_descriptors)))
-    fs, fs_pred = get_all_forces(batch), get_all_forces(batch, nniap, local_descriptors)
+    fs, fs_pred = get_all_forces(batch), get_all_forces(batch, nniap.nn |> cpu, local_descriptors |> cpu)
     return w_e * Flux.mse(es_pred, true_energy) + w_f * Flux.mse(fs_pred, fs)
 end
 
@@ -131,6 +150,10 @@ end
 
 function get_all_forces(ds::DataSet, nniap::NNIAP, local_descriptors) # new
     return reduce(vcat,reduce(vcat,[force(ds[c], nniap, local_descriptors) for c in 1:length(ds)]))
+end
+
+function get_all_forces(ds::DataSet, nn, local_descriptors) # new
+    return reduce(vcat,reduce(vcat,[force(ds[c], nn, local_descriptors) for c in 1:length(ds)]))
 end
 
 function get_all_forces(ds::DataSet, nniap::NNIAP)
@@ -213,7 +236,8 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
         # Logging
         curr_loss = loss(nniap.nn, nniap.iap, ds_batch, true_energy, local_descriptors)
         push!(losses, curr_loss)
-        println(curr_loss)
+        println("curr loss:", curr_loss)
+        @assert 0 == 1
     end
 end
 
