@@ -3,19 +3,6 @@ using AtomsBase, Unitful, UnitfulAtomic, StaticArrays
 using InteratomicPotentials, InteratomicBasisPotentials
 using ACE1, JuLIP
 
-# load data for test
-# ds, thermo = load_data("test/learning/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
-
-
-# initialize some fake descriptors
-d = 8
-num_atoms = 20
-num_configs = 10
-ld_0 = [[randn(d) for i = 1:num_atoms] for j = 1:num_configs]
-ld = LocalDescriptors.(ld_0)
-e = Energy.(rand(num_configs), (u"eV",))
-ds = DataSet(Configuration.(e, ld))
-
 
 # initialize a LinearBasisPotential
 n_body = 2  
@@ -26,6 +13,18 @@ wL = 1.0
 csp = 1.0 
 ace = ACE([:Na], n_body, max_deg, wL, csp, r0, rcutoff)
 lb = LBasisPotential(ace)
+
+
+## UnivariateLinearProblem ###############################################################
+
+# initialize some fake energy descriptors
+d = 8
+num_atoms = 20
+num_configs = 10
+ld_0 = [[randn(d) for i = 1:num_atoms] for j = 1:num_configs]
+ld = LocalDescriptors.(ld_0)
+e = Energy.(rand(num_configs), (u"eV",))
+ds = DataSet(Configuration.(e, ld))
 
 
 # test input types
@@ -51,3 +50,17 @@ lb, Σ = learn!(lb, ds)
 lp = learn!(lp) 
 # test the two give the same output
 @test lb.β == lp.β
+
+
+
+## CovariateLinearProblem ###############################################################
+
+# initialize some fake energy and force descriptors
+# ld_0 = [[randn(d) for i = 1:num_atoms] for j = 1:num_configs]
+# fd_0 = [[[randn(d), randn(d), randn(d)] for i = 1:num_atoms] for j = 1:num_configs]
+# ld = LocalDescriptors.(ld_0)
+# fd = ForceDescriptors.(fd_0)
+# e = Energy.(rand(num_configs), (u"eV",))
+# f = Forces.()
+# u"eV/Å"
+# ds = DataSet(Configuration.(e, ld))
