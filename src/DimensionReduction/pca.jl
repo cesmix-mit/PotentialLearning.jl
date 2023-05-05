@@ -25,5 +25,6 @@ function fit(ds::DataSet, pca::PCA)
     catch
         error("No local descriptors found in DataSet")
     end
-    λ, W = select_eigendirections(d .- mean.(d), pca.tol)
+    # dc = [di - mean(d) for di in d]
+    λ, W = select_eigendirections(d, pca.tol)
 end
