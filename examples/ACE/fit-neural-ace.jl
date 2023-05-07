@@ -37,7 +37,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "wL",                   "1.0",
         "csp",                  "1.0",
         "w_e",                  "0.01",
-        "w_f",                  "1.0"]
+        "w_f",                  "1.0",
+        "device",              "gpu"]
 args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
 
@@ -46,6 +47,10 @@ input = get_input(args)
 path = input["experiment_path"]
 run(`mkdir -p $path`)
 @savecsv path input
+
+#Get device
+_device = input["device"]
+_device = _device == "gpu" ? gpu : cpu
 
 # Fix random seed
 if "random_seed" in keys(input)
@@ -68,18 +73,17 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
           body_order = input["n_body"],
           polynomial_degree = input["max_deg"],
           wL = input["wL"],
-          csp = csp = input["csp"],
-          r0 = input["rcutoff"],
+          csp = input["csp"],
+          r0 = input["r0"],
           rcutoff = input["rcutoff"])
 
 @savevar path ace
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32, _device=_device)
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32, _device=_device)
-
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
 GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train) |> _device
 n_desc = length(e_descr_train[1][1]) |> _device
@@ -95,13 +99,13 @@ end
 
 # Define neural network model
 nn = eval(Meta.parse(input["nn"])) # e.g. Chain(Dense(n_desc,8,Flux.leakyrelu), Dense(8,1))
-# nace = NNIAP(nn, ace)
+nace = NNIAP(nn, ace)
 
 # Learn
 println("Learning energies and forces...")
 w_e, w_f = input["w_e"], input["w_f"]
-w_e = Float32(w_e) |> _device
-w_f = Float32(w_f) |> _device
+w_e = Float32(w_e)
+w_f = Float32(w_f)
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
 
@@ -111,9 +115,12 @@ n_batches = 3
 _device = gpu
 # learn!(nace, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 learn!(nn |> _device, ace |> _device, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
+# learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, device)
 
 
 end # end of "learn_time = @elapsed begin"
+
+@assert 0 == 1
 
 @savevar path Flux.params(nace.nn)
 

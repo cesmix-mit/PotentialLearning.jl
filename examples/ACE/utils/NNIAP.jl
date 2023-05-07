@@ -1,8 +1,6 @@
 using Flux
 using Optim
 using Zygote
-using Random
-Random.seed!(1234)
 
 
 # Neural network interatomic potential
@@ -41,7 +39,7 @@ function force(c::Configuration, nniap::NNIAP, _device)
 end
 
 function force(c::Configuration, nn, local_descriptors, _device) # new
-    e₁ = ones(Float32, 96) |> _device
+    e₁ = ones(Float32, 96) |> gpu
     fₙ = x-> dot(nn(x), e₁) 
     gₙ(x) = gradient(fₙ, x)
     dnndb = first(gₙ(local_descriptors)) |> cpu
@@ -125,7 +123,7 @@ function get_all_forces(ds::DataSet, nniap::NNIAP, local_descriptors) # new
 end
 
 function get_all_forces(ds::DataSet, nn, local_descriptors, _device) # new
-    return reduce(vcat,reduce(vcat,[force(ds[c], nn, local_descriptors) for c in 1:length(ds)]))
+    return reduce(vcat,reduce(vcat,[force(ds[c], nn, local_descriptors, _device) for c in 1:length(ds)]))
 end
 
 function get_all_forces(ds::DataSet, nniap::NNIAP)
