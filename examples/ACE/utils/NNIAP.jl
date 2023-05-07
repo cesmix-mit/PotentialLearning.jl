@@ -13,8 +13,8 @@ end
 # See 10.1103/PhysRevLett.98.146401
 #     https://fitsnap.github.io/Pytorch.html
 
-function potential_energy(c::Configuration, nniap::NNIAP, _device=gpu)
-    Bs = get_values(get_local_descriptors(c)) |> _device
+function potential_energy(c::Configuration, nniap::NNIAP)
+    Bs = get_values(get_local_descriptors(c))
     s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
     return s
 end
@@ -206,6 +206,32 @@ function learn!(nn, iap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss,
         println("curr loss: ", curr_loss)
     end
 end
+
+function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+    nn = nace.nn |> _device
+    iap = nace.iap |> _device
+    ds = ds_train |> _device
+    optim = Flux.setup(opt, nn) |> _device
+    ∇loss(nn, iap, batch, true_energy, local_descriptors, _device, w_e, w_f) = gradient((nn) -> loss(nn, iap, batch, true_energy, local_descriptors, _device, w_e, w_f), nn)
+    losses = []
+    batch_lists = batch_and_shuffle(collect(1:length(ds)), n_batches)
+    batch_list_len = length(batch_lists)
+    for epoch in 1:n_epochs
+        true_energy = rand(Float32, 100) |> _device
+        local_descriptors = [rand(Float32, 26) for _ in 1:96]
+        local_descriptors = reduce(hcat, local_descriptors) |> _device
+        batch_index = mod(epoch, batch_list_len) + 1 
+        ds_batch = ds[batch_lists[batch_index]]
+        # Compute gradient with current parameters and update model
+        grads = ∇loss(nn, iap, ds_batch, true_energy, local_descriptors, _device, w_e, w_f)
+        Flux.update!(optim, nn, grads[1])
+        # Logging
+        curr_loss = loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
+        push!(losses, curr_loss)
+        println("curr loss: ", curr_loss)
+    end
+end
+
 
 # Optimization.jl training
 function learn!(nniap, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
