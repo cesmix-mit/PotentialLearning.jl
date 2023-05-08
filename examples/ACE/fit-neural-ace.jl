@@ -111,7 +111,7 @@ n_epochs = input["n_epochs"]
 
 # learn!(nace |> cpu, ds_train |> cpu, opt |> cpu, n_epochs, loss, w_e, w_f)
 # learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, cpu)
-n_batches = 10
+n_batches = 100
 _device = gpu
 # learn!(nace, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 # learn!(nn |> _device, ace |> _device, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)

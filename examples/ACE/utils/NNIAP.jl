@@ -74,20 +74,6 @@ end
 
 
 # Loss function ################################################################
-function gpu_loss(nn, iap, ds, w_e = 1, w_f = 1)
-    _device = gpu
-    nniap = NNIAP(nn, iap)
-    es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap, _device)
-    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap, _device)
-
-    e_error = w_e * Flux.mse(es_pred, es) |> cpu
-    fs = fs|> gpu
-    f_error = w_f * Flux.mse(fs_pred, fs) |> cpu
-    total_error = e_error + f_error
-    return total_error
-end
- 
-
 function loss(nn, iap, ds, w_e::Real=1, w_f::Real=1)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
@@ -98,9 +84,10 @@ end
 
 function loss(nn, iap,  batch, true_energy, local_descriptors, _device, w_e=1, w_f=1)
     # nniap = NNIAP(nn, iap)
-    es_pred = sum(sum(nn(local_descriptors)))
-    fs, fs_pred = get_all_forces(batch), get_all_forces(batch, nn , local_descriptors, _device)
-    return w_e * Flux.mse(es_pred, true_energy) + w_f * Flux.mse(fs_pred, fs)
+    es_pred = sum(sum(nn.(local_descriptors)))
+    # fs = get_all_forces(batch)
+    # fs_pred = get_all_forces(batch, nn , local_descriptors, _device)
+    return w_e * Flux.mse(es_pred, true_energy)  # +   w_f * Flux.mse(fs_pred, fs)
 end
 
 
@@ -161,52 +148,6 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     end
 end
 
-function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f,_device)
-    if _device != gpu
-        return learn!(nniap, ds, opt, epochs, loss, w_e, w_f)
-    end
-    optim = Flux.setup(opt, nniap.nn)
-    nniap.nn = nniap.nn|> gpu
-    nniap.iap = nniap.iap|> gpu
-    ds  = ds |> gpu
-    optim = Flux.gpu(optim)
-
-    ∇gpu_loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> gpu_loss(nn, iap, ds, w_e, w_f), nn)
-    losses = []
-    for epoch in 1:epochs
-        # Compute gradient with current parameters and update model
-        grads = ∇gpu_loss(nniap.nn, nniap.iap, ds, w_e, w_f)
-        Flux.update!(optim, nniap.nn, grads[1])
-        # Logging
-        curr_loss = gpu_loss(nniap.nn, nniap.iap, ds, w_e, w_f)
-        push!(losses, curr_loss)
-        println(curr_loss)
-    end
-end
-
-function learn!(nn, iap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f, true_energy, local_descriptors, _device=gpu, n_batches=1) # new
-    nniap = NNIAP(nn, iap)
-    optim = Flux.setup(opt, nniap.nn) |> _device
-    ∇loss(nn, iap, batch, true_energy, local_descriptors, _device, w_e, w_f) = gradient((nn) -> loss(nn, iap, batch, true_energy, local_descriptors, _device, w_e, w_f), nn)
-    losses = []
-    batch_lists = batch_and_shuffle(collect(1:length(ds)), n_batches)
-    batch_list_len = length(batch_lists)
-    for epoch in 1:epochs
-        true_energy = rand(Float32, 100) |> _device
-        local_descriptors = [rand(Float32, 26) for _ in 1:96]
-        local_descriptors = reduce(hcat, local_descriptors) |> _device
-        batch_index = mod(epoch, batch_list_len) + 1 
-        ds_batch = ds[batch_lists[batch_index]]
-        # Compute gradient with current parameters and update model
-        grads = ∇loss(nniap.nn, nniap.nn, ds_batch, true_energy, local_descriptors, _device, w_e, w_f)
-        Flux.update!(optim, nniap.nn, grads[1])
-        # Logging
-        curr_loss = loss(nniap.nn, nniap.iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
-        push!(losses, curr_loss)
-        println("curr loss: ", curr_loss)
-    end
-end
-
 function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
     nn = nace.nn |> _device
     iap = nace.iap |> _device
@@ -217,18 +158,26 @@ function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _devic
     batch_lists = batch_and_shuffle(collect(1:length(ds)), n_batches)
     batch_list_len = length(batch_lists)
     for epoch in 1:n_epochs
-        true_energy = rand(Float32, 100) |> _device
-        local_descriptors = [rand(Float32, 26) for _ in 1:96]
-        local_descriptors = reduce(hcat, local_descriptors) |> _device
         batch_index = mod(epoch, batch_list_len) + 1 
         ds_batch = ds[batch_lists[batch_index]]
+
+
+        true_energy = Float32.(get_all_energies(ds_batch)) |> _device
+
+
+        local_descriptors = get_values.(get_local_descriptors.(ds_batch))
+        local_descriptors = reduce(hcat, local_descriptors) |> _device
+        
+
         # Compute gradient with current parameters and update model
         grads = ∇loss(nn, iap, ds_batch, true_energy, local_descriptors, _device, w_e, w_f)
         Flux.update!(optim, nn, grads[1])
+
         # Logging
         curr_loss = loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
         push!(losses, curr_loss)
         println("curr loss: ", curr_loss)
+        @assert 0 == 1
     end
 end
 
