@@ -12,9 +12,8 @@ using Flux
 using Optimization
 using OptimizationOptimJL
 using Random
+using BenchmarkTools
 include("utils/utils.jl")
-
-_device = gpu
 
 # Load input parameters
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
@@ -112,7 +111,6 @@ n_epochs = input["n_epochs"]
 # learn!(nace |> cpu, ds_train |> cpu, opt |> cpu, n_epochs, loss, w_e, w_f)
 # learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, cpu)
 n_batches = 100
-_device = gpu
 # learn!(nace, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 # learn!(nn |> _device, ace |> _device, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 
@@ -120,10 +118,17 @@ _device = gpu
 learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
 
 
+benchmark_result = @benchmark learn!(nace, ds_train, opt, 3, n_batches, loss, w_e, w_f, _device)
+
+# Extract the execution times from the benchmark results
+execution_times = map(t -> t.time, benchmark_result)
+
+# Create a histogram of the execution times
+histogram(execution_times, xlabel="Execution time (ns)", ylabel="Frequency", label="my_function")
 
 end # end of "learn_time = @elapsed begin"
 
-@assert 0 == 1
+
 
 @savevar path Flux.params(nace.nn)
 

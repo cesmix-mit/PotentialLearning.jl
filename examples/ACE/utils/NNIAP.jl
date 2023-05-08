@@ -26,17 +26,6 @@ function potential_energy(c::Configuration, nniap::NNIAP)
     return s
 end
 
-function force(c::Configuration, nniap::NNIAP, _device)
-    if _device != gpu
-        return force(c, nniap)
-    end
-
-    Bs = get_values(get_local_descriptors(c))
-    nniap.nn = nniap.nn |> cpu
-    dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
-    dbdr = get_values(get_force_descriptors(c)) 
-    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)] |> gpu
-end
 
 function force(c::Configuration, nn, local_descriptors, _device) # new
     e₁ = ones(Float32, 96) |> gpu
@@ -82,7 +71,7 @@ function loss(nn, iap, ds, w_e::Real=1, w_f::Real=1)
 end
 
 
-function loss(nn, iap,  batch, true_energy, local_descriptors, _device, w_e=1, w_f=1)
+function loss(nn, iap,  batch, true_energy, local_descriptors, w_e=1, w_f=1)
     # nniap = NNIAP(nn, iap)
     es_pred = sum(sum(nn.(local_descriptors)))
     # fs = get_all_forces(batch)
@@ -153,7 +142,7 @@ function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _devic
     iap = nace.iap |> _device
     ds = ds_train |> _device
     optim = Flux.setup(opt, nn) |> _device
-    ∇loss(nn, iap, batch, true_energy, local_descriptors, _device, w_e, w_f) = gradient((nn) -> loss(nn, iap, batch, true_energy, local_descriptors, _device, w_e, w_f), nn)
+    ∇loss(nn, iap, batch, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, batch, true_energy, local_descriptors, w_e, w_f), nn)
     losses = []
     batch_lists = batch_and_shuffle(collect(1:length(ds)), n_batches)
     batch_list_len = length(batch_lists)
@@ -164,20 +153,18 @@ function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _devic
 
         true_energy = Float32.(get_all_energies(ds_batch)) |> _device
 
-
         local_descriptors = get_values.(get_local_descriptors.(ds_batch))
         local_descriptors = reduce(hcat, local_descriptors) |> _device
         
 
         # Compute gradient with current parameters and update model
-        grads = ∇loss(nn, iap, ds_batch, true_energy, local_descriptors, _device, w_e, w_f)
+        grads = ∇loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
         Flux.update!(optim, nn, grads[1])
 
         # Logging
         curr_loss = loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
         push!(losses, curr_loss)
         println("curr loss: ", curr_loss)
-        @assert 0 == 1
     end
 end
 
