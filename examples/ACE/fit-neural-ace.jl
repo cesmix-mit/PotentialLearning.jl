@@ -117,13 +117,18 @@ n_batches = 100
 # learn!(nace, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 # learn!(nn |> _device, ace |> _device, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 
+@assert 9 == 8
 
-#learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+n_epochs = 5
 
-learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
+learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+
+#learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
 
 
-# benchmark_result = @benchmark learn!($nace, $ds_train, $opt, 3, $n_batches, $loss, $w_e, $w_f, $_device)
+# benchmark_result = @benchmark learn!($nace, $ds_train, $opt, 5, 1, $loss, $w_e, $w_f, gpu) #$_device $n_batches
+
+#@benchmark learn!($nace, $ds_train, $opt, 5, $loss, $w_e, $w_f)
 
 # Extract the execution times from the benchmark results
 

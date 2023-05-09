@@ -28,7 +28,7 @@ end
 
 function force(c::Configuration, nn, local_descriptors, _device) # new
     e₁ = ones(Float32, 96) |> gpu
-    fₙ = x-> dot(nn(x), e₁) 
+    fₙ = x-> dot(nn.(x), e₁) 
     gₙ(x) = gradient(fₙ, x)
     dnndb = first(gₙ(local_descriptors)) |> cpu
     dbdr = get_values(get_force_descriptors(c)) |> cpu
@@ -65,17 +65,17 @@ end
 function loss(nn, iap, ds, w_e::Real=1, w_f::Real=1)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
-    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
-    return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
+    # fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
+    return w_e * Flux.mse(es_pred, es) # + w_f * Flux.mse(fs_pred, fs)
 end
 
 
 function loss(nn, iap,  batch, true_energy, local_descriptors, w_e=1, w_f=1)
     # nniap = NNIAP(nn, iap)
     es_pred = sum(sum(nn.(local_descriptors)))
-    # fs = get_all_forces(batch)
-    # fs_pred = get_all_forces(batch, nn , local_descriptors, _device)
-    return w_e * Flux.mse(es_pred, true_energy)  # +   w_f * Flux.mse(fs_pred, fs)
+    #fs = get_all_forces(batch)
+    #fs_pred = get_all_forces(batch, nn , local_descriptors, _device)
+    return w_e * Flux.mse(es_pred, true_energy)  #+   w_f * Flux.mse(fs_pred, fs)
 end
 
 
@@ -130,8 +130,7 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
         grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
-        loss_time = @elapsed curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
-        println("loss_time", loss_time)
+        curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         push!(losses, curr_loss)
         println(curr_loss)
     end
