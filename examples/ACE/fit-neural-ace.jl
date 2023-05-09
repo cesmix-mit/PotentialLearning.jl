@@ -80,9 +80,12 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
+
+
 B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
-println("Computing force descriptors of training dataset...")
+
 dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
+
 GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train) |> _device
 n_desc = length(e_descr_train[1][1]) |> _device
@@ -115,16 +118,18 @@ n_batches = 100
 # learn!(nn |> _device, ace |> _device, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 
 
-learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+#learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+
+learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
 
 
-benchmark_result = @benchmark learn!(nace, ds_train, opt, 3, n_batches, loss, w_e, w_f, _device)
+# benchmark_result = @benchmark learn!($nace, $ds_train, $opt, 3, $n_batches, $loss, $w_e, $w_f, $_device)
 
 # Extract the execution times from the benchmark results
-execution_times = map(t -> t.time, benchmark_result)
+
 
 # Create a histogram of the execution times
-histogram(execution_times, xlabel="Execution time (ns)", ylabel="Frequency", label="my_function")
+#histogram(execution_times, xlabel="Execution time (ns)", ylabel="Frequency", label="my_function")
 
 end # end of "learn_time = @elapsed begin"
 

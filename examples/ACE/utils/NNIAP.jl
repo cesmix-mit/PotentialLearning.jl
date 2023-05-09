@@ -20,8 +20,7 @@ function potential_energy(c::Configuration, nniap::NNIAP)
 end
 
 function potential_energy(c::Configuration, nniap::NNIAP)
-    nniap.nn = nniap.nn |>cpu
-    Bs = get_values(get_local_descriptors(c)) |> cpu
+    Bs = get_values(get_local_descriptors(c))
     s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
     return s
 end
@@ -131,7 +130,8 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
         grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
-        curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+        loss_time = @elapsed curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+        println("loss_time", loss_time)
         push!(losses, curr_loss)
         println(curr_loss)
     end
