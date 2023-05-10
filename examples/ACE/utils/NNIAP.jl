@@ -105,13 +105,12 @@ function get_all_forces(ds::DataSet, nniap::NNIAP)
     return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
 end
 
-function batch_and_shuffle(data, batch_size) # new
+function batch_and_shuffle(data, num_batches) # new
     # Shuffle the data
     shuffle!(data)
 
     # Calculate the number of batches
-    num_batches = ceil(Int, length(data) / batch_size)
-
+    batch_size = ceil(Int, length(data) / num_batches)
     # Create the batches
     batches = [data[(i-1)*batch_size+1:min(i*batch_size, end)] for i in 1:num_batches]
 
@@ -155,6 +154,9 @@ function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _devic
         local_descriptors = get_values.(get_local_descriptors.(ds_batch))
         local_descriptors = reduce(hcat, local_descriptors) |> _device
         
+        force_descriptors = get_values.(get_force_descriptors.(ds_batch))
+        force_descriptors = reduce(hcat, force_descriptors) |> _device
+
 
         # Compute gradient with current parameters and update model
         grads = ∇loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)

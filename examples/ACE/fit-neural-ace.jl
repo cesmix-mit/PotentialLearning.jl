@@ -111,22 +111,20 @@ w_f = Float32(w_f)
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
 
-# learn!(nace |> cpu, ds_train |> cpu, opt |> cpu, n_epochs, loss, w_e, w_f)
-# learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f, cpu)
-n_batches = 100
-# learn!(nace, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
-# learn!(nn |> _device, ace |> _device, ds_train |> _device, opt |> _device, n_epochs, loss, w_e, w_f, 1.0, 1.0, _device, n_batches)
 
-@assert 9 == 8
+n_batches = 100
 
 n_epochs = 5
+n_batches = 1
 
-learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+#learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+
+@assert 9 == 8
 
 #learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
 
 
-# benchmark_result = @benchmark learn!($nace, $ds_train, $opt, 5, 1, $loss, $w_e, $w_f, gpu) #$_device $n_batches
+# benchmark_result = @benchmark learn!($nace, $ds_train, $opt, $n_epochs, $n_batches, $loss, $w_e, $w_f, cpu) #$_device $n_batches
 
 #@benchmark learn!($nace, $ds_train, $opt, 5, $loss, $w_e, $w_f)
 
