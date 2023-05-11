@@ -19,13 +19,6 @@ function potential_energy(c::Configuration, nniap::NNIAP)
     return s
 end
 
-function potential_energy(c::Configuration, nniap::NNIAP)
-    Bs = get_values(get_local_descriptors(c))
-    s = sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
-    return s
-end
-
-
 function force(c::Configuration, nn, local_descriptors, _device) # new
     e₁ = ones(Float32, 96) |> gpu
     fₙ = x-> dot(nn.(x), e₁) 
@@ -62,7 +55,7 @@ end
 
 
 # Loss function ################################################################
-function loss(nn, iap, ds, w_e::Real=1, w_f::Real=1)
+function loss(nn, iap, ds, w_e=1, w_f=1)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
     # fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
@@ -70,36 +63,29 @@ function loss(nn, iap, ds, w_e::Real=1, w_f::Real=1)
 end
 
 
-function loss(nn, iap,  batch, true_energy, local_descriptors, w_e=1, w_f=1)
+function loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e=1, w_f=1)
     # nniap = NNIAP(nn, iap)
-    es_pred = sum(sum(nn.(local_descriptors)))
-    #fs = get_all_forces(batch)
-    #fs_pred = get_all_forces(batch, nn , local_descriptors, _device)
-    return w_e * Flux.mse(es_pred, true_energy)  #+   w_f * Flux.mse(fs_pred, fs)
+    nn_local_descriptors = nn.(local_descriptors)
+    atom_descriptors_list =[nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
+
+    # println("true energy length: ", length(true_energy))
+    true_energy_split = [true_energy[atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
+
+    atom_sum_pred = sum.(atom_descriptors_list)
+    atom_sum_pred = [first(lis) for lis in atom_sum_pred]
+    true_energy_sum = sum.(true_energy_split)
+
+    return w_e * Flux.mse(atom_sum_pred, true_energy_sum)  #+   w_f * Flux.mse(fs_pred, fs)
 end
 
 
 # Auxiliary functions ##########################################################
-function get_all_energies(ds::DataSet, nniap::NNIAP, _device)
-    return [potential_energy(ds[c], nniap, _device) for c in 1:length(ds)]
-end
 
 
 function get_all_energies(ds::DataSet, nniap::NNIAP)
     return [potential_energy(ds[c], nniap) for c in 1:length(ds)]
 end
 
-function get_all_forces(ds::DataSet, nniap::NNIAP, _device)
-    return reduce(vcat,reduce(vcat,[force(ds[c], nniap, _device) for c in 1:length(ds)]))
-end
-
-function get_all_forces(ds::DataSet, nniap::NNIAP, local_descriptors) # new
-    return reduce(vcat,reduce(vcat,[force(ds[c], nniap, local_descriptors, _device) for c in 1:length(ds)]))
-end
-
-function get_all_forces(ds::DataSet, nn, local_descriptors, _device) # new
-    return reduce(vcat,reduce(vcat,[force(ds[c], nn, local_descriptors, _device) for c in 1:length(ds)]))
-end
 
 function get_all_forces(ds::DataSet, nniap::NNIAP)
     return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
@@ -115,6 +101,18 @@ function batch_and_shuffle(data, num_batches) # new
     batches = [data[(i-1)*batch_size+1:min(i*batch_size, end)] for i in 1:num_batches]
 
     return batches
+end
+
+function generate_random_partition(len)
+    part_list = [0]
+    for i in 1:len-1
+        if rand() < 1/7
+           push!(part_list, i)
+        end
+    end
+
+    push!(part_list, len)
+    return part_list
 end
 
 # NNIAP learning functions #####################################################
@@ -136,34 +134,34 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
 end
 
 function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+  #atom_config_list = [0, 17, 34]
     nn = nace.nn |> _device
-    iap = nace.iap |> _device
-    ds = ds_train |> _device
     optim = Flux.setup(opt, nn) |> _device
-    ∇loss(nn, iap, batch, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, batch, true_energy, local_descriptors, w_e, w_f), nn)
+    ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
     losses = []
-    batch_lists = batch_and_shuffle(collect(1:length(ds)), n_batches)
+    batch_lists = batch_and_shuffle(collect(1:length(ds_train)), n_batches)
     batch_list_len = length(batch_lists)
     for epoch in 1:n_epochs
         batch_index = mod(epoch, batch_list_len) + 1 
-        ds_batch = ds[batch_lists[batch_index]]
+        ds_batch = ds_train[batch_lists[batch_index]]
 
-
-        true_energy = Float32.(get_all_energies(ds_batch)) |> _device
-
+        true_energy = Float32.(get_all_energies(ds_batch))
+        
         local_descriptors = get_values.(get_local_descriptors.(ds_batch))
         local_descriptors = reduce(hcat, local_descriptors) |> _device
-        
+
+        atom_config_list = generate_random_partition(length(ds_batch))
+
         force_descriptors = get_values.(get_force_descriptors.(ds_batch))
         force_descriptors = reduce(hcat, force_descriptors) |> _device
 
 
         # Compute gradient with current parameters and update model
-        grads = ∇loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
+        grads = ∇loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
         Flux.update!(optim, nn, grads[1])
 
         # Logging
-        curr_loss = loss(nn, iap, ds_batch, true_energy, local_descriptors, w_e, w_f)
+        curr_loss = loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
         push!(losses, curr_loss)
         println("curr loss: ", curr_loss)
     end

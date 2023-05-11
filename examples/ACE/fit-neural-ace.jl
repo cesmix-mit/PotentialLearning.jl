@@ -12,7 +12,6 @@ using Flux
 using Optimization
 using OptimizationOptimJL
 using Random
-using BenchmarkTools
 include("utils/utils.jl")
 
 # Load input parameters
@@ -26,7 +25,7 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "n_test_sys",           "100",
         "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
         "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
-        "n_epochs",             "100",
+        "n_epochs",             "5",
         "n_batches",            "1",
         "optimiser",            "Adam(0.001)", # e.g. Adam(0.01) or BFGS()
         "n_body",               "3",
@@ -38,6 +37,11 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "w_e",                  "0.01",
         "w_f",                  "1.0",
         "device",              "gpu"]
+
+        n_batches = 100
+
+        n_epochs = 5
+        n_batches = 1
 args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
 
@@ -81,14 +85,14 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
 
-
 B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
 
 dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
 
+
 GC.gc()
-ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train) |> _device
-n_desc = length(e_descr_train[1][1]) |> _device
+ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
+n_desc = length(e_descr_train[1][1])
 
 # Dimension reduction of energy and force descriptors of training dataset
 reduce_descriptors = input["n_red_desc"] > 0
@@ -110,33 +114,13 @@ w_e = Float32(w_e)
 w_f = Float32(w_f)
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
+n_batches = input["n_batches"]
 
 
-n_batches = 100
 
-n_epochs = 5
-n_batches = 1
+learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
 
-#learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
-
-@assert 9 == 8
-
-#learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
-
-
-# benchmark_result = @benchmark learn!($nace, $ds_train, $opt, $n_epochs, $n_batches, $loss, $w_e, $w_f, cpu) #$_device $n_batches
-
-#@benchmark learn!($nace, $ds_train, $opt, 5, $loss, $w_e, $w_f)
-
-# Extract the execution times from the benchmark results
-
-
-# Create a histogram of the execution times
-#histogram(execution_times, xlabel="Execution time (ns)", ylabel="Frequency", label="my_function")
-
-end # end of "learn_time = @elapsed begin"
-
-
+end
 
 @savevar path Flux.params(nace.nn)
 
