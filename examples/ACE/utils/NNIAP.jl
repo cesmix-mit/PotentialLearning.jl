@@ -19,17 +19,6 @@ function potential_energy(c::Configuration, nniap::NNIAP)
     return s
 end
 
-function force(c::Configuration, nn, local_descriptors, _device) # new
-    e₁ = ones(Float32, 96) |> gpu
-    fₙ = x-> dot(nn.(x), e₁) 
-    gₙ(x) = gradient(fₙ, x)
-    dnndb = first(gₙ(local_descriptors)) |> cpu
-    dbdr = get_values(get_force_descriptors(c)) |> cpu
-    s = [[-sum(dnndb .⋅ dbdr[atom][coor]) for coor in 1:3] for atom in 1:length(dbdr)]
-    return s
-end
-
-
 function force(c::Configuration, nniap::NNIAP)
     Bs = get_values(get_local_descriptors(c))
     dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
