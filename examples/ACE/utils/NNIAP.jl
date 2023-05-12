@@ -47,29 +47,16 @@ end
 function loss(nn, iap, ds, w_e=1, w_f=1)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
-    # fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
-    return w_e * Flux.mse(es_pred, es) # + w_f * Flux.mse(fs_pred, fs)
+    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
+    return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
 end
 
 
 function loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e=1, w_f=1)
-    nn_local_descriptors = sum.(nn.(local_descriptors)) #sum is here because data is of the form [[a], [b], [c]...]. Using sum converts it to [a,b,c, ...]
-    
-    # println(nn_local_descriptors[:,1])
-    # println(sum.(nn_local_descriptors[:,1]))
-
-    #@assert 0 == 1
-
+    nn_local_descriptors = nn(local_descriptors)
     atom_descriptors_list =[nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
-    true_energy_split = [true_energy[atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
-
-    # println(atom_descriptors_list)
     atom_sum_pred = sum.(atom_descriptors_list)
-   # atom_sum_preds = sum.(atom_descriptors_list)
-   # atom_sum_pred = reduce(vcat, atom_sum_preds)
-    true_energy_sum = sum.(true_energy_split)
-
-    return w_e * Flux.mse(atom_sum_pred, true_energy_sum)  #+   w_f * Flux.mse(fs_pred, fs)
+    return w_e * Flux.mse(atom_sum_pred, true_energy)
 end
 
 
@@ -95,18 +82,6 @@ function batch_and_shuffle(data, num_batches) # new
     batches = [data[(i-1)*batch_size+1:min(i*batch_size, end)] for i in 1:num_batches]
 
     return batches
-end
-
-function generate_random_partition(len)
-    part_list = [0]
-    for i in 1:len-1
-        if rand() < 1/7
-           push!(part_list, i)
-        end
-    end
-
-    push!(part_list, len)
-    return part_list
 end
 
 # NNIAP learning functions #####################################################
@@ -141,13 +116,9 @@ function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _devic
         true_energy = Float32.(get_all_energies(ds_batch))
         
         local_descriptors = get_values.(get_local_descriptors.(ds_batch))
-        local_descriptors = reduce(hcat, local_descriptors) |> _device
+        local_descriptors = reduce(hcat, reduce(hcat, local_descriptors)) |> _device
 
-        atom_config_list = generate_random_partition(length(ds_batch))
-
-        force_descriptors = get_values.(get_force_descriptors.(ds_batch))
-        force_descriptors = reduce(hcat, force_descriptors) |> _device
-
+        atom_config_list = vcat([0], cumsum(length.(get_system.(ds_batch))))
 
         # Compute gradient with current parameters and update model
         grads = ∇loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
