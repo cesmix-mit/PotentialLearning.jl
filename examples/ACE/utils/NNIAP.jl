@@ -53,15 +53,20 @@ end
 
 
 function loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e=1, w_f=1)
-    # nniap = NNIAP(nn, iap)
-    nn_local_descriptors = nn.(local_descriptors)
-    atom_descriptors_list =[nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
+    nn_local_descriptors = sum.(nn.(local_descriptors)) #sum is here because data is of the form [[a], [b], [c]...]. Using sum converts it to [a,b,c, ...]
+    
+    # println(nn_local_descriptors[:,1])
+    # println(sum.(nn_local_descriptors[:,1]))
 
-    # println("true energy length: ", length(true_energy))
+    #@assert 0 == 1
+
+    atom_descriptors_list =[nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
     true_energy_split = [true_energy[atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
 
+    # println(atom_descriptors_list)
     atom_sum_pred = sum.(atom_descriptors_list)
-    atom_sum_pred = [first(lis) for lis in atom_sum_pred]
+   # atom_sum_preds = sum.(atom_descriptors_list)
+   # atom_sum_pred = reduce(vcat, atom_sum_preds)
     true_energy_sum = sum.(true_energy_split)
 
     return w_e * Flux.mse(atom_sum_pred, true_energy_sum)  #+   w_f * Flux.mse(fs_pred, fs)
@@ -123,7 +128,6 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
 end
 
 function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
-  #atom_config_list = [0, 17, 34]
     nn = nace.nn |> _device
     optim = Flux.setup(opt, nn) |> _device
     ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
