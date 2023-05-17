@@ -1,7 +1,9 @@
-using Unitful, UnitfulAtomic, AtomsBase
+using Unitful, UnitfulAtomic, AtomsBase, ProgressBars
+import InteratomicBasisPotentials: compute_local_descriptors, compute_force_descriptors
 
 include("datatypes.jl")
 include("configs.jl")
+include("utils.jl")
 
 export Data,
     ConfigurationData,
@@ -26,3 +28,5 @@ export ConfigurationDataSet,
     DataSet,
     get_values
 export get_batch, get_energies, get_local_descriptors, get_forces, get_force_descriptors
+export compute_local_descriptors, compute_force_descriptors
+

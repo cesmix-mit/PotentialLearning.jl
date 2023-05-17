@@ -2,7 +2,7 @@
 ACE1pack = "8c4e8d19-0bd6-4234-8309-7210652e3178"
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-DPP = "2673d5e8-682c-11e9-2dfd-471b09c6c819"
+Determinantal = "2673d5e8-682c-11e9-2dfd-471b09c6c819"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
