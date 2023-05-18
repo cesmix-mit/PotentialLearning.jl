@@ -9,8 +9,6 @@ using Unitful, UnitfulAtomic
 using InteratomicPotentials 
 using InteratomicBasisPotentials
 using PotentialLearning
-using LinearAlgebra
-using Random
 
 # Load dataset
 confs, thermo = load_data("examples/Na/data/liquify_sodium.yaml",
@@ -31,7 +29,7 @@ ace = ACE(species = [:Na],         # species
 
 # Update training dataset by adding energy (local) descriptors
 e_descr_train = compute_local_descriptors(conf_train, ace)
-# e_descr_train = JLD.load("examples/Sodium/data/sodium_empirical_full.jld", "descriptors")
+# e_descr_train = JLD.load("examples/Na/data/sodium_empirical_full.jld", "descriptors")
 ds_train = DataSet(conf_train .+ e_descr_train)
 
 # Learn, using DPP
