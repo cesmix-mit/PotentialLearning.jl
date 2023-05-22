@@ -5,12 +5,12 @@ Change the directory to the desired example folder. E.g.
 $ cd PotentialLearning.jl/examples/Na
 ```
 
-Open Julia REPL, activate ```Project.toml``` file in folder ```examples```, and chose the number of threads.
+Open Julia REPL, activate ```Project.toml``` file in folder ```examples```, and chose the number of threads. E.g.
 ```bash
 $ julia --project=.. --threads=4
 ```
 
-Instantiate: type ```]``` in Julia REPL, and then run ```instantiate```.
+Type ```]``` in Julia REPL, and then run ```instantiate```.
 ```julia
     pkg> instantiate
 ```
