@@ -43,7 +43,7 @@ println("Computing local descriptors of test dataset")
 e_descr_test = compute_local_descriptors(conf_test, ace)
 ds_test = DataSet(conf_test .+ e_descr_test)
 
-# Get true and predicted energy values
+# Get true and predicted energy values (assuming that all configurations have the same no. of atoms)
 n = size(get_system(ds_train[1]))[1]
 e_train, e_train_pred = get_all_energies(ds_train)/n, get_all_energies(ds_train, lb)/n
 e_test, e_test_pred   = get_all_energies(ds_test)/n, get_all_energies(ds_test, lb)/n
