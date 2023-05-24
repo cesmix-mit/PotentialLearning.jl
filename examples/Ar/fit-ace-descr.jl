@@ -12,7 +12,7 @@ confs, _ = load_data("data/lj-ar.yaml", YAML(:Ar, u"eV", u"Å"))
 
 # Define ACE
 ace = ACE(species = [:Ar],         # species
-          body_order = 2,          # 4-body
+          body_order = 2,          # 2-body
           polynomial_degree = 8,   # 8 degree polynomials
           wL = 1.0,                # Defaults, See ACE.jl documentation 
           csp = 1.0,               # Defaults, See ACE.jl documentation 
@@ -23,10 +23,7 @@ ace = ACE(species = [:Ar],         # species
 println("Computing local descriptors of training dataset")
 e_descr_train = compute_local_descriptors(confs, ace)
 
-println("Computing force descriptors of training dataset")
-f_descr_train = compute_force_descriptors(confs, ace)
-
-ds = DataSet(confs .+ e_descr_train .+ f_descr_train)
+ds = DataSet(confs .+ e_descr_train)
 
 ## Score Matching 
 ## E[ tr(∇x(S(x;θ)) + 0.5|s(x;θ)|^2 ]
@@ -40,16 +37,16 @@ struct l
 end
 (ℓ::l)(x) = ℓ.A * x .+ ℓ.b
 
-n = 8
+n = length(first(first(e_descr_train))) # no. of local descriptors
 ll = l(I(n) + zeros(n, n), zeros(n))
 
 # Define loss function
-tr∇s(x) = n
+tr∇s(x) = n # ?
 loss(ll, x) = tr∇s(x) + 0.5 * norm(ll(x))^2
 ∇θloss(ll, x) = first(gradient(ell -> loss(ell, x), ll))
 function loss(ll::l, c::Configuration)
     ld = get_values(get_local_descriptors(c))
-    l = mean(loss.((ll,), ld))
+    l = =
     g = ∇θloss.((ll,), ld)
     gA = Symmetric(mean(map(x -> x.A, g)))
     gb = mean(map(x -> x.b, g))
@@ -58,7 +55,7 @@ end
 
 # Learn
 γ = 5e-2
-for i = 1:50
+for i = 1:200
     batch_inds = randperm(length(ds))[1:100]
     l_temp = 0.0
     gA = zeros(n, n)
