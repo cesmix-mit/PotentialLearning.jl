@@ -1,11 +1,11 @@
 push!(Base.LOAD_PATH, "../../")
 
 using AtomsBase
-using Unitful, UnitfulAtomic
-using InteratomicPotentials
-using InteratomicBasisPotentials
+using InteratomicPotentials, InteratomicBasisPotentials
 using PotentialLearning
-using LinearAlgebra, CairoMakie
+using Unitful, UnitfulAtomic
+using LinearAlgebra
+using CairoMakie
 #using JLD
 
 # Load dataset
