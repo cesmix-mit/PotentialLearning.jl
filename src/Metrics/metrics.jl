@@ -90,3 +90,38 @@ function get_metrics(
     )
     return metrics
 end
+
+
+
+"""
+    get_metrics( e_train_pred, e_train,
+                 e_test_pred, e_test)
+    
+`e_train_pred`: vector of predicted training energy values.
+`e_train`: vector of true training energy values.
+`e_test_pred`: vector of predicted test energy values.
+`e_test`: vector of true test energy values.
+
+Computes MAE, RMSE, and RSQ for training and testing energies (no forces).
+Returns an OrderedDict with the information above.
+
+"""
+function get_metrics(
+    e_train_pred,
+    e_train,
+    e_test_pred,
+    e_test
+)
+    e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
+    e_test_mae, e_test_rmse, e_test_rsq = calc_metrics(e_test_pred, e_test)
+
+    metrics = OrderedDict(
+        "e_train_mae" => e_train_mae,
+        "e_train_rmse" => e_train_rmse,
+        "e_train_rsq" => e_train_rsq,
+        "e_test_mae" => e_test_mae,
+        "e_test_rmse" => e_test_rmse,
+        "e_test_rsq" => e_test_rsq,
+    )
+    return metrics
+end
