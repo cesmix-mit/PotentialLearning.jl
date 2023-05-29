@@ -36,12 +36,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "csp",                  "1.0",
         "w_e",                  "0.01",
         "w_f",                  "1.0",
-        "device",              "gpu"]
+        "device",              "cpu"]
 
-        n_batches = 100
-
-        n_epochs = 5
-        n_batches = 1
 args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
 
@@ -83,11 +79,14 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
 @savevar path ace
 
 # Update training dataset by adding energy and force descriptors
+
+
 println("Computing energy descriptors of training dataset...")
 
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
-
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
+B_time = @elapsed e_descr_train = compute_local_descriptors_unthreaded(conf_train, ace, T = Float32)
+dB_time = @elapsed f_descr_train = compute_force_descriptors_unthreaded(conf_train, ace, T = Float32)
+println("B_time: ", B_time)
+println("dB_time: ", dB_time)
 
 
 GC.gc()
@@ -117,8 +116,8 @@ n_epochs = input["n_epochs"]
 n_batches = input["n_batches"]
 
 
-
-learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
+# learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
 
 end
 
@@ -166,4 +165,3 @@ f_test_plot = plot_forces(f_test_pred, f_test)
 @savefig path f_test_plot
 f_test_cos = plot_cos(f_test_pred, f_test)
 @savefig path f_test_cos
-

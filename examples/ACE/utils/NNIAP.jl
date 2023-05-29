@@ -54,7 +54,7 @@ end
 
 function loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e=1, w_f=1)
     nn_local_descriptors = nn(local_descriptors)
-    atom_descriptors_list =[nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
+    atom_descriptors_list = [nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
     atom_sum_pred = sum.(atom_descriptors_list)
     return w_e * Flux.mse(atom_sum_pred, true_energy)
 end
@@ -72,7 +72,7 @@ function get_all_forces(ds::DataSet, nniap::NNIAP)
     return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
 end
 
-function batch_and_shuffle(data, num_batches) # new
+function batch_and_shuffle(data, num_batches)
     # Shuffle the data
     shuffle!(data)
 
