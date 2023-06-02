@@ -107,26 +107,30 @@ end
 
 # Aux. functions
 
-function get_all_energies(ds::DataSet, nniap::NNIAP)
-    return nniap.nn(get_e_descr_batch(ds))'
+function get_local_descriptors2(c::Configuration)
+    ld_c = get_values(get_local_descriptors(c))
+    ld_c = ld_c[randperm(length(ld_c))]
+    ld_c = cat( [Matrix(hcat(l[1:n_desc÷2], l[n_desc÷2+1:end])')
+                 for l in ld_c]..., dims=4)
+    return ld_c
 end
 
-function get_e_descr_batch(ds)
-    xs = []
-    for c in ds
-        ld_c = reduce(hcat, get_values(get_local_descriptors(c)))'
-        #ld_c = ld_c[randperm(size(ld_c,1)),:]
-        ld_c = cat( ld_c[:, 1:n_desc÷2], ld_c[:, n_desc÷2+1:end], dims=3 )
-        if xs == []
-            xs = ld_c
-        else
-            xs = cat(xs, ld_c, dims=4)
-        end
-
-#        ld_c = get_values(get_local_descriptors(c))
-#        #ld_c = ld_c[randperm(length(ld_c))]
-#        ld_c = cat( [Matrix(hcat(l[1:n_desc÷2], l[n_desc÷2+1:end])')
-#                     for l in ld_c]..., dims=3)
+#function get_e_descr_batch(ds)
+#    xs = []
+#    for c in ds
+##        ld_c = reduce(hcat, get_values(get_local_descriptors(c)))'
+##        ld_c = ld_c[randperm(size(ld_c,1)),:]
+##        ld_c = cat( ld_c[:, 1:n_desc÷2], ld_c[:, n_desc÷2+1:end], dims=3 )
+##        if xs == []
+##            xs = ld_c
+##        else
+##            xs = cat(xs, ld_c, dims=4)
+##        end
+#        
+##        ld_c = get_values(get_local_descriptors(c))
+##        ld_c = ld_c[randperm(length(ld_c))]
+##        ld_c = cat( [Matrix(hcat(l[1:n_desc÷2], l[n_desc÷2+1:end])')
+##                     for l in ld_c]..., dims=3)
 #        
 #        if xs == []
 #            xs = ld_c
@@ -134,11 +138,43 @@ function get_e_descr_batch(ds)
 #            xs = cat(xs, ld_c, dims=4)
 #        end
 
-    end
-    return xs
+#    end
+#    return xs
+#end
+
+function get_e_descr_batch(ds)
+    return cat(get_local_descriptors2.(ds.Configurations)..., dims=4)
 end
 
-sqnorm(x) = sum(abs2, x)
+function potential_energy(c::Configuration, nniap::NNIAP)
+    ld = get_local_descriptors2(c)
+    return sum(nniap.nn(ld))
+end
+
+#function potential_energy!(pes, ld_batch, n_atoms, nn)
+#    le = nn(ld_batch)
+#    r = vcat([1], cumsum(n_atoms))
+#    for i in 1:length(r)-1
+#        pes[i] = sum(le[r[i]:r[i+1]])
+#    end
+#    return pes
+#end
+
+function potential_energy(ld_batch, n_atoms, nn)
+    le = nn(ld_batch)
+    r = vcat([1], cumsum(n_atoms))
+    return [sum(le[r[i]:r[i+1]]) for i in 1:length(r)-1]
+end
+
+function get_no_atoms_per_conf(ds::DataSet)
+    return length.(get_system.(ds))
+end
+
+function get_all_energies(ds::DataSet, nniap::NNIAP)
+    return [potential_energy(c, nniap) for c in ds]
+end
+
+#sqnorm(x) = sum(abs2, x)
 function loss(x, y)
     return Flux.mse(x, y)
 end
@@ -162,18 +198,25 @@ end
 #end
 
 function learn!(cnnace, ds_train, ds_test, opt, n_epochs, loss)
-    es = get_all_energies(ds_train) |> gpu
+    es = get_all_energies(ds_train) #|> gpu
     ld = get_e_descr_batch(ds_train) |> gpu
-    es_test = get_all_energies(ds_test) |> gpu
+    n_atoms = get_no_atoms_per_conf(ds_train) |> gpu
+    es_test = get_all_energies(ds_test) #|> gpu
     ld_test = get_e_descr_batch(ds_test) |> gpu
+    n_atoms_test = get_no_atoms_per_conf(ds_test)
     nn = cnnace.nn |> gpu
     opt = opt |> gpu
+    #pes = zeros(Float32,length(es)) |> gpu
+    #pes_test = zeros(Float32,length(es_test)) |> gpu
     for epoch in 1:n_epochs
-        grads = Flux.gradient(m -> loss(m(ld)', es), nn)
+        #grads = Flux.gradient(m -> loss(potential_energy!(pes, ld, n_atoms, m), es), nn)
+        grads = Flux.gradient(m -> loss(potential_energy(ld, n_atoms, m), es), nn)
         Flux.update!(opt, nn, grads[1])
         if epoch % 500 == 0
-            train_loss = loss(nn(ld)', es)
-            test_loss = loss(nn(ld_test)', es_test)
+            #train_loss = loss(potential_energy!(pes, ld, n_atoms, nn), es)
+            #test_loss = loss(potential_energy!(pes_test, ld_test, n_atoms_test, nn), es_test)
+            train_loss = loss(potential_energy(ld, n_atoms, nn), es)
+            test_loss = loss(potential_energy(ld_test, n_atoms_test, nn), es_test)
             println("epoch = $epoch; train loss = $train_loss, test loss = $test_loss")
         end
     end
@@ -197,24 +240,9 @@ batch_size = length(ds_train)
 #    Dense(_ => 1),
 #)
 
-nn = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
-    BatchNorm(_),
-    Conv((1, 3), 2=>16),
-    BatchNorm(_, relu),
-    MeanPool((1, 2)),
-    Conv((1, 3), _=>32),
-    BatchNorm(_, relu),
-    MeanPool((1, 2)),
-    Flux.flatten,
-#    Dropout(0.2),
-#    Dense(_ => 120, relu),
-#    Dense(_ => 84, relu), 
-    Dense(_ => 1),
-)
-
-#nn = Flux.@autosize (n_types, n_basis, n_atoms, batch_size) Chain(
+#nn = Flux.@autosize (n_types, n_basis, 1, batch_size) Chain(
 ##    BatchNorm(_, affine=true, relu),
-#    Conv((1, 4), n_atoms=>6, relu),
+#    Conv((1, 4), 1=>6, relu),
 #    MaxPool((1, 2)),
 #    Conv((1, 4), _=>16, relu),
 #    MaxPool((1, 2)),
@@ -225,6 +253,19 @@ nn = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
 #    Dense(_ => 1)
 #)
 
+nn = Flux.@autosize (n_types, n_basis, 1, batch_size) Chain(
+#    BatchNorm(_, affine=true, relu),
+    Conv((1, 4), 1=>6, relu),
+    MaxPool((1, 2)),
+    Conv((1, 4), _=>16, relu),
+    MaxPool((1, 2)),
+    Flux.flatten,
+#    Dropout(0.8),
+    Dense(_ => 30, relu),
+    Dense(_ => 20, relu), 
+    Dense(_ => 1)
+)
+
 cnnace = NNIAP(nn, ace)
 
 # Learn
@@ -234,18 +275,26 @@ println("Learning energies and forces...")
 #n_epochs = input["n_epochs"]
 #learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
 
-η = 1e-4         # learning rate
-λ = 1e-2         # for weight decay
-opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
+#η = 3e-4         # learning rate
+#λ = 1e-2         # for weight decay
+#opt_rule = OptimiserChain(WeightDecay(λ), Adam(η))
+#opt_state = Flux.setup(opt_rule, nn)
+#n_epochs = 50_000
+#learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
+#@savevar path Flux.params(cnnace.nn)
+
+
+η = 1e-5         # learning rate
+λ = 1e-3         # for weight decay
+opt_rule = 	OptimiserChain(WeightDecay(λ), Adam(η, (.9, .8)))
 opt_state = Flux.setup(opt_rule, nn)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
 @savevar path Flux.params(cnnace.nn)
 
-
 η = 1e-6         # learning rate
-λ = 1e-3         # for weight decay
-opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
+λ = 1e-4         # for weight decay
+opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (.9, .8)))
 opt_state = Flux.setup(opt_rule, nn)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
@@ -253,7 +302,7 @@ learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
 
 #η = 1e-7         # learning rate
 #λ = 1e-4         # for weight decay
-#opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
+#opt_rule = OptimiserChain(WeightDecay(λ), Adam(η))
 #opt_state = Flux.setup(opt_rule, nn)
 #n_epochs = 10_000
 #learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
