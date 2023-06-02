@@ -22,8 +22,8 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-CNN-ACE/", #"HfB2-CNNACE/"
         "energy_units",         "eV",
         "distance_units",       "Å",
         "random_seed",          "100",
-        "n_train_sys",          "100",
-        "n_test_sys",           "200",
+        "n_train_sys",          "1000",
+        "n_test_sys",           "1000",
         "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
 #        "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
 #        "n_epochs",             "100",
@@ -241,7 +241,6 @@ opt_state = Flux.setup(opt_rule, nn)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
 @savevar path Flux.params(cnnace.nn)
-
 
 η = 1e-6         # learning rate
 λ = 1e-3         # for weight decay
