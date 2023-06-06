@@ -250,13 +250,7 @@ n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
 @savevar path Flux.params(cnnace.nn)
 
-#η = 1e-7         # learning rate
-#λ = 1e-4         # for weight decay
-#opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
-#opt_state = Flux.setup(opt_rule, nn)
-#n_epochs = 10_000
-#learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-#@savevar path Flux.params(cnnace.nn)
+
 
 
 # Post-process output: calculate metrics, create plots, and save results
@@ -272,9 +266,8 @@ e_test_pred = get_all_energies(ds_test, cnnace)
 @savevar path e_test_pred
 
 # Compute metrics
-metrics = calc_metrics(e_train_pred, e_train)
-metrics = calc_metrics(e_test_pred, e_test)
-#@savecsv path metrics
+metrics = get_metrics(e_train_pred, e_train, e_test_pred, e_test)
+@savecsv path metrics
 
 # Plot and save results
 e_train_plot = plot_energy(e_train_pred, e_train)

@@ -275,38 +275,21 @@ println("Learning energies and forces...")
 #n_epochs = input["n_epochs"]
 #learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
 
-#η = 3e-4         # learning rate
-#λ = 1e-2         # for weight decay
-#opt_rule = OptimiserChain(WeightDecay(λ), Adam(η))
-#opt_state = Flux.setup(opt_rule, nn)
-#n_epochs = 50_000
-#learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-#@savevar path Flux.params(cnnace.nn)
-
-
 η = 1e-5         # learning rate
 λ = 1e-3         # for weight decay
-opt_rule = 	OptimiserChain(WeightDecay(λ), Adam(η, (.9, .8)))
+opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
 opt_state = Flux.setup(opt_rule, nn)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-@savevar path Flux.params(cnnace.nn)
 
 η = 1e-6         # learning rate
 λ = 1e-4         # for weight decay
-opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (.9, .8)))
+opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
 opt_state = Flux.setup(opt_rule, nn)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-@savevar path Flux.params(cnnace.nn)
 
-#η = 1e-7         # learning rate
-#λ = 1e-4         # for weight decay
-#opt_rule = OptimiserChain(WeightDecay(λ), Adam(η))
-#opt_state = Flux.setup(opt_rule, nn)
-#n_epochs = 10_000
-#learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-#@savevar path Flux.params(cnnace.nn)
+@savevar path Flux.params(cnnace.nn)
 
 
 # Post-process output: calculate metrics, create plots, and save results
