@@ -1,5 +1,5 @@
 abstract type AbstractLearningProblem end
-export learn! 
+export learn!, get_all_energies, get_all_forces
 
 include("learn.jl")
 include("linear.jl")

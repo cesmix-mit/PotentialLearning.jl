@@ -14,7 +14,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev
       - uses: julia-actions/setup-julia@v1
         with:
-          version: "1.7"
+          version: "1.8.5"
       - name: add CESMIX registry
         run: |
           julia -e '
@@ -22,6 +22,7 @@ jobs:
             Pkg.Registry.add("General")
             Pkg.Registry.add(RegistrySpec(url = "https://github.com/cesmix-mit/CESMIX.git"))
             Pkg.Registry.add(RegistrySpec(url = "https://github.com/JuliaMolSim/MolSim.git"))
+            Pkg.Registry.add(RegistrySpec(url = "https://github.com/ACEsuit/ACEregistry"))
           '
         shell: bash
       - name: instantiate docs
@@ -34,9 +35,6 @@ jobs:
       - name: run doctests
         run: |
           julia --project=docs -e '
-            using Pkg
-            Pkg.activate("./")
-            Pkg.add("Documenter")
             using Documenter: DocMeta, doctest
             using PotentialLearning
             DocMeta.setdocmeta!(PotentialLearning, :DocTestSetup, :(using PotentialLearning); recursive=true)
