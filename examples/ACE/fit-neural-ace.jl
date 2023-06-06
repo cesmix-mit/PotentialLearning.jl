@@ -14,7 +14,6 @@ using OptimizationOptimJL
 using Random
 include("utils/utils.jl")
 
-
 # Load input parameters
 args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "dataset_path",         "data/",
@@ -26,7 +25,7 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "n_test_sys",           "100",
         "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
         "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
-        "n_epochs",             "100",
+        "n_epochs",             "5",
         "n_batches",            "1",
         "optimiser",            "Adam(0.001)", # e.g. Adam(0.01) or BFGS()
         "n_body",               "3",
@@ -36,7 +35,9 @@ args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
         "wL",                   "1.0",
         "csp",                  "1.0",
         "w_e",                  "0.01",
-        "w_f",                  "1.0"]
+        "w_f",                  "1.0",
+        "device",              "cpu"]
+
 args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
 
@@ -45,6 +46,10 @@ input = get_input(args)
 path = input["experiment_path"]
 run(`mkdir -p $path`)
 @savecsv path input
+
+#Get device
+_device = input["device"]
+_device = _device == "gpu" ? gpu : cpu
 
 # Fix random seed
 if "random_seed" in keys(input)
@@ -55,7 +60,6 @@ end
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
 energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
 ds = load_data(ds_path, energy_units, distance_units)
-
 # Split dataset
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 conf_train, conf_test = split(ds, n_train, n_test)
@@ -71,13 +75,20 @@ ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
           csp = input["csp"],
           r0 = input["r0"],
           rcutoff = input["rcutoff"])
+
 @savevar path ace
 
 # Update training dataset by adding energy and force descriptors
+
+
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
-println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
+
+B_time = @elapsed e_descr_train = compute_local_descriptors_unthreaded(conf_train, ace, T = Float32)
+dB_time = @elapsed f_descr_train = compute_force_descriptors_unthreaded(conf_train, ace, T = Float32)
+println("B_time: ", B_time)
+println("dB_time: ", dB_time)
+
+
 GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 n_desc = length(e_descr_train[1][1])
@@ -98,11 +109,17 @@ nace = NNIAP(nn, ace)
 # Learn
 println("Learning energies and forces...")
 w_e, w_f = input["w_e"], input["w_f"]
+w_e = Float32(w_e)
+w_f = Float32(w_f)
 opt = eval(Meta.parse(input["optimiser"]))
 n_epochs = input["n_epochs"]
-learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
+n_batches = input["n_batches"]
 
-end # end of "learn_time = @elapsed begin"
+
+learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
+# learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+
+end
 
 @savevar path Flux.params(nace.nn)
 
@@ -148,4 +165,3 @@ f_test_plot = plot_forces(f_test_pred, f_test)
 @savefig path f_test_plot
 f_test_cos = plot_cos(f_test_pred, f_test)
 @savefig path f_test_cos
-

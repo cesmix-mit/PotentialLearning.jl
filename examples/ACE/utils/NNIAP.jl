@@ -1,5 +1,7 @@
 using Flux
 using Optim
+using Zygote
+
 
 # Neural network interatomic potential
 mutable struct NNIAP
@@ -13,15 +15,15 @@ end
 
 function potential_energy(c::Configuration, nniap::NNIAP)
     Bs = get_values(get_local_descriptors(c))
-    return sum([sum(nniap.nn(B_atom)) for B_atom in Bs])
+    s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
+    return s
 end
 
 function force(c::Configuration, nniap::NNIAP)
     Bs = get_values(get_local_descriptors(c))
     dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
     dbdr = get_values(get_force_descriptors(c))
-    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3]
-             for atom in 1:length(dbdr)]
+    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
 end
 
 # Neural network potential formulation using global descriptors to compute energy and forces
@@ -42,7 +44,7 @@ end
 
 
 # Loss function ################################################################
-function loss(nn, iap, ds, w_e = 1, w_f = 1)
+function loss(nn, iap, ds, w_e=1, w_f=1)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
     fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
@@ -50,14 +52,36 @@ function loss(nn, iap, ds, w_e = 1, w_f = 1)
 end
 
 
+function loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e=1, w_f=1)
+    nn_local_descriptors = nn(local_descriptors)
+    atom_descriptors_list = [nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
+    atom_sum_pred = sum.(atom_descriptors_list)
+    return w_e * Flux.mse(atom_sum_pred, true_energy)
+end
+
+
 # Auxiliary functions ##########################################################
+
+
 function get_all_energies(ds::DataSet, nniap::NNIAP)
     return [potential_energy(ds[c], nniap) for c in 1:length(ds)]
 end
 
+
 function get_all_forces(ds::DataSet, nniap::NNIAP)
-    return reduce(vcat,reduce(vcat,[force(ds[c], nniap)
-                                    for c in 1:length(ds)]))
+    return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
+end
+
+function batch_and_shuffle(data, num_batches)
+    # Shuffle the data
+    shuffle!(data)
+
+    # Calculate the number of batches
+    batch_size = ceil(Int, length(data) / num_batches)
+    # Create the batches
+    batches = [data[(i-1)*batch_size+1:min(i*batch_size, end)] for i in 1:num_batches]
+
+    return batches
 end
 
 # NNIAP learning functions #####################################################
@@ -78,6 +102,36 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     end
 end
 
+function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+    nn = nace.nn |> _device
+    optim = Flux.setup(opt, nn) |> _device
+    ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
+    losses = []
+    batch_lists = batch_and_shuffle(collect(1:length(ds_train)), n_batches)
+    batch_list_len = length(batch_lists)
+    for epoch in 1:n_epochs
+        batch_index = mod(epoch, batch_list_len) + 1 
+        ds_batch = ds_train[batch_lists[batch_index]]
+
+        true_energy = Float32.(get_all_energies(ds_batch))
+        
+        local_descriptors = get_values.(get_local_descriptors.(ds_batch))
+        local_descriptors = reduce(hcat, reduce(hcat, local_descriptors)) |> _device
+
+        atom_config_list = vcat([0], cumsum(length.(get_system.(ds_batch))))
+
+        # Compute gradient with current parameters and update model
+        grads = ∇loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
+        Flux.update!(optim, nn, grads[1])
+
+        # Logging
+        curr_loss = loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
+        push!(losses, curr_loss)
+        println("curr loss: ", curr_loss)
+    end
+end
+
+
 # Optimization.jl training
 function learn!(nniap, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
     ps, re = Flux.destructure(nniap.nn)
@@ -92,6 +146,3 @@ function learn!(nniap, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, 
     #copyto!(nniap.nn, nn)
     #global nniap = NNIAP(nn, nniap.iap) # TODO: improve this
 end
-
-
-
