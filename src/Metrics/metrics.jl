@@ -17,6 +17,33 @@ function calc_metrics(x_pred, x)
     return x_mae, x_rmse, x_rsq
 end
 
+"""
+    get_metrics( e_train_pred, e_train, e_test_pred, e_test)
+    
+`e_train_pred`: vector of predicted training energy values.
+`e_train`: vector of true training energy values.
+`e_test_pred`: vector of predicted test energy values.
+`e_test`: vector of true test energy values.
+
+Computes MAE, RMSE, and RSQ for training and testing energies.
+Returns an OrderedDict with the information above.
+
+"""
+function get_metrics( e_train_pred, e_train, e_test_pred, e_test)
+
+    e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
+    e_test_mae, e_test_rmse, e_test_rsq = calc_metrics(e_test_pred, e_test)
+    
+    metrics = OrderedDict(
+        "e_train_mae" => e_train_mae,
+        "e_train_rmse" => e_train_rmse,
+        "e_train_rsq" => e_train_rsq,
+        "e_test_mae" => e_test_mae,
+        "e_test_rmse" => e_test_rmse,
+        "e_test_rsq" => e_test_rsq,
+    )
+    return metrics
+end
 
 """
     get_metrics( e_train_pred, e_train, f_train_pred, f_train,
@@ -40,19 +67,10 @@ Also add elapsed times about descriptors and fitting calculations.
 Returns an OrderedDict with the information above.
 
 """
-function get_metrics(
-    e_train_pred,
-    e_train,
-    f_train_pred,
-    f_train,
-    e_test_pred,
-    e_test,
-    f_test_pred,
-    f_test,
-    B_time,
-    dB_time,
-    learn_time,
-)
+function get_metrics( e_train_pred, e_train, f_train_pred, f_train,
+                      e_test_pred, e_test, f_test_pred, f_test,
+                      B_time, dB_time, learn_time )
+    
     e_train_mae, e_train_rmse, e_train_rsq = calc_metrics(e_train_pred, e_train)
     f_train_mae, f_train_rmse, f_train_rsq = calc_metrics(f_train_pred, f_train)
     e_test_mae, e_test_rmse, e_test_rsq = calc_metrics(e_test_pred, e_test)
