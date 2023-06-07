@@ -1,26 +1,28 @@
 # Run this script:
-#   $ julia --project=./ --threads=4
+#   $ cd examples/ACE
+#   $ julia --project=../ --threads=4
 #   julia> include("fit-ace.jl")
 
+push!(Base.LOAD_PATH, "../../")
+
 using AtomsBase
-using Unitful, UnitfulAtomic
-using InteratomicPotentials 
-using InteratomicBasisPotentials
+using InteratomicPotentials, InteratomicBasisPotentials
 using PotentialLearning
+using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
-include("utils/utils.jl")
+include("../utils/utils.jl")
 
 
 # Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-ACE/",
-        "dataset_path",         "data/",
+args = ["experiment_path",      "a-HfO2-ACE/",
+        "dataset_path",         "../data/a-HfO2/",
         "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
         "energy_units",         "eV",
         "distance_units",       "Å",
         "random_seed",          "100",
-        "n_train_sys",          "200",
-        "n_test_sys",           "200",
+        "n_train_sys",          "100",
+        "n_test_sys",           "100",
         "n_body",               "3",
         "max_deg",              "3",
         "r0",                   "1.0",
@@ -76,7 +78,8 @@ ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 # Learn
 println("Learning energies and forces...")
 lb = LBasisPotential(ace)
-learn!(lb, ds_train; w_e = input["w_e"], w_f = input["w_f"]) # learn!(lb, ds_train)
+w_e, w_f = input["w_e"], input["w_f"]
+learn!(lb, ds_train; w_e = w_e, w_f = w_f) # learn!(lb, ds_train)
 
 end # end of "learn_time = @elapsed begin"
 
