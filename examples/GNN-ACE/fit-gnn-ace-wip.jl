@@ -41,7 +41,7 @@ args = length(ARGS) > 0 ? ARGS : args
 input = get_input(args)
 
 # Use cpu or gpu
-device = Flux.cpu
+device = Flux.gpu
 
 # Create experiment folder
 path = input["experiment_path"]
@@ -122,7 +122,7 @@ end
 #Base.size(o::OneHotAtom) = (o.length,)
 #Base.length(o::OneHotAtom) = o.length
 
-all_graphs = []
+train_graphs = []
 for c in ds_train
     adj = adj_matrix(get_positions(c), bounding_box(get_system(c)))
     #at_ids = atomic_number(get_system(c))
@@ -130,7 +130,7 @@ for c in ds_train
     ld_mat = hcat(get_values(get_local_descriptors(c))...)
     g = GNNGraph(adj, ndata = (; x = ld_mat), #, y = at_ids),
                       gdata = (; z = get_values(get_energy(c)))) |> device
-    push!(all_graphs, g)
+    push!(train_graphs, g)
 end
 test_graphs = []
 for c in ds_test
@@ -167,35 +167,33 @@ opt = Adam(.1, (.9, .8))
 # loss(g::GNNGraph) = mean((sum(model(g, g.x, g.y)) - g.z).^2)
 loss(g::GNNGraph) = Flux.mse(first(model(g, g.x)), g.z)
 
+train_graphs_gpu = [ g |> device for g in train_graphs]
+test_graphs_gpu = [ g |> device for g in test_graphs]
+
 stats = @timed for epoch in 1:500
-    for g in all_graphs
-        g = g |> device
+    for g in train_graphs_gpu
         grad = gradient(() -> loss(g), ps)
         Flux.Optimise.update!(opt, ps, grad)
     end
-
-    #@info (; epoch, train_loss=mean(loss.(all_graphs)))
     if epoch % 10 == 0
-        println("epoch = "*string(epoch)*"; loss = "*string(mean(loss.(all_graphs)))*"; test_loss = "*string(mean(loss.(test_graphs))))
+        @info (; epoch, train_loss=mean(loss.(train_graphs_gpu)),
+                        test_loss=mean(loss.(test_graphs_gpu)))
     end
-    flush(stdout)
 end
 
 opt = Adam(1f-5, (.9, .8))
 stats = @timed for epoch in 501:1000
-    for g in all_graphs
-        g = g |> device
+    for g in train_graphs_gpu
         grad = gradient(() -> loss(g), ps)
         Flux.Optimise.update!(opt, ps, grad)
     end
-
-    #@info (; epoch, train_loss=mean(loss.(all_graphs)))
     if epoch % 10 == 0
-        println("epoch = "*string(epoch)*"; loss = "*string(mean(loss.(all_graphs)))*"; test_loss = "*string(mean(loss.(test_graphs))))
+        @info (; epoch, train_loss=mean(loss.(train_graphs_gpu)),
+                        test_loss=mean(loss.(test_graphs_gpu)))
     end
-    flush(stdout)
 end
 
+
 using JLD
-save("gnngraphs.jld", "all_graphs", all_graphs)
+save("gnngraphs.jld", "train_graphs", train_graphs)
 
