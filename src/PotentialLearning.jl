@@ -1,11 +1,12 @@
 module PotentialLearning
 
-using Printf
+using AtomsBase
+using InteratomicPotentials, InteratomicBasisPotentials
+using Unitful, UnitfulAtomic
 using LinearAlgebra, Statistics, Random, Distributions
-using Unitful, UnitfulAtomic, AtomsBase
 using StaticArrays
+using OrderedCollections
 using Zygote
-using InteratomicPotentials
 using Printf
 
 # Custom Adjoints for StaticVectors

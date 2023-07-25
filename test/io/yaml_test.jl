@@ -4,7 +4,7 @@ using Unitful, UnitfulAtomic
 energy_units = u"eV"
 distance_units = u"Å"
 ds, t = load_data(
-    "../examples/Sodium/data/empirical_sodium_2d.yaml",
+    "../examples/Na/data/empirical_sodium_2d.yaml",
     YAML(:Na; energy_units = energy_units, distance_units = distance_units),
 );
 
