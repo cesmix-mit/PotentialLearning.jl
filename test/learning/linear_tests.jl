@@ -1,19 +1,17 @@
-using LinearAlgebra
-using AtomsBase, Unitful, UnitfulAtomic, StaticArrays
+#using LinearAlgebra
+#using AtomsBase
+#using StaticArrays
+using Unitful, UnitfulAtomic
 using InteratomicPotentials, InteratomicBasisPotentials
-using ACE1, JuLIP
 
-
-# initialize a LinearBasisPotential
-n_body = 2  
-max_deg = 8 
-r0 = 1.0 
-rcutoff = 5.0 
-wL = 1.0 
-csp = 1.0 
-ace = ACE([:Na], n_body, max_deg, wL, csp, r0, rcutoff)
-lb = LBasisPotential(ace)
-
+ace = ACE(species = [:Na],         # species
+          body_order = 2,          # 4-body
+          polynomial_degree = 8,   # 8 degree polynomials
+          wL = 1.0,                # Defaults, See ACE.jl documentation 
+          csp = 1.0,               # Defaults, See ACE.jl documentation 
+          r0 = 1.0,                # minimum distance between atoms
+          rcutoff = 5.0)           # cutoff radius 
+lb = LBasisPotentialExt(ace)
 
 ## UnivariateLinearProblem ###############################################################
 
@@ -45,9 +43,10 @@ lp = PotentialLearning.LinearProblem(ds)
 
 # test learning functions
 # test learn!(lb::LinearBasisPotential, ds::DataSet; α::Real = 1e-8, return_cov = true)
-lb, Σ = learn!(lb, ds)
+α = 1e-8
+lb, Σ = learn!(lb, ds, α)
 # test learn!(lp::UnivariateLinearProblem; α = 1e-8) (internal method)
-lp = learn!(lp) 
+learn!(lp, α) 
 # test the two give the same output
 @test lb.β == lp.β
 
