@@ -6,6 +6,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Statistics, Random, Distributions
 using StaticArrays
 using OrderedCollections
+using Flux
 using Zygote
 using Printf
 
