@@ -1,6 +1,3 @@
-#using LinearAlgebra
-#using AtomsBase
-#using StaticArrays
 using Unitful, UnitfulAtomic
 using InteratomicPotentials, InteratomicBasisPotentials
 

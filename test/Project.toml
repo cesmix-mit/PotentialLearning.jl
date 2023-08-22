@@ -1,5 +1,7 @@
 [deps]
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
+InteratomicBasisPotentials = "37c59853-c2ad-4e3a-930c-a41b2395fb19"
+InteratomicPotentials = "a9efe35a-c65d-452d-b8a8-82646cd5cb04"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
