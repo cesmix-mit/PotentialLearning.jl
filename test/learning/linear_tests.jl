@@ -10,9 +10,9 @@ ace = ACE(species = [:Na],         # species
           rcutoff = 5.0)           # cutoff radius 
 lb = LBasisPotentialExt(ace)
 
-## UnivariateLinearProblem ###############################################################
+# UnivariateLinearProblem ######################################################
 
-# initialize some fake energy descriptors
+# Initialize some fake energy descriptors
 d = 8
 num_atoms = 20
 num_configs = 10
@@ -21,36 +21,35 @@ ld = LocalDescriptors.(ld_0)
 e = Energy.(rand(num_configs), (u"eV",))
 ds = DataSet(Configuration.(e, ld))
 
-
-# test input types
+# Test input types
 lp = PotentialLearning.LinearProblem(ds)
 @test typeof(lp) <: PotentialLearning.LinearProblem
 @test typeof(lp) <: PotentialLearning.UnivariateLinearProblem
 @test typeof(ds) <: DataSet
 @test typeof(lb) <: InteratomicPotentials.LinearBasisPotential
 
-
-# test input values before learning
+# Test input values before learning
 @test lp.dv_data == get_values.(e)
 @test lp.iv_data == sum.(get_values.(get_local_descriptors.(ds)))
 @test lp.σ == [1.0]
 @test lp.β == zeros(d) # coeffs in LinearProblem
 @test lb.β == zeros(d) # coeffs in LinearBasisPotential
 
-
-# test learning functions
-# test learn!(lb::LinearBasisPotential, ds::DataSet; α::Real = 1e-8, return_cov = true)
+# Test learning functions based on maximum likelihood estimation approach
 α = 1e-8
-lb, Σ = learn!(lb, ds, α)
-# test learn!(lp::UnivariateLinearProblem; α = 1e-8) (internal method)
+Σ = learn!(lb, ds, α)
 learn!(lp, α) 
-# test the two give the same output
 @test lb.β == lp.β
 
+# Test learning functions based on weighted least squares approach
+ws, int = [1.0], true
+learn!(lb, ds, ws, int)
+learn!(lp, ws, int) 
+@test lb.β == lp.β
 
+# CovariateLinearProblem #######################################################
 
-## CovariateLinearProblem ###############################################################
-
+# TODO:
 # initialize some fake energy and force descriptors
 # ld_0 = [[randn(d) for i = 1:num_atoms] for j = 1:num_configs]
 # fd_0 = [[[randn(d), randn(d), randn(d)] for i = 1:num_atoms] for j = 1:num_configs]

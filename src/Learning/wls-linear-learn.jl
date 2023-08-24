@@ -78,7 +78,7 @@ function learn!(
     else
         copyto!(lb.β, βs)
     end
-    
+
 end
 
 
@@ -92,7 +92,8 @@ Default learning problem: weighted least squares.
 function learn!(
     lp::LinearProblem
 )
-    ws, int = ones(length(lp.σ)), false
+    n = typeof(lp) <: UnivariateLinearProblem ? 1 : 2
+    ws, int = ones(n), false
     return learn!(lp, ws, int)
 end
 
