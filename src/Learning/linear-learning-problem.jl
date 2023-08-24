@@ -159,5 +159,5 @@ function learn!(
     learn!(lp, args...)
     copy!(iap.β, lp.β)
     copy!(iap.β0, lp.β0)
-    return iap, lp.Σ
+    return lp.Σ
 end

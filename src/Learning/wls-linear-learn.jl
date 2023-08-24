@@ -35,10 +35,6 @@ function learn!(
     else
         copyto!(lp.β, βs)
     end
-    copyto!(lp.σ, ws.^(-1))
-    AtA = sum(v * v' for v in lp.iv_data)
-    α = 1e-8
-    copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * pinv(AtA, α)))
     
 end
 
@@ -82,11 +78,7 @@ function learn!(
     else
         copyto!(lb.β, βs)
     end
-    copyto!(lp.σ, ws.^(-1))
-    AtA = sum(v * v' for v in lp.iv_data)
-    α = 1e-8
-    copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * pinv(AtA, α)))
-
+    
 end
 
 

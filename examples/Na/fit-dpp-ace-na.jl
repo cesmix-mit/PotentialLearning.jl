@@ -35,7 +35,7 @@ lb = LBasisPotentialExt(ace)
 dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 dpp_inds = get_random_subset(dpp)
 α = 1e-8
-lb, Σ = learn!(lb, ds_train[dpp_inds], α)
+Σ = learn!(lb, ds_train[dpp_inds], α)
 
 # Post-process output
 
