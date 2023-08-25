@@ -15,7 +15,7 @@ lb = LBasisPotentialExt(ace)
 # Initialize some fake energy descriptors
 d = 8
 num_atoms = 20
-num_configs = 10
+num_configs = 8
 ld_0 = [[randn(d) for i = 1:num_atoms] for j = 1:num_configs]
 ld = LocalDescriptors.(ld_0)
 e = Energy.(rand(num_configs), (u"eV",))
@@ -32,20 +32,32 @@ lp = PotentialLearning.LinearProblem(ds)
 @test lp.dv_data == get_values.(e)
 @test lp.iv_data == sum.(get_values.(get_local_descriptors.(ds)))
 @test lp.σ == [1.0]
-@test lp.β == zeros(d) # coeffs in LinearProblem
-@test lb.β == zeros(d) # coeffs in LinearBasisPotential
+@test lp.β == zeros(d)
+@test lp.β0 == zeros(1)
+@test lb.β == zeros(d)
+@test lb.β0 == zeros(1)
+
+# Test learning functions based on weighted least squares approach
+learn!(lb, ds) # default
+ws, int = [1.0], false
+learn!(lp, ws, int)
+@test lb.β == lp.β
+@test lb.β0 == lp.β0
+@test maximum(abs.(get_all_energies(ds, lb) - lp.dv_data)) < 1.e-4
+
+ws, int = [1.0], true
+learn!(lb, ds, ws, int)
+learn!(lp, ws, int)
+@test lb.β == lp.β
+@test lb.β0 == lp.β0
+@test maximum(abs.(get_all_energies(ds, lb) - lp.dv_data)) < 1.e-4
 
 # Test learning functions based on maximum likelihood estimation approach
 α = 1e-8
 Σ = learn!(lb, ds, α)
 learn!(lp, α) 
 @test lb.β == lp.β
-
-# Test learning functions based on weighted least squares approach
-ws, int = [1.0], true
-learn!(lb, ds, ws, int)
-learn!(lp, ws, int) 
-@test lb.β == lp.β
+@test maximum(abs.(get_all_energies(ds, lb) - lp.dv_data)) < 1.e-4
 
 # CovariateLinearProblem #######################################################
 
