@@ -1,3 +1,5 @@
+# Weighted least squares functions ############################################
+
 """
 function learn!(
     lp::UnivariateLinearProblem,
@@ -73,10 +75,10 @@ function learn!(
 
     # Update lp.
     if int
-        copyto!(lb.β0, [βs[1]])
-        copyto!(lb.β, βs[2:end])
+        copyto!(lp.β0, [βs[1]])
+        copyto!(lp.β, βs[2:end])
     else
-        copyto!(lb.β, βs)
+        copyto!(lp.β, βs)
     end
 
 end

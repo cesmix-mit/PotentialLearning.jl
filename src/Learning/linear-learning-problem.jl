@@ -1,3 +1,5 @@
+# Linear learning problem data types and constructors #########################
+
 """
 abstract type LinearProblem{T<:Real} <: AbstractLearningProblem end
 
@@ -143,12 +145,16 @@ function LinearProblem(
     p
 end
 
+# Linear learning functions common to OLS and WLS implementations #############
+
 """
 function learn!(
     iap::InteratomicPotentials.LinearBasisPotential,
     ds::DataSet,
     args...
 )
+
+Learning dispatch function, common to ordinary and weghted least squares implementations.
 """
 function learn!(
     iap::InteratomicPotentials.LinearBasisPotential,

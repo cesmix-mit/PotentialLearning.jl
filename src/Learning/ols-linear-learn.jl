@@ -1,3 +1,5 @@
+# Ordinary least squares functions ############################################
+
 """
 function learn!(
     lp::UnivariateLinearProblem,
