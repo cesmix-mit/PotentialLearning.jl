@@ -1,5 +1,8 @@
 using Unitful, UnitfulAtomic
 using InteratomicPotentials, InteratomicBasisPotentials
+using Random
+
+Random.seed!(0)
 
 ace = ACE(species = [:Na],         # species
           body_order = 2,          # 4-body
