@@ -142,7 +142,7 @@ function learn!(
         AtAf = sum(db * db' for db in lp.dB[inds])
         Atbf = sum(db * f for (db, f) in zip(lp.dB[inds], lp.f[inds]))
 
-        p = (AtAe, Atbe, AtAf, Atbf)
+        p = (AtAe, Atbe, AtAf, Atbf) # TODO: should this have 5 parameters?
         if step % (num_steps ÷ 10) == 0
             err = @sprintf("%1.3e", f(params, p))
             println("Iteration #$(step): \t Batch log(p(x)) = $err")

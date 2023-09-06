@@ -67,7 +67,7 @@ lb = LBasisPotentialExt(ace)
 # Initialize some fake energy and force descriptors
 d = 8
 num_atoms = 20
-num_configs = 8
+num_configs = 100
 ld_0 = [[randn(d) for i = 1:num_atoms] for j = 1:num_configs]
 fd_0 = [[[randn(d), randn(d), randn(d)] for i = 1:num_atoms] for j = 1:num_configs]
 ld = LocalDescriptors.(ld_0)
@@ -112,8 +112,11 @@ learn!(lp, ws, int)
 @test lb.β == lp.β
 @test lb.β0 == lp.β0
 
-# Test learning functions based on maximum likelihood estimation approach
+# Test learning functions based on ordinary least squares approach
 α = 1e-8
+lb = LBasisPotentialExt(ace)
 Σ = learn!(lb, ds, α)
-learn!(lp, α) 
-@test lb.β ≈ lp.β atol=0.01
+lp = PotentialLearning.LinearProblem(ds)
+learn!(lp, α)
+@test lb.β ≈ lp.β atol = 0.01
+
