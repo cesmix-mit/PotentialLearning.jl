@@ -12,7 +12,7 @@ DocMeta.setdocmeta!(
     recursive = true,
 )
 
-bib = CitationBibliography(joinpath(@__DIR__, "citations.bib"))
+bib = CitationBibliography(joinpath(@__DIR__, "citation.bib"))
 
 # Generate examples
 

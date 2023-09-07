@@ -6,8 +6,12 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Statistics, Random, Distributions
 using StaticArrays
 using OrderedCollections
-using Optimization, Optim, OptimizationOptimJL
+using Flux
 using Zygote
+using Optimization
+using Optim
+using OptimizationOptimJL
+using OptimizationOptimisers
 using Printf
 
 # Custom Adjoints for StaticVectors

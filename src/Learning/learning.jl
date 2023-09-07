@@ -1,26 +1,13 @@
 abstract type AbstractLearningProblem end
-export learn!, get_all_energies, get_all_forces
 
-include("learn.jl")
-include("linear.jl")
+export learn!, get_all_energies, get_all_forces, LBasisPotentialExt
 
-# Auxiliary functions to compute all energies and forces as vectors (Zygote-friendly functions)
+include("InteratomicBasisPotentialsExtension.jl")
 
-function get_all_energies(ds::DataSet)
-    return [get_values(get_energy(ds[c])) for c in 1:length(ds)]
-end
+include("general-learning-problem.jl")
 
-function get_all_forces(ds::DataSet)
-    return reduce(vcat,reduce(vcat,[get_values(get_forces(ds[c]))
-                                    for c in 1:length(ds)]))
-end
+include("linear-learning-problem.jl")
+include("ols-linear-learn.jl")
+include("wls-linear-learn.jl") # Default learning algorithms
 
-function get_all_energies(ds::DataSet, lb::LinearBasisPotential)
-    Bs = sum.(get_values.(get_local_descriptors.(ds)))
-    return dot.(Bs, [lb.β])
-end
-
-function get_all_forces(ds::DataSet, lb::LinearBasisPotential)
-    force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
-    return vcat([dB' * lb.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
-end
+include("utils.jl")

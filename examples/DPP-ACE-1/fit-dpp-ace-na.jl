@@ -30,11 +30,12 @@ e_descr_train = compute_local_descriptors(conf_train, ace)
 #e_descr_train = JLD.load("data/sodium_empirical_full.jld", "descriptors")
 ds_train = DataSet(conf_train .+ e_descr_train)
 
-# Learn, using DPP
-lb = LBasisPotential(ace)
+# Learn using DPP
+lb = LBasisPotentialExt(ace)
 dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 dpp_inds = get_random_subset(dpp)
-lb, Σ = learn!(lb, ds_train[dpp_inds]; α = 1e-6)
+α = 1e-8
+Σ = learn!(lb, ds_train[dpp_inds], α)
 
 # Post-process output
 
