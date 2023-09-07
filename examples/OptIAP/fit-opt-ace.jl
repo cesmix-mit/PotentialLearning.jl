@@ -3,7 +3,7 @@
 #   $ julia --project=../ --threads=4
 #   julia> include("fit-opt-ace.jl")
 
-push!(Base.LOAD_PATH, "../../")
+push!(Base.LOAD_PATH, "../")
 
 using AtomsBase
 using InteratomicPotentials, InteratomicBasisPotentials
@@ -12,7 +12,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
 include("../utils/utils.jl")
-include("OptIAP.jl")
+include("HyperLearn.jl")
 
 
 # Load input parameters
@@ -56,45 +56,68 @@ ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/
 energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
 ds = load_data(ds_path, energy_units, distance_units)
 
-# Split dataset
+# Configuration datasets
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 conf_train, conf_test = split(ds, n_train, n_test)
 
-# Start measuring learning time
-learn_time = @elapsed begin
+# Model
+model = ACE
 
-# Define Optimal ACE
+# Hyperoptimizer parameters
+n_samples = 10
+ho = Hyperoptimizer(n_samples,
+                    sampler = RandomSampler(),
+                    species = [[:Hf, :O]],
+                    body_order = [2, 3],
+                    polynomial_degree = [3, 4],
+                    wL  = [1],
+                    csp = [1],
+                    r0  = [1],
+                    rcutoff = [5, 5.5])
+
+# Subselector
 epsi, minpts, sample_size = input["eps"], input["minpts"], input["sample_size"]
-s = DBSCANSelector(conf_train, epsi, minpts, sample_size)
-#s = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = 200)
-optace = OptIAP(model  = ACE,
-                params = OrderedDict(
-                           :species => [[:Hf, :O]],
-                           :body_order => [2,3],
-                           :polynomial_degree => [3,4],
-                           :wL  => [1],
-                           :csp => [1],
-                           :r0  => [1],
-                           :rcutoff => [5, 5.5]),
-                conf_selector = s,
-                n_samples     = 3,
-                sampler       = RandomSampler(),
-                incremental   = true)
-@savevar path optace
+ss = DBSCANSelector(conf_train, epsi, minpts, sample_size) #ss = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = 200)
 
-# Learn
-println("Learning energies and forces...")
-w_e, w_f = input["w_e"], input["w_f"]
-ho = learn!(optace, conf_train, w_e, w_f)
+# End condition
+cond() = return false
 
-end # end of "learn_time = @elapsed begin"
+# Weights
+ws = [input["w_e"], input["w_f"]]
 
+# Hyperlearn
+hyperlearn!(;   hyper_optimizer = ho,
+                model = model,
+                configurations = conf_train,
+                subset_selector = ss,
+                dataset_generator = Nothing,
+                max_iterations = 1,
+                end_condition = cond,
+                weights = ws)
 
 @show sortslices(hcat(ho.results, ho.history), dims=1, by=x->x[1])
 
 best_params, min_f = ho.minimizer, ho.minimum
 
 
+
+
+
+
+
+
+# Define ACE parameter subspace
+ace_pars = OrderedDict(
+            :species => [[:Hf, :O]],
+            :body_order => [2,3],
+            :polynomial_degree => [3,4],
+            :wL  => [1],
+            :csp => [1],
+            :r0  => [1],
+            :rcutoff => [5, 5.5])
+
+# Define HyperOpt parameters
+ho_pars = Dict(:n_samples => 3, :sampler => RandomSampler())
 
 #@savevar path lb.β
 

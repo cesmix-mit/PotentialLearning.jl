@@ -1,6 +1,7 @@
 [deps]
 ACE1pack = "8c4e8d19-0bd6-4234-8309-7210652e3178"
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"

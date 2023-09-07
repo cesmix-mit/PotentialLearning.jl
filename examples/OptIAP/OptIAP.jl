@@ -3,34 +3,49 @@ using InteratomicBasisPotentials
 
 include("dbscan.jl")
 
-struct OptIAP
-    model
-    params
-    conf_selector
-    n_samples
-    sampler
-    incremental
-end
+# struct IAPOpt
+#     hyper_optimizer::Hyperoptimizer
+#     subset_selector::SubsetSelector
+#     dataset_generator::DatasetGenerator
+#     max_iterations::Int64 # 1 or more
+#     end_condition::Function
+# end
 
-function OptIAP(; model = [], params = [], conf_selector = [],
-                  n_samples = [], sampler = [], incremental = true)
-    return OptIAP(model, params, conf_selector, n_samples, sampler, incremental)
-end
+
+# function IAPOpt(; hyper_optimizer = Nothing,
+#                   subset_selector = Nothing,
+#                   dataset_generator = Nothing,
+#                   max_iterations = Nothing,
+#                   end_condition = Nothing)
+#     return IAPOpt(  hyper_optimizer,
+#                     subset_selector,
+#                     dataset_generator,
+#                     max_iterations,
+#                     end_condition)
+# end
 
 # Add following function to IBS.jl
-function InteratomicBasisPotentials.ACE(species, body_order, polynomial_degree, wL, csp, r0, rcutoff)
+function InteratomicBasisPotentials.ACE(species, body_order, polynomial_degree,
+                                        wL, csp, r0, rcutoff)
     return ACE(species = species, body_order = body_order,
                polynomial_degree = polynomial_degree, 
                wL = wL, csp = csp, r0 = r0, rcutoff = rcutoff)
 end
 
-function learn!(optiap::OptIAP, conf_train, w_e, w_f)
-    ho = Hyperoptimizer(optiap.n_samples; optiap.params...)
-    for (i, pars...) in ho
-        iap = eval(optiap.model(pars...))
+function hyperlearn!(;  hyper_optimizer,
+                        model,
+                        configurations,
+                        subset_selector = Nothing,
+                        dataset_generator = Nothing,
+                        max_iterations = 1,
+                        end_condition = true,
+                        weights = [1.0, 1.0])
+    #ho = Hyperoptimizer(optiap.n_samples; optiap.params...)
+    for (i, pars...) in hyper_optimizer
+        iap = eval(model(pars...))
         lb = LBasisPotential(iap)
         
-        inds = get_random_subset(optiap.conf_selector)
+        inds = get_random_subset(conf_selector)
         conf_new = conf_train[inds]
         
         # Compute energy and force descriptors of new sampled configurations
@@ -39,7 +54,7 @@ function learn!(optiap::OptIAP, conf_train, w_e, w_f)
         ds_cur = DataSet(conf_new .+ e_descr_new .+ f_descr_new)
         
         # Learn
-        learn!(lb, ds_cur; w_e = w_e, w_f = w_f)
+        learn!(lb, ds_cur, ws)
         
         # Get true and predicted values
         e, f = get_all_energies(ds_cur), get_all_forces(ds_cur)
