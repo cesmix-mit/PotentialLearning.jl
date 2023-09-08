@@ -77,9 +77,9 @@ ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 
 # Learn
 println("Learning energies and forces...")
-lb = LBasisPotential(ace)
-w_e, w_f = input["w_e"], input["w_f"]
-learn!(lb, ds_train; w_e = w_e, w_f = w_f) # learn!(lb, ds_train)
+lb = LBasisPotentialExt(ace)
+ws, int = [input["w_e"], input["w_f"]], false
+learn!(lb, ds_train, ws, int)
 
 end # end of "learn_time = @elapsed begin"
 

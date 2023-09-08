@@ -85,7 +85,7 @@ end
 # NNIAP learning functions #####################################################
 
 # Flux.jl training
-function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f)
+function PotentialLearning.learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f)
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
     ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
     losses = []
@@ -100,7 +100,7 @@ function learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w
     end
 end
 
-function learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+function PotentialLearning.learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
     nn = nace.nn |> _device
     optim = Flux.setup(opt, nn) |> _device
     ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
@@ -136,7 +136,7 @@ end
 
 
 # Optimization.jl training
-function learn!(nniap, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
+function PotentialLearning.learn!(nniap, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
     ps, re = Flux.destructure(nniap.nn)
     batchloss(ps, p) = loss(re(ps), nniap.iap, ds, w_e, w_f)
     ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
