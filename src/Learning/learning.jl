@@ -7,7 +7,5 @@ include("InteratomicBasisPotentialsExtension.jl")
 include("general-learning-problem.jl")
 
 include("linear-learning-problem.jl")
-include("ols-linear-learn.jl")
-include("wls-linear-learn.jl") # Default learning algorithms
+include("linear-learn.jl")
 
-include("utils.jl")

@@ -12,9 +12,9 @@ Generic LearningProblem that allows the user to pass a logprob(y::params, ds::Da
 """
 struct LearningProblem{T<:Real} <: AbstractLearningProblem
     ds::DataSet
-    logprob::Function
-    ∇logprob::Function
-    params::Vector{T}
+    logprob::Function  # logprob(y::params, ds::Dataset) -> scalar
+    ∇logprob::Function # ∇logprob(y::params, ds::Dataset) -> gradient wrt y (params)
+    params::Vector{T}  # model parameters
 end
 
 """
