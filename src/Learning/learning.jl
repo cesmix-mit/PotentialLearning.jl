@@ -9,4 +9,3 @@ include("general-learning-problem.jl")
 include("linear-learning-problem.jl")
 include("linear-learn.jl")
 
-include("utils.jl")
