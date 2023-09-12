@@ -90,8 +90,9 @@ end
 
 # Learn
 println("Learning energies and forces...")
-lb = LBasisPotential(ace)
-learn!(lb, ds_train; w_e = input["w_e"], w_f = input["w_f"], intercept = true) # learn!(lb, ds_train)
+lb = LBasisPotentialExt(ace)
+ws, int = [input["w_e"], input["w_f"]], true
+learn!(lb, ds_train, ws, int)
 
 end # end of "learn_time = @elapsed begin"
 

@@ -11,7 +11,7 @@ using PotentialLearning
 #################### Importing Data ###################
 # Import Raw Data
 energies, descriptors = JLD.load(
-    "examples/aHfO2/data/aHfO2_diverse_descriptors_3600.jld",
+    "data/aHfO2/aHfO2_diverse_descriptors_3600.jld",
     "energies",
     "descriptors",
 )
@@ -83,4 +83,4 @@ ax4 = Axis(
 )
 scatter!(ax4, [length(c.B) - 32 for c in configs], ips, markersize = 4.0)
 
-save("examples/aHfO2/figures/aHfO2_dpp_inclusion_probabilities.pdf", fig)
+save("figures/aHfO2_dpp_inclusion_probabilities.pdf", fig)

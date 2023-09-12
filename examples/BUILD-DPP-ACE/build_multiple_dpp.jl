@@ -11,12 +11,12 @@ using PotentialLearning
 #################### Importing Data ###################
 # Import Raw Data
 energies, descriptors = JLD.load(
-    "examples/aHfO2/data/aHfO2_diverse_descriptors_3600.jld",
+    "../data/aHfO2/aHfO2_diverse_descriptors_3600.jld",
     "energies",
     "descriptors",
 )
 energies1, descriptors1 = JLD.load(
-    "examples/aHfO2/data/aHfO2_diverse_descriptors_3601_6000.jld",
+    "../data/aHfO2/aHfO2_diverse_descriptors_3601_6000.jld",
     "energies",
     "descriptors",
 )
@@ -82,4 +82,4 @@ for i = 1:4
 
 end
 
-save("examples/aHfO2/figures/aHfO2_multiple_dpp_distances_inclusion_probabilities.pdf", fig)
+save("figures/aHfO2_multiple_dpp_distances_inclusion_probabilities.pdf", fig)
