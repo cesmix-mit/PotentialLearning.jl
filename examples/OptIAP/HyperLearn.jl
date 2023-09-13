@@ -3,27 +3,6 @@ using InteratomicBasisPotentials
 
 include("dbscan.jl")
 
-# struct IAPOpt
-#     hyper_optimizer::Hyperoptimizer
-#     subset_selector::SubsetSelector
-#     dataset_generator::DatasetGenerator
-#     max_iterations::Int64 # 1 or more
-#     end_condition::Function
-# end
-
-
-# function IAPOpt(; hyper_optimizer = Nothing,
-#                   subset_selector = Nothing,
-#                   dataset_generator = Nothing,
-#                   max_iterations = Nothing,
-#                   end_condition = Nothing)
-#     return IAPOpt(  hyper_optimizer,
-#                     subset_selector,
-#                     dataset_generator,
-#                     max_iterations,
-#                     end_condition)
-# end
-
 # Add following function to IBS.jl
 function InteratomicBasisPotentials.ACE(species, body_order, polynomial_degree,
                                         wL, csp, r0, rcutoff)
@@ -32,20 +11,29 @@ function InteratomicBasisPotentials.ACE(species, body_order, polynomial_degree,
                wL = wL, csp = csp, r0 = r0, rcutoff = rcutoff)
 end
 
-function hyperlearn!(;  hyper_optimizer,
+"""
+    function hyperlearn!(   hyper_optimizer,
+                            model,
+                            configurations,
+                            dataset_selector = Nothing,
+                            dataset_generator = Nothing,
+                            max_iterations = 1,
+                            end_condition = true,
+                            weights = [1.0, 1.0])
+"""
+function hyperlearn!(   hyper_optimizer,
                         model,
                         configurations,
-                        subset_selector = Nothing,
+                        dataset_selector = Nothing,
                         dataset_generator = Nothing,
                         max_iterations = 1,
                         end_condition = true,
                         weights = [1.0, 1.0])
-    #ho = Hyperoptimizer(optiap.n_samples; optiap.params...)
     for (i, pars...) in hyper_optimizer
         iap = eval(model(pars...))
         lb = LBasisPotentialExt(iap)
         
-        inds = get_random_subset(subset_selector)
+        inds = get_random_subset(dataset_selector)
         conf_new = conf_train[inds]
         
         # Compute energy and force descriptors of new sampled configurations
@@ -54,7 +42,7 @@ function hyperlearn!(;  hyper_optimizer,
         ds_cur = DataSet(conf_new .+ e_descr_new .+ f_descr_new)
         
         # Learn
-        learn!(lb, ds_cur, ws, true)
+        learn!(lb, ds_cur, weights, true)
         
         # Get true and predicted values
         e, f = get_all_energies(ds_cur), get_all_forces(ds_cur)
@@ -63,14 +51,21 @@ function hyperlearn!(;  hyper_optimizer,
         # Compute metrics
         e_mae, e_rmse, e_rsq = calc_metrics(e_pred, e)
         f_mae, f_rmse, f_rsq = calc_metrics(f_pred, f)
-        println("Learning experiment: $i. E_MAE: $e_mae, F_MAE: $f_mae.")
+        accuracy = weights[1] * e_rmse^2 + weights[2] * f_rmse^2
+        #ndesc = length(e_descr_new[1])
+        #loss =  accuracy < threshold ? accuracy * ndesc : Inf
+        loss =  accuracy
+        println("Learning experiment: $i. E_MAE: $e_mae, F_MAE: $f_mae, loss: $loss.")
         
         # Return value
-        push!(ho.results, e_mae)
+        push!(hyper_optimizer.results, loss)
         
     end
-    #iap = eval(optiap.model(ho.minimizer...))
-    return ho
+end
+
+function get_opt_iap(hyper_optimizer, model)
+    opt_iap = LBasisPotentialExt(eval(model(hyper_optimizer.minimizer...)))
+    return opt_iap
 end
 
 

@@ -1,5 +1,5 @@
 # Run this script:
-#   $ cd examples/ACE
+#   $ cd examples/HyperLearn
 #   $ julia --project=../ --threads=4
 #   julia> include("fit-opt-ace.jl")
 
@@ -12,7 +12,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
 include("../utils/utils.jl")
-include("OptIAP.jl")
+include("HyperLearn.jl")
 
 
 # Load input parameters
@@ -60,104 +60,96 @@ ds = load_data(ds_path, energy_units, distance_units)
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 conf_train, conf_test = split(ds, n_train, n_test)
 
-# Model
+# Dataset selector
+epsi, minpts, sample_size = input["eps"], input["minpts"], input["sample_size"]
+dataset_selector = DBSCANSelector(  conf_train,
+                                    epsi,
+                                    minpts,
+                                    sample_size) 
+#ss = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = 200)
+
+# Dataset generator
+dataset_generator = Nothing
+
+# IAP model
 model = ACE
 
-# Hyperoptimizer parameters
-n_samples = 10
-ho = Hyperoptimizer(n_samples,
-                    RandomSampler();
-                    species = [[:Hf, :O]],
-                    body_order = [2, 3],
-                    polynomial_degree = [3, 4],
-                    wL  = [1],
-                    csp = [1],
-                    r0  = [1],
-                    rcutoff = [5, 5.5])
+# IAP parameter subspace
+pars = OrderedDict(
+        :species           => [[:Hf, :O]],
+        :body_order        => [2, 3],
+        :polynomial_degree => [3, 4],
+        :wL                => [1],
+        :csp               => [1],
+        :r0                => [1],
+        :rcutoff           => [5, 5.5])
 
-# Subselector
-epsi, minpts, sample_size = input["eps"], input["minpts"], input["sample_size"]
-ss = DBSCANSelector(conf_train, epsi, minpts, sample_size) #ss = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = 200)
+# Hyperoptimizer
+n_samples = 10
+hyper_optimizer = Hyperoptimizer(n_samples,
+                                 RandomSampler();
+                                 pars...)
+
+# Maximum no. of iterations
+max_iterations = 1
 
 # End condition
-cond() = return false
+end_condition() = return false
 
 # Weights
-ws = [input["w_e"], input["w_f"]]
+weights = [input["w_e"], input["w_f"]]
 
-# Hyperlearn
-hyperlearn!(;   hyper_optimizer = ho,
-                model = model,
-                configurations = conf_train,
-                subset_selector = ss,
-                dataset_generator = Nothing,
-                max_iterations = 1,
-                end_condition = cond,
-                weights = ws)
+# Hyper-learn
+hyperlearn!(hyper_optimizer,
+            model,
+            conf_train,
+            dataset_selector,
+            dataset_generator,
+            max_iterations,
+            end_condition,
+            weights)
 
-@show sortslices(hcat(ho.results, ho.history), dims=1, by=x->x[1])
+# Optimal IAP
+opt_iap = get_opt_iap(hyper_optimizer, model)
 
-best_params, min_f = ho.minimizer, ho.minimum
+# Show optimization results
+@show sortslices(hcat(hyper_optimizer.results, hyper_optimizer.history),
+                 dims = 1,
+                 by = x->x[1])
+best_params, min_f = hyper_optimizer.minimizer, hyper_optimizer.minimum
 
-
-
-
-
-
-
-
-## Define ACE parameter subspace
-#ace_pars = OrderedDict(
-#            :species => [[:Hf, :O]],
-#            :body_order => [2,3],
-#            :polynomial_degree => [3,4],
-#            :wL  => [1],
-#            :csp => [1],
-#            :r0  => [1],
-#            :rcutoff => [5, 5.5])
-
-## Define HyperOpt parameters
-#ho_pars = Dict(:n_samples => 3, :sampler => RandomSampler())
-
-#@savevar path lb.β
+@savevar path opt_iap.β
 
 # Post-process output: calculate metrics, create plots, and save results
 
-## Update test dataset by adding energy and force descriptors
-#println("Computing energy descriptors of test dataset...")
-#e_descr_test = compute_local_descriptors(conf_test, lb)
-#println("Computing force descriptors of test dataset...")
-#f_descr_test = compute_force_descriptors(conf_test, lb)
-#GC.gc()
-#ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
+# Update test dataset by adding energy and force descriptors
+println("Computing energy descriptors of test dataset...")
+e_descr_test = compute_local_descriptors(conf_test, opt_iap.basis)
+println("Computing force descriptors of test dataset...")
+f_descr_test = compute_force_descriptors(conf_test, opt_iap.basis)
+GC.gc()
+ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
+# Get true and predicted values
+e_test, f_test =    get_all_energies(ds_test),
+                    get_all_forces(ds_test)
+e_test_pred, f_test_pred =    get_all_energies(ds_test, opt_iap),
+                              get_all_forces(ds_test, opt_iap)
+@savevar path e_test
+@savevar path e_test_pred
+@savevar path f_test
+@savevar path f_test_pred
 
-## Get true and predicted values
-#e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
-#e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
-#e_train_pred, f_train_pred = get_all_energies(ds_train, lb), get_all_forces(ds_train, lb)
-#e_test_pred, f_test_pred = get_all_energies(ds_test, lb), get_all_forces(ds_test, lb)
-#@savevar path e_train
-#@savevar path e_train_pred
-#@savevar path f_train
-#@savevar path f_train_pred
-#@savevar path e_test
-#@savevar path e_test_pred
-#@savevar path f_test
-#@savevar path f_test_pred
+# Compute metrics
+metrics = get_metrics(e_test_pred, e_test,
+                      f_test_pred, f_test)
+@savecsv path metrics
 
-## Compute metrics
-#B_time = dB_time = 0.0
-#metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
-#                       e_test_pred, e_test, f_test_pred, f_test,
-#                       B_time, dB_time, learn_time)
-#@savecsv path metrics
-
-## Plot and save results
-#e_test_plot = plot_energy(e_test_pred, e_test)
-#@savefig path e_test_plot
-#f_test_plot = plot_forces(f_test_pred, f_test)
-#@savefig path f_test_plot
-#f_test_cos = plot_cos(f_test_pred, f_test)
-#@savefig path f_test_cos
+# Plot and save results
+e_test_plot = plot_energy(e_test_pred, e_test)
+@savefig path e_test_plot
+f_test_plot = plot_forces(f_test_pred, f_test)
+@savefig path f_test_plot
+f_test_cos = plot_cos(f_test_pred, f_test)
+@savefig path f_test_cos
 
