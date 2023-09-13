@@ -18,6 +18,34 @@ function calc_metrics(x_pred, x)
 end
 
 """
+    get_metrics(e_pred, e, f_pred, f)
+    
+`e_pred`: vector of predicted energy values.
+`e`: vector of true energy values.
+`f_pred`: vector of predicted force values.
+`f`: vector of true force values.
+
+Computes MAE, RMSE, and RSQ for energies and forces
+Returns an OrderedDict with the information above.
+
+"""
+function get_metrics(e_pred, e, f_pred, f)
+
+    e_mae, e_rmse, e_rsq = calc_metrics(e_pred, e)
+    f_mae, f_rmse, f_rsq = calc_metrics(f_pred, f_test)
+    
+    metrics = OrderedDict(
+        "e_mae" => e_mae,
+        "e_rmse" => e_rmse,
+        "e_rsq" => e_rsq,
+        "f_mae" => f_mae,
+        "f_rmse" => f_rmse,
+        "f_rsq" => f_rsq,
+    )
+    return metrics
+end
+
+"""
     get_metrics( e_train_pred, e_train, e_test_pred, e_test)
     
 `e_train_pred`: vector of predicted training energy values.
