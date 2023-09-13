@@ -43,9 +43,9 @@ function hyperlearn!(;  hyper_optimizer,
     #ho = Hyperoptimizer(optiap.n_samples; optiap.params...)
     for (i, pars...) in hyper_optimizer
         iap = eval(model(pars...))
-        lb = LBasisPotential(iap)
+        lb = LBasisPotentialExt(iap)
         
-        inds = get_random_subset(conf_selector)
+        inds = get_random_subset(subset_selector)
         conf_new = conf_train[inds]
         
         # Compute energy and force descriptors of new sampled configurations
@@ -54,7 +54,7 @@ function hyperlearn!(;  hyper_optimizer,
         ds_cur = DataSet(conf_new .+ e_descr_new .+ f_descr_new)
         
         # Learn
-        learn!(lb, ds_cur, ws)
+        learn!(lb, ds_cur, ws, true)
         
         # Get true and predicted values
         e, f = get_all_energies(ds_cur), get_all_forces(ds_cur)

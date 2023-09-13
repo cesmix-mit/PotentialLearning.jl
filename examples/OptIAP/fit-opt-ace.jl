@@ -3,7 +3,7 @@
 #   $ julia --project=../ --threads=4
 #   julia> include("fit-opt-ace.jl")
 
-push!(Base.LOAD_PATH, "../")
+push!(Base.LOAD_PATH, "../../")
 
 using AtomsBase
 using InteratomicPotentials, InteratomicBasisPotentials
@@ -12,7 +12,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
 include("../utils/utils.jl")
-include("HyperLearn.jl")
+include("OptIAP.jl")
 
 
 # Load input parameters
@@ -66,7 +66,7 @@ model = ACE
 # Hyperoptimizer parameters
 n_samples = 10
 ho = Hyperoptimizer(n_samples,
-                    sampler = RandomSampler(),
+                    RandomSampler();
                     species = [[:Hf, :O]],
                     body_order = [2, 3],
                     polynomial_degree = [3, 4],
@@ -106,18 +106,18 @@ best_params, min_f = ho.minimizer, ho.minimum
 
 
 
-# Define ACE parameter subspace
-ace_pars = OrderedDict(
-            :species => [[:Hf, :O]],
-            :body_order => [2,3],
-            :polynomial_degree => [3,4],
-            :wL  => [1],
-            :csp => [1],
-            :r0  => [1],
-            :rcutoff => [5, 5.5])
+## Define ACE parameter subspace
+#ace_pars = OrderedDict(
+#            :species => [[:Hf, :O]],
+#            :body_order => [2,3],
+#            :polynomial_degree => [3,4],
+#            :wL  => [1],
+#            :csp => [1],
+#            :r0  => [1],
+#            :rcutoff => [5, 5.5])
 
-# Define HyperOpt parameters
-ho_pars = Dict(:n_samples => 3, :sampler => RandomSampler())
+## Define HyperOpt parameters
+#ho_pars = Dict(:n_samples => 3, :sampler => RandomSampler())
 
 #@savevar path lb.β
 
