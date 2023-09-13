@@ -1,31 +1,36 @@
 using Flux
 using Optim
 
+# Neural network interatomic potential #########################################
 
-# Neural network interatomic potential
-mutable struct NNIAP
+mutable struct NNIAP <: AbstractPotential
     nn
     iap
 end
 
-# Neural network potential formulation using local descriptors to compute energy and forces
-# See 10.1103/PhysRevLett.98.146401
-#     https://fitsnap.github.io/Pytorch.html
+# Formulation using local descriptors to compute energy and forces
+# See 10.1103/PhysRevLett.98.146401, https://fitsnap.github.io/Pytorch.html
 
-function potential_energy(c::Configuration, nniap::NNIAP)
+function potential_energy(
+    c::Configuration,
+    nniap::NNIAP
+)
     Bs = get_values(get_local_descriptors(c))
     s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
     return s
 end
 
-function force(c::Configuration, nniap::NNIAP)
+function force(
+    c::Configuration,
+    nniap::NNIAP
+)
     Bs = get_values(get_local_descriptors(c))
     dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
     dbdr = get_values(get_force_descriptors(c))
     return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
 end
 
-# Neural network potential formulation using global descriptors to compute energy and forces
+# Formulation using global descriptors to compute energy and forces
 # See https://docs.google.com/presentation/d/1XI9zqF_nmSlHgDeFJqq2dxdVqiiWa4Z-WJKvj0TctEk/edit#slide=id.g169df3c161f_63_123
 
 #function potential_energy(c::Configuration, nniap::NNIAP)
@@ -43,14 +48,29 @@ end
 
 
 # Loss function ################################################################
-function loss(nn, iap, ds, w_e=1, w_f=1)
+
+function loss(
+    nn::Chain,
+    iap::BasisSystem,
+    ds::DataSet,
+    w_e::Real = 1.0,
+    w_f::Real = 1.0
+)
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
     fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
     return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
 end
 
-function loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e=1, w_f=1)
+function loss(
+    nn::Chain,
+    iap::BasisSystem,
+    atom_config_list::Vector,
+    true_energy::Vector,
+    local_descriptors::Vector,
+    w_e::Real = 1.0,
+    w_f::Real = 1.0
+)
     nn_local_descriptors = nn(local_descriptors)
     atom_descriptors_list = [nn_local_descriptors[:, atom_config_list[i]+1:atom_config_list[i+1]] for i in 1:length(atom_config_list)-1]
     atom_sum_pred = sum.(atom_descriptors_list)
@@ -60,17 +80,24 @@ end
 
 # Auxiliary functions ##########################################################
 
-
-function PotentialLearning.get_all_energies(ds::DataSet, nniap::NNIAP)
+function PotentialLearning.get_all_energies(
+    ds::DataSet,
+    nniap::NNIAP
+)
     return [potential_energy(ds[c], nniap) for c in 1:length(ds)]
 end
 
-
-function PotentialLearning.get_all_forces(ds::DataSet, nniap::NNIAP)
+function PotentialLearning.get_all_forces(
+    ds::DataSet,
+    nniap::NNIAP
+)
     return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
 end
 
-function batch_and_shuffle(data, num_batches)
+function batch_and_shuffle(
+    data::DataSet,
+    num_batches::Int
+)
     # Shuffle the data
     shuffle!(data)
 
@@ -85,7 +112,15 @@ end
 # NNIAP learning functions #####################################################
 
 # Flux.jl training
-function PotentialLearning.learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimiser, epochs, loss, w_e, w_f)
+function PotentialLearning.learn!(
+    nniap::NNIAP,
+    ds::DataSet,
+    opt::Flux.Optimise.AbstractOptimiser,
+    epochs::Int,
+    loss::Function,
+    w_e::Real,
+    w_f::Real
+)
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
     ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
     losses = []
@@ -100,7 +135,17 @@ function PotentialLearning.learn!(nniap, ds, opt::Flux.Optimise.AbstractOptimise
     end
 end
 
-function PotentialLearning.learn!(nace, ds_train, opt, n_epochs, n_batches, loss, w_e, w_f, _device)
+function PotentialLearning.learn!(
+    nace::NNIAP,
+    ds_train::DataSet,
+    opt::Flux.Optimise.AbstractOptimiser,
+    n_epochs::Int,
+    n_batches::Int,
+    loss::Function,
+    w_e::Real,
+    w_f::Real,
+    _device::Function
+)
     nn = nace.nn |> _device
     optim = Flux.setup(opt, nn) |> _device
     ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
@@ -134,9 +179,16 @@ function PotentialLearning.learn!(nace, ds_train, opt, n_epochs, n_batches, loss
     nace.nn = nn |> cpu
 end
 
-
 # Optimization.jl training
-function PotentialLearning.learn!(nniap, ds, opt::Optim.FirstOrderOptimizer, maxiters, loss, w_e, w_f)
+function PotentialLearning.learn!(
+    nniap::NNIAP,
+    ds::DataSet,
+    opt::Optim.FirstOrderOptimizer,
+    maxiters::Int,
+    loss::Function,
+    w_e::Real,
+    w_f::Real
+)
     ps, re = Flux.destructure(nniap.nn)
     batchloss(ps, p) = loss(re(ps), nniap.iap, ds, w_e, w_f)
     ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
