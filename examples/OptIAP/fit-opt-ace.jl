@@ -144,8 +144,13 @@ e_test_pred, f_test_pred =    get_all_energies(ds_test, opt_iap),
 @savevar path f_test_pred
 
 # Compute metrics
-metrics = get_metrics(e_test_pred, e_test,
-                      f_test_pred, f_test)
+e_metrics = get_metrics(e_test_pred, e_test,
+                        metrics = [mae, rmse, rsq],
+                        label = "e_test")
+f_metrics = get_metrics(f_test_pred, f_test,
+                        metrics = [mae, rmse, rsq, mean_cos],
+                        label = "f_test")
+metrics = merge(e_metrics, f_metrics)
 @savecsv path metrics
 
 # Plot and save results
