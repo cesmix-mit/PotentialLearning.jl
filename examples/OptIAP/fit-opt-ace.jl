@@ -51,12 +51,12 @@ if "random_seed" in keys(input)
     Random.seed!(input["random_seed"])
 end
 
-# Load dataset
+# Configuration dataset
 ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
 energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
 ds = load_data(ds_path, energy_units, distance_units)
 
-# Configuration datasets
+# Training and test configuration datasets
 n_train, n_test = input["n_train_sys"], input["n_test_sys"]
 conf_train, conf_test = split(ds, n_train, n_test)
 
@@ -65,7 +65,7 @@ epsi, minpts, sample_size = input["eps"], input["minpts"], input["sample_size"]
 dataset_selector = DBSCANSelector(  conf_train,
                                     epsi,
                                     minpts,
-                                    sample_size) 
+                                    sample_size)
 #ss = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = 200)
 
 # Dataset generator
@@ -84,8 +84,8 @@ pars = OrderedDict(
         :r0                => [1],
         :rcutoff           => [5, 5.5])
 
-# Hyperoptimizer
-n_samples = 10
+# Hyper-optimizer
+n_samples = 5
 hyper_optimizer = Hyperoptimizer(n_samples,
                                  RandomSampler();
                                  pars...)
@@ -96,8 +96,9 @@ max_iterations = 1
 # End condition
 end_condition() = return false
 
-# Weights
+# Weights and intercept
 weights = [input["w_e"], input["w_f"]]
+intercept = false
 
 # Hyper-learn
 hyperlearn!(hyper_optimizer,
@@ -107,20 +108,22 @@ hyperlearn!(hyper_optimizer,
             dataset_generator,
             max_iterations,
             end_condition,
-            weights)
+            weights,
+            intercept)
 
 # Optimal IAP
-opt_iap = get_opt_iap(hyper_optimizer, model)
-
-# Show optimization results
-@show sortslices(hcat(hyper_optimizer.results, hyper_optimizer.history),
-                 dims = 1,
-                 by = x->x[1])
-best_params, min_f = hyper_optimizer.minimizer, hyper_optimizer.minimum
-
+min_loss, opt_iap = hyper_optimizer.minimum
 @savevar path opt_iap.β
 
+
 # Post-process output: calculate metrics, create plots, and save results
+
+# Show optimization results
+@show sortslices(hcat(first.(hyper_optimizer.results), hyper_optimizer.history),
+                 dims = 1,
+                 by = x->x[1])
+@show min_loss
+@savevar path opt_iap.β
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")

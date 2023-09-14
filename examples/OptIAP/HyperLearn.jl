@@ -28,11 +28,13 @@ function hyperlearn!(   hyper_optimizer,
                         dataset_generator = Nothing,
                         max_iterations = 1,
                         end_condition = true,
-                        weights = [1.0, 1.0])
+                        weights = [1.0, 1.0], 
+                        intercept = false)
     for (i, pars...) in hyper_optimizer
-        iap = eval(model(pars...))
+        iap = model(pars...)
         lb = LBasisPotentialExt(iap)
         
+        # Dataset selection
         inds = get_random_subset(dataset_selector)
         conf_new = conf_train[inds]
         
@@ -42,7 +44,7 @@ function hyperlearn!(   hyper_optimizer,
         ds_cur = DataSet(conf_new .+ e_descr_new .+ f_descr_new)
         
         # Learn
-        learn!(lb, ds_cur, weights, true)
+        learn!(lb, ds_cur, weights, intercept)
         
         # Get true and predicted values
         e, f = get_all_energies(ds_cur), get_all_forces(ds_cur)
@@ -54,20 +56,14 @@ function hyperlearn!(   hyper_optimizer,
         accuracy = weights[1] * e_rmse^2 + weights[2] * f_rmse^2
         #ndesc = length(e_descr_new[1])
         #loss =  accuracy < threshold ? accuracy * ndesc : Inf
-        loss =  accuracy
+        loss = accuracy
         println("Learning experiment: $i. E_MAE: $e_mae, F_MAE: $f_mae, loss: $loss.")
         
         # Return value
-        push!(hyper_optimizer.results, loss)
+        push!(hyper_optimizer.results, [loss, lb])
         
     end
 end
-
-function get_opt_iap(hyper_optimizer, model)
-    opt_iap = LBasisPotentialExt(eval(model(hyper_optimizer.minimizer...)))
-    return opt_iap
-end
-
 
 
 ## Parallel cluster-based active learning of IAP parameters #####################
