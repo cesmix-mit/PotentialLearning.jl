@@ -85,7 +85,7 @@ pars = OrderedDict(
         :rcutoff           => [5, 5.5])
 
 # Hyper-optimizer
-n_samples = 5
+n_samples = 10
 hyper_optimizer = Hyperoptimizer(n_samples,
                                  RandomSampler();
                                  pars...)
@@ -95,6 +95,9 @@ max_iterations = 1
 
 # End condition
 end_condition() = return false
+
+# Accuracy threshold
+acc_threshold = 0.1
 
 # Weights and intercept
 weights = [input["w_e"], input["w_f"]]
@@ -108,6 +111,7 @@ hyperlearn!(hyper_optimizer,
             dataset_generator,
             max_iterations,
             end_condition,
+            acc_threshold,
             weights,
             intercept)
 

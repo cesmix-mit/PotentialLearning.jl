@@ -19,7 +19,10 @@ end
                             dataset_generator = Nothing,
                             max_iterations = 1,
                             end_condition = true,
-                            weights = [1.0, 1.0])
+                            acc_threshold = 0.1,
+                            weights = [1.0, 1.0], 
+                            intercept = false)
+
 """
 function hyperlearn!(   hyper_optimizer,
                         model,
@@ -28,6 +31,7 @@ function hyperlearn!(   hyper_optimizer,
                         dataset_generator = Nothing,
                         max_iterations = 1,
                         end_condition = true,
+                        acc_threshold = 0.1,
                         weights = [1.0, 1.0], 
                         intercept = false)
     for (i, pars...) in hyper_optimizer
@@ -53,10 +57,13 @@ function hyperlearn!(   hyper_optimizer,
         # Compute metrics
         e_mae, e_rmse, e_rsq = calc_metrics(e_pred, e)
         f_mae, f_rmse, f_rsq = calc_metrics(f_pred, f)
+        
+        # Compute loss
         accuracy = weights[1] * e_rmse^2 + weights[2] * f_rmse^2
-        #ndesc = length(e_descr_new[1])
-        #loss =  accuracy < threshold ? accuracy * ndesc : Inf
-        loss = accuracy
+        ndesc = length(e_descr_new[1])
+        loss = accuracy < acc_threshold ? ndesc : ndesc / accuracy
+        
+        # Print results
         println("Learning experiment: $i. E_MAE: $e_mae, F_MAE: $f_mae, loss: $loss.")
         
         # Return value
