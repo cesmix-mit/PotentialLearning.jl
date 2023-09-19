@@ -20,6 +20,14 @@ Abstract type declaring the type of information that is unique to a particular a
 abstract type AtomicData <: Data end
 
 CFG_TYPE = Union{AtomsBase.FlexibleSystem,ConfigurationData}
+
+"""
+    get_values(v::SVector)
+
+Removes units from a position.
+"""
+get_values(v::SVector) = [v.data[1].val, v.data[2].val, v.data[3].val]
+
 """
     Energy <: ConfigurationData
         d :: Real
