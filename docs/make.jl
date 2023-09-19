@@ -29,20 +29,24 @@ bib = CitationBibliography(joinpath(@__DIR__, "citation.bib"))
 #examples = [title => joinpath("generated", string(name, ".md")) for (title, name) in examples]
 
 makedocs(
-    bib;
-    modules = [PotentialLearning],
-    authors = "CESMIX-MIT",
-    repo = "https://github.com/cesmix-mit/PotentialLearning.jl/blob/{commit}{path}#{line}",
-    sitename = "PotentialLearning.jl",
-    format = Documenter.HTML(;
+      root    =  joinpath(dirname(pathof(PotentialLearning)), "..", "docs"),
+      source  = "src",
+      build   = "build",
+      clean   = true,
+      doctest = true,
+      modules = [PotentialLearning],
+      repo    = "https://github.com/cesmix-mit/PotentialLearning.jl/blob/{commit}{path}#{line}",
+      highlightsig = true,
+      sitename = "PotentialLearning.jl",
+      expandfirst = [],
+      draft = false,
+      pages = ["Home" => "index.md", "API" => "api.md"],
+      format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://cesmix-mit.github.io/PotentialLearning.jl",
         assets = String[],
-    ),
-    pages = ["Home" => "index.md", "API" => "api.md"],
-    doctest = true,
-    linkcheck = true,
-    strict = false,
+      ),
+      plugins=[bib]
 )
 
 deploydocs(;
