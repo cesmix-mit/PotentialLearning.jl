@@ -44,13 +44,13 @@ end
         batch_size = s.sample_size
     )
     
-Returns a random subset of indexes of size `batch_size` from the clusters computed with the DBSCANSelector `s`.
+Returns a random subset of indexes composed of samples of size `batch_size ÷ length(s.clusters)` elements from each cluster in `s`.
 """
 function get_random_subset(
     s::DBSCANSelector,
     batch_size = s.sample_size
 )
-    inds = reduce(vcat, sample.(s.clusters, [batch_size]))
+    inds = reduce(vcat, sample.(s.clusters, [batch_size ÷ length(s.clusters)]))
     return inds
 end
 
