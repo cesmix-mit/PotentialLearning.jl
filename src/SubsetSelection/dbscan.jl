@@ -133,17 +133,16 @@ function distance_matrix_periodic(ds::DataSet)
     n = length(ds); d = zeros(n, n)
     box = bounding_box(get_system(ds[1]))
     box_lengths = [get_values(box[i])[i] for i in 1:3]
-    # Traversing the upper triangle of the matrix d using column-major order
-    Threads.@threads for idx in 1:n*(n−1)/2
-        j = Int(ceil(sqrt(2 * idx + 0.25) - 0.5)) + 1
-        i = Int(idx - (j-2) * (j-1) / 2)
+    for i in 1:n
         if bounding_box(get_system(ds[i])) != box
             error("Periodic box must be the same for all configurations.")
         end
         pi = Matrix(hcat(get_values.(get_positions(ds[i]))...)')
-        pj = Matrix(hcat(get_values.(get_positions(ds[j]))...)')
-        d[i,j] = periodic_rmsd(pi, pj, box_lengths)
-        d[j,i] = d[i,j]
+        Threads.@threads for j in i+1:n
+            pj = Matrix(hcat(get_values.(get_positions(ds[j]))...)')
+            d[i,j] = periodic_rmsd(pi, pj, box_lengths)
+            d[j,i] = d[i,j]
+        end
     end
     return d
 end
@@ -159,14 +158,13 @@ function distance_matrix_kabsch(
     ds::DataSet
 )
     n = length(ds); d = zeros(n, n)
-    # Traversing the upper triangle of the matrix d using column-major order
-    Threads.@threads for idx in 1:n*(n−1)/2
-        j = Int(ceil(sqrt(2 * idx + 0.25) - 0.5)) + 1
-        i = Int(idx - (j-2) * (j-1) / 2)
+    for i in 1:n
         p1 = Matrix(hcat(get_values.(get_positions(ds[i]))...)')
-        p2 = Matrix(hcat(get_values.(get_positions(ds[j]))...)')
-        d[i,j] = kabsch_rmsd(p1, p2)
-        d[j,i] = d[i,j]
+        Threads.@threads for j in i+1:n
+            p2 = Matrix(hcat(get_values.(get_positions(ds[j]))...)')
+            d[i,j] = kabsch_rmsd(p1, p2)
+            d[j,i] = d[i,j]
+        end
     end
     return d
 end
