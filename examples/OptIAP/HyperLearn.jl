@@ -1,69 +1,9 @@
-import Base: <, isless, ==, isequal, isinf
-export <, isless, ==, isequal, isinf
-
 using Hyperopt
 using InteratomicBasisPotentials
 
+include("InteratomicBasisPotentialsExt.jl")
+include("HyperOptExt.jl")
 include("dbscan.jl")
-
-# Add following function to IBS.jl
-function InteratomicBasisPotentials.ACE(species, body_order, polynomial_degree,
-                                        wL, csp, r0, rcutoff)
-    return ACE(species = species, body_order = body_order,
-               polynomial_degree = polynomial_degree, 
-               wL = wL, csp = csp, r0 = r0, rcutoff = rcutoff)
-end
-
-exx = nothing
-function inject_pars(ho_pars, model_pars, ex)
-    
-    global exx = ex
-    # Inject hyper-optimizer parameteres
-    e = ex.args[2].args[3]
-    e.args[1].args = []
-    for (k,v) in eval(ho_pars)
-        push!(e.args[1].args, :($k = $v))
-    end
-    
-    # Inject model parameteres
-    for (k,v) in eval(model_pars)
-        push!(e.args[1].args, :($k = $v))
-    end
-    
-    # Inject state variable
-    state = [k for k in keys(eval(model_pars))]
-    state_cond = Meta.parse(string("if state == nothing state = [", ["$k," for k in state]..., "] end"))
-    pushfirst!(e.args[2].args, state_cond)
-    
-    # Inject state variable in return tuple, only when Hyperband is used
-    if typeof(eval(ho_pars)[:sampler]) == Hyperband
-        ret_e = e.args[2].args[end-1]
-        e.args[2].args[end-1] = Meta.parse(string("$ret_e, state"))
-    end
-
-    # Evaluate new code
-    eval(ex)
-end
-
-struct HOResult <: Number
-    loss
-    opt_iap
-end
-
-<(x::HOResult, y::HOResult) = x.loss < y.loss
-<(x::Number, y::HOResult) = x < y.loss
-<(x::HOResult, y::Number) = x.loss < y
-isless(x::HOResult, y::HOResult) = x.loss < y.loss
-isless(x::Number, y::HOResult) = x < y.loss
-isless(x::HOResult, y::Number) = x.loss < y
-==(x::HOResult, y::HOResult) = x.loss == y.loss
-==(x::Number, y::HOResult) = x == y.loss
-==(x::HOResult, y::Number) = x.loss == y
-isequal(x::HOResult, y::HOResult) = x.loss == y.loss
-isequal(x::Number, y::HOResult) = x == y.loss
-isequal(x::HOResult, y::Number) = x.loss == y
-Real(x::HOResult) = x.loss
-isinf(x::HOResult) = isinf(x.loss)
 
 function hyperlearn!(   model,
                         model_pars,
@@ -77,7 +17,6 @@ function hyperlearn!(   model,
                         weights = [1.0, 1.0], 
                         intercept = false)
     
-    #iaps = Atomic{Int}
     hyper_optimizer = inject_pars(ho_pars, model_pars, 
     quote
          @hyperopt for i = n_samples
@@ -96,10 +35,6 @@ function hyperlearn!(   model,
             
             # Learn
             learn!(lb, ds_cur, weights, intercept)
-            
-            # Save trained IAP
-            #global iaps
-            #push!(iaps, state => lb)
             
             # Get true and predicted values
             e, e_pred = get_all_energies(ds_cur), get_all_energies(ds_cur, lb)
@@ -121,6 +56,6 @@ function hyperlearn!(   model,
             HOResult(loss, lb)
         end
     end)
-    return hyper_optimizer#, iaps[hyper_optimizer.minimum]
+    return hyper_optimizer
 end
 
