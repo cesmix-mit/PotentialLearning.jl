@@ -75,20 +75,37 @@ dataset_generator = Nothing
 model = ACE
 
 # IAP parameter subspace
-pars = OrderedDict(
-        :species           => [[:Hf, :O]],
-        :body_order        => [2, 3],
-        :polynomial_degree => [3, 4],
-        :wL                => [1],
-        :csp               => [1],
-        :r0                => [1],
-        :rcutoff           => [5, 5.5])
+model_pars = OrderedDict(
+                    :species           => [[:Hf, :O]],
+                    :body_order        => [2, 3],
+                    :polynomial_degree => [3, 4],
+                    :wL                => [1],
+                    :csp               => [1],
+                    :r0                => [1],
+                    :rcutoff           => [5, 5.5])
 
 # Hyper-optimizer
-n_samples = 10
-hyper_optimizer = Hyperoptimizer(n_samples,
-                                 RandomSampler();
-                                 pars...)
+n_samples = 8
+#sampler = RandomSampler()
+#sampler = LHSampler()
+#sampler = Hyperband(R=50, η=3, inner=RandomSampler())
+sampler = Hyperband(R=8, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
+                                                Hyperopt.Continuous(),
+                                                Hyperopt.Continuous(), 
+                                                Hyperopt.Continuous(), 
+                                                Hyperopt.Continuous(), 
+                                                Hyperopt.Continuous(), 
+                                                Hyperopt.Continuous()]))
+#dims = vcat([Categorical(1)], [Hyperopt.Continuous() for _ in 1:length(model_pars)-1])
+#sampler = Hyperband(R=8, η=3, inner=BOHB(dims=dims))
+ho_pars = OrderedDict(:i => n_samples,
+                      :sampler => sampler)
+                      
+#dims = vcat([Categorical(1)],
+#            repeat([Hyperopt.Continuous()], length(model_pars)-1))
+#sampler = Hyperband(R=8, η=3, inner=BOHB(dims=dims))
+#ho_pars = OrderedDict(:i => n_samples,
+#                      :sampler => sampler)
 
 # Maximum no. of iterations
 max_iterations = 1
@@ -104,8 +121,10 @@ weights = [input["w_e"], input["w_f"]]
 intercept = false
 
 # Hyper-learn
-hyperlearn!(hyper_optimizer,
-            model,
+hyper_optimizer =
+hyperlearn!(model,
+            model_pars,
+            ho_pars,
             conf_train,
             dataset_selector,
             dataset_generator,
@@ -116,14 +135,14 @@ hyperlearn!(hyper_optimizer,
             intercept)
 
 # Optimal IAP
-min_loss, opt_iap = hyper_optimizer.minimum
+opt_iap = hyper_optimizer.minimum.opt_iap
 @savevar path opt_iap.β
-
 
 # Post-process output: calculate metrics, create plots, and save results
 
 # Show optimization results
-@show sortslices(hcat(first.(hyper_optimizer.results), hyper_optimizer.history),
+@show sortslices(hcat(map(x -> x.loss, hyper_optimizer.results),
+                      hyper_optimizer.history),
                  dims = 1,
                  by = x->x[1])
 @show min_loss
