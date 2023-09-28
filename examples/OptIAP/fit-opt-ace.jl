@@ -44,25 +44,25 @@ model = ACE
 # IAP parameters
 model_pars = OrderedDict(
                     :species           => [[:Hf, :O]],
-                    :body_order        => [2, 3],
-                    :polynomial_degree => [3, 4],
-                    :wL                => [0.8, 1.0],
-                    :csp               => [0.8, 1.0],
-                    :r0                => [0.8, 1.0],
-                    :rcutoff           => [5, 5.5])
+                    :body_order        => [2, 3, 4],
+                    :polynomial_degree => [3, 4, 5],
+                    :wL                => [1.0],
+                    :csp               => [1.0],
+                    :r0                => [1.0],
+                    :rcutoff           => [4.5, 5.0, 5.5])
 
 # Hyper-optimizer
-n_samples = 8
+n_samples = 18
 #sampler = RandomSampler()
 #sampler = LHSampler() # Requires all candidate vectors to have the same length as the number of iterations
 #sampler = Hyperband(R=50, η=3, inner=RandomSampler())
-sampler = Hyperband(R=8, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
-                                                Hyperopt.Continuous(),
-                                                Hyperopt.Continuous(), 
-                                                Hyperopt.Continuous(), 
-                                                Hyperopt.Continuous(), 
-                                                Hyperopt.Continuous(), 
-                                                Hyperopt.Continuous()]))
+sampler = Hyperband(R=18, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous()]))
 ho_pars = OrderedDict(:i => n_samples,
                       :sampler => sampler)
 
@@ -100,8 +100,12 @@ opt_iap = hyper_optimizer.minimum.opt_iap
 # Post-process output: calculate metrics, create plots, and save results
 
 # Show optimization results
-print(hyper_optimizer)
-@savevar path opt_iap.β
+loss_pars = print(hyper_optimizer)
+@savevar path loss_pars
+
+# Plot loss vs time
+loss_time = plot_loss_time(hyper_optimizer)
+@savefig path loss_time
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")

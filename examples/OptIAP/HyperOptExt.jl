@@ -9,6 +9,7 @@ export <, isless, ==, isequal, isinf
 struct HOResult <: Number
     loss
     opt_iap
+    time
 end
 
 <(x::HOResult, y::HOResult) = x.loss < y.loss
@@ -24,6 +25,7 @@ isequal(x::HOResult, y::HOResult) = x.loss == y.loss
 isequal(x::Number, y::HOResult) = x == y.loss
 isequal(x::HOResult, y::Number) = x.loss == y
 Real(x::HOResult) = x.loss
+Float64(x::HOResult) = Float64(x.loss)
 isinf(x::HOResult) = isinf(x.loss)
 
 

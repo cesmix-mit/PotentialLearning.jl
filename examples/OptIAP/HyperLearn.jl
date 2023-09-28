@@ -8,7 +8,7 @@ include("dbscan.jl")
 function hyperlearn!(   model,
                         model_pars,
                         ho_pars,
-                        configurations,
+                        conf_train,
                         dataset_selector = Nothing,
                         dataset_generator = Nothing,
                         max_iterations = 1,
@@ -21,24 +21,24 @@ function hyperlearn!(   model,
     quote
          @hyperopt for i = n_samples
 
-            iap = model(state...)
-            lb = LBasisPotentialExt(iap)
+            basis = model(state...)
+            iap = LBasisPotentialExt(basis)
             
             # Dataset selection
             inds = get_random_subset(dataset_selector)
             conf_new = conf_train[inds]
             
             # Compute energy and force descriptors of new sampled configurations
-            e_descr_new = compute_local_descriptors(conf_new, iap, pbar = false)
-            f_descr_new = compute_force_descriptors(conf_new, iap, pbar = false)
+            e_descr_new = compute_local_descriptors(conf_new, iap.basis, pbar = false)
+            f_descr_new = compute_force_descriptors(conf_new, iap.basis, pbar = false)
             ds_cur = DataSet(conf_new .+ e_descr_new .+ f_descr_new)
             
             # Learn
-            learn!(lb, ds_cur, weights, intercept)
+            learn!(iap, ds_cur, weights, intercept)
             
             # Get true and predicted values
-            e, e_pred = get_all_energies(ds_cur), get_all_energies(ds_cur, lb)
-            f, f_pred = get_all_forces(ds_cur), get_all_forces(ds_cur, lb)
+            e, e_pred = get_all_energies(ds_cur), get_all_energies(ds_cur, iap)
+            f, f_pred = get_all_forces(ds_cur), get_all_forces(ds_cur, iap)
             
             # Compute metrics
             e_mae, e_rmse, e_rsq = calc_metrics(e_pred, e)
@@ -49,13 +49,51 @@ function hyperlearn!(   model,
             ndesc = length(e_descr_new[1])
             loss = accuracy < acc_threshold ? ndesc : ndesc * accuracy
             
+            # Estimate time to compute forces
+            time = estimate_time(conf_train,
+                                 dataset_selector.sample_size,
+                                 iap)
+            
             # Print results
-            println("Learning experiment: $i. E_MAE: $e_mae, F_MAE: $f_mae, loss: $loss.")
+            println("E_MAE:$e_mae, F_MAE:$f_mae, loss:$loss, time:$time")
             
             # Return loss
-            HOResult(loss, lb)
+            HOResult(loss, iap, time)
         end
     end)
     return hyper_optimizer
 end
+
+
+function estimate_time(confs, batch_size, iap)
+    random_selector = RandomSelector(length(confs), batch_size)
+    inds = PotentialLearning.get_random_subset(random_selector)
+    time = @elapsed begin
+#        e_descr = compute_local_descriptors(confs[inds],
+#                                            iap.basis,
+#                                            pbar = false)
+        f_descr = compute_force_descriptors(confs[inds],
+                                            iap.basis,
+                                            pbar = false)
+        #ds = DataSet(confs[inds] .+ e_descr .+ f_descr)
+        ds = DataSet(confs[inds] .+ f_descr)
+        #e_pred = get_all_energies(ds, iap)
+        f_pred = get_all_forces(ds, iap)
+    end
+    n_atoms = sum(length(get_system(c)) for c in confs[inds])
+    return time / n_atoms
+end
+
+
+function plot_loss_time(hyper_optimizer)
+    losses = map(x -> x.loss,
+                 hyper_optimizer.results)
+    times = map(x -> x.time,
+                hyper_optimizer.results)
+    scatter(times,
+            losses,
+            xaxis = "Time | s",
+            yaxis = "Loss")
+end
+
 
