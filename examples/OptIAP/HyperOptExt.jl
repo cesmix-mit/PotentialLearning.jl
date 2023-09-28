@@ -8,8 +8,9 @@ export <, isless, ==, isequal, isinf
 
 struct HOResult <: Number
     loss
-    opt_iap
+    accuracy
     time
+    opt_iap
 end
 
 <(x::HOResult, y::HOResult) = x.loss < y.loss

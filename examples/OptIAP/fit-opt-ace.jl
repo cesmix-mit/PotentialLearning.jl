@@ -93,15 +93,15 @@ hyperlearn!(model,
             weights,
             intercept)
 
+# Post-process output: calculate metrics, create plots, and save results
+
 # Optimal IAP
 opt_iap = hyper_optimizer.minimum.opt_iap
 @savevar path opt_iap.β
 
-# Post-process output: calculate metrics, create plots, and save results
-
 # Show optimization results
 loss_pars = print(hyper_optimizer)
-@savevar path loss_pars
+#@savevar path loss_pars
 
 # Plot loss vs time
 loss_time = plot_loss_time(hyper_optimizer)
