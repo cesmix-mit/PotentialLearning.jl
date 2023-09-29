@@ -10,7 +10,7 @@ using AtomsBase
 using InteratomicPotentials, InteratomicBasisPotentials
 using PotentialLearning
 using Unitful, UnitfulAtomic
-using LinearAlgebra
+using LinearAlgebra, DataFrames
 using Random
 include("../utils/utils.jl")
 include("HyperLearn.jl")
@@ -42,27 +42,29 @@ dataset_generator = Nothing
 model = ACE
 
 # IAP parameters
+#model_const = OrderedDict(
+#                    :species           => [[:Hf, :O]])
 model_pars = OrderedDict(
                     :species           => [[:Hf, :O]],
                     :body_order        => [2, 3, 4],
                     :polynomial_degree => [3, 4, 5],
-                    :wL                => [1.0],
-                    :csp               => [1.0],
-                    :r0                => [1.0],
+                    :wL                => [0.5, 1.0, 1.5],
+                    :csp               => [0.5, 1.0, 1.5],
+                    :r0                => [0.5, 1.0, 1.5],
                     :rcutoff           => [4.5, 5.0, 5.5])
 
 # Hyper-optimizer
-n_samples = 18
-#sampler = RandomSampler()
+n_samples = 20
+sampler = RandomSampler()
 #sampler = LHSampler() # Requires all candidate vectors to have the same length as the number of iterations
-#sampler = Hyperband(R=50, η=3, inner=RandomSampler())
-sampler = Hyperband(R=18, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
-                                                 Hyperopt.Continuous(),
-                                                 Hyperopt.Continuous(),
-                                                 Hyperopt.Continuous(),
-                                                 Hyperopt.Continuous(),
-                                                 Hyperopt.Continuous(),
-                                                 Hyperopt.Continuous()]))
+#sampler = Hyperband(R=10, η=3, inner=RandomSampler())
+#sampler = Hyperband(R=10, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
+#                                                 Hyperopt.Continuous(),
+#                                                 Hyperopt.Continuous(),
+#                                                 Hyperopt.Continuous(),
+#                                                 Hyperopt.Continuous(),
+#                                                 Hyperopt.Continuous(),
+#                                                 Hyperopt.Continuous()]))
 ho_pars = OrderedDict(:i => n_samples,
                       :sampler => sampler)
 
@@ -97,15 +99,19 @@ hyperlearn!(model,
 
 # Optimal IAP
 opt_iap = hyper_optimizer.minimum.opt_iap
-@savevar path opt_iap.β
+@save_var path opt_iap.β
 
-# Show optimization results
-loss_pars = print(hyper_optimizer)
-#@savevar path loss_pars
+# Print optimization results
+results = get_results(hyper_optimizer)
+@save_dataframe path results
+
+# Plot parameter values vs accuracy
+pars_acc_plot = plot(hyper_optimizer)
+@save_fig path pars_acc_plot
 
 # Plot loss vs time
 loss_time = plot_loss_time(hyper_optimizer)
-@savefig path loss_time
+@save_fig path loss_time
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")
@@ -119,10 +125,10 @@ e_test, e_test_pred = get_all_energies(ds_test),
                       get_all_energies(ds_test, opt_iap)
 f_test, f_test_pred = get_all_forces(ds_test),
                       get_all_forces(ds_test, opt_iap)
-@savevar path e_test
-@savevar path e_test_pred
-@savevar path f_test
-@savevar path f_test_pred
+@save_var path e_test
+@save_var path e_test_pred
+@save_var path f_test
+@save_var path f_test_pred
 
 # Compute metrics
 e_metrics = get_metrics(e_test_pred, e_test,
@@ -131,14 +137,14 @@ e_metrics = get_metrics(e_test_pred, e_test,
 f_metrics = get_metrics(f_test_pred, f_test,
                         metrics = [mae, rmse, rsq, mean_cos],
                         label = "f_test")
-metrics = merge(e_metrics, f_metrics)
-@savecsv path metrics
+test_metrics = merge(e_metrics, f_metrics)
+@save_dict path test_metrics
 
 # Plot and save results
 e_test_plot = plot_energy(e_test_pred, e_test)
 f_test_plot = plot_forces(f_test_pred, f_test)
 f_test_cos  = plot_cos(f_test_pred, f_test)
-@savefig path e_test_plot
-@savefig path f_test_plot
-@savefig path f_test_cos
+@save_fig path e_test_plot
+@save_fig path f_test_plot
+@save_fig path f_test_cos
 

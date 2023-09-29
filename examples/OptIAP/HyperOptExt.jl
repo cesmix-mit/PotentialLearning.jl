@@ -2,7 +2,6 @@
 #    - Allow `results` in `Hyperoptimizer` contain other elements: `loss` and `opt_iap`.
 #    - A temporary common interface for all samplers based on the function `inject_pars`.
 
-
 import Base: <, isless, ==, isequal, isinf
 export <, isless, ==, isequal, isinf
 
@@ -11,6 +10,18 @@ struct HOResult <: Number
     accuracy
     time
     opt_iap
+end
+
+function get_results(hyper_optimizer)
+    column_names = string.([:accuracy, :time,
+                            hyper_optimizer.params[2:end]...])
+    results = map(x -> [x.accuracy, x.time],
+                  hyper_optimizer.results)
+    results = [[r..., h[2:end]...] for (r, h) in
+               zip(results, hyper_optimizer.history)]
+    results = hcat(results...)'
+    results = DataFrame(results, column_names)
+    return sort!(results)
 end
 
 <(x::HOResult, y::HOResult) = x.loss < y.loss
@@ -58,8 +69,3 @@ function inject_pars(ho_pars, model_pars, ex)
     eval(ex)
 end
 
-function print(hyper_optimizer)
-    losses = map(x -> x.loss, hyper_optimizer.results)
-    sortslices(hcat(losses, hyper_optimizer.history),
-               dims = 1, by = x->x[1])
-end

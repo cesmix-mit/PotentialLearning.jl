@@ -56,7 +56,9 @@ function hyperlearn!(   model,
             loss = accuracy < acc_threshold ? time : time + accuracy
             
             # Print results
-            println("loss:$loss, E_MAE:$e_mae, F_MAE:$f_mae, accuracy:$accuracy, time:$time")
+            println("E_MAE:$(round(e_mae; digits=5)), \\
+                     F_MAE:$(round(f_mae; digits=5)), \\
+                     Time | s:$(round(time; digits=5))")
             
             # Return loss
             HOResult(loss, accuracy, time, iap)
