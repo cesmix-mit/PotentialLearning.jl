@@ -33,7 +33,8 @@ dataset_selector = DBSCANSelector(  conf_train,
                                     ε,
                                     min_pts,
                                     sample_size)
-#ss = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = 200)
+#dataset_selector = RandomSelector(conf_train,; batch_size = sample_size)
+#dataset_selector = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = sample_size)
 
 # Dataset generator
 dataset_generator = Nothing
@@ -41,9 +42,7 @@ dataset_generator = Nothing
 # IAP model
 model = ACE
 
-# IAP parameters
-#model_const = OrderedDict(
-#                    :species           => [[:Hf, :O]])
+# IAP constants and parameters to be optimized
 model_pars = OrderedDict(
                     :species           => [[:Hf, :O]],
                     :body_order        => [2, 3, 4],
@@ -101,8 +100,9 @@ hyperlearn!(model,
 opt_iap = hyper_optimizer.minimum.opt_iap
 @save_var path opt_iap.β
 
-# Print optimization results
+# Prnt and save optimization results
 results = get_results(hyper_optimizer)
+println(results)
 @save_dataframe path results
 
 # Plot parameter values vs accuracy

@@ -50,15 +50,15 @@ function hyperlearn!(   model,
             # Estimate time to compute forces
             time = estimate_time(conf_train,
                                  dataset_selector.sample_size,
-                                 iap)
+                                 iap) * 1000.0
             
             # Compute loss based on accuracy and time
             loss = accuracy < acc_threshold ? time : time + accuracy
             
             # Print results
-            println("E_MAE:$(round(e_mae; digits=5)), \\
-                     F_MAE:$(round(f_mae; digits=5)), \\
-                     Time | s:$(round(time; digits=5))")
+            print("E_MAE:$(round(e_mae; digits=4)), ")
+            print("F_MAE:$(round(f_mae; digits=4)), ")
+            println("Time per force per atom[ms]:$(round(time; digits=4))")
             
             # Return loss
             HOResult(loss, accuracy, time, iap)
@@ -90,6 +90,7 @@ function plot_loss_time(hyper_optimizer)
                 hyper_optimizer.results)
     scatter(times,
             accuracies,
+            label = "",
             xaxis = "Time | s",
             yaxis = "Accuracy")
 end

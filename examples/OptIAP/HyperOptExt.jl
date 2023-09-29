@@ -40,8 +40,8 @@ Real(x::HOResult) = x.loss
 Float64(x::HOResult) = Float64(x.loss)
 isinf(x::HOResult) = isinf(x.loss)
 
-
 function inject_pars(ho_pars, model_pars, ex)
+
     # Inject hyper-optimizer parameteres
     e = ex.args[2].args[3]
     e.args[1].args = []
