@@ -5,33 +5,29 @@ include("InteratomicBasisPotentialsExt.jl")
 include("HyperOptExt.jl")
 include("dbscan.jl")
 
-function hyperlearn!(   model,
+
+function hyperlearn!(   conf_train,
+                        model,
                         model_pars,
-                        ho_pars,
-                        conf_train,
+                        ho_pars;
                         dataset_selector = Nothing,
                         dataset_generator = Nothing,
+                        acc_threshold = 0.1,
                         max_iterations = 1,
                         end_condition = true,
-                        acc_threshold = 0.1,
                         weights = [1.0, 1.0], 
                         intercept = false)
     
     hyper_optimizer = inject_pars(ho_pars, model_pars, 
     quote
          @hyperopt for i = n_samples
-
             basis = model(state...)
             iap = LBasisPotentialExt(basis)
             
-            # Dataset selection
-            inds = get_random_subset(dataset_selector)
-            conf_new = conf_train[inds]
-            
-            # Compute energy and force descriptors of new sampled configurations
-            e_descr_new = compute_local_descriptors(conf_new, iap.basis, pbar = false)
-            f_descr_new = compute_force_descriptors(conf_new, iap.basis, pbar = false)
-            ds_cur = DataSet(conf_new .+ e_descr_new .+ f_descr_new)
+            # Compute energy and force descriptors
+            e_descr_new = compute_local_descriptors(conf_train, iap.basis, pbar = false)
+            f_descr_new = compute_force_descriptors(conf_train, iap.basis, pbar = false)
+            ds_cur = DataSet(conf_train .+ e_descr_new .+ f_descr_new)
             
             # Learn
             learn!(iap, ds_cur, weights, intercept)
@@ -44,21 +40,19 @@ function hyperlearn!(   model,
             e_mae, e_rmse, e_rsq = calc_metrics(e_pred, e)
             f_mae, f_rmse, f_rsq = calc_metrics(f_pred, f)
 
-            # Compute accuracy based on energy and forces MSE
+            # Compute accuracy based on MSE of energies and forces
             accuracy = weights[1] * e_rmse^2 + weights[2] * f_rmse^2
 
-            # Estimate time to compute forces
-            time = estimate_time(conf_train,
-                                 dataset_selector.sample_size,
-                                 iap) * 1000.0
+            # Estimate time to compute forces [ms]
+            time = estimate_time(conf_train, iap) * 1000.0
             
             # Compute loss based on accuracy and time
             loss = accuracy < acc_threshold ? time : time + accuracy
             
             # Print results
-            print("E_MAE:$(round(e_mae; digits=4)), ")
-            print("F_MAE:$(round(f_mae; digits=4)), ")
-            println("Time per force per atom[ms]:$(round(time; digits=4))")
+            print("E_MAE:$(round(e_mae; digits=3)), ")
+            print("F_MAE:$(round(f_mae; digits=3)), ")
+            println("Time per force per atom [ms]:$(round(time; digits=6))")
             
             # Return loss
             HOResult(loss, accuracy, time, iap)
@@ -68,7 +62,10 @@ function hyperlearn!(   model,
 end
 
 
-function estimate_time(confs, batch_size, iap)
+function estimate_time(confs, iap; batch_size = 30)
+    if length(confs) < batch_size
+        batch_size = length(confs)
+    end
     random_selector = RandomSelector(length(confs), batch_size)
     inds = PotentialLearning.get_random_subset(random_selector)
     time = @elapsed begin

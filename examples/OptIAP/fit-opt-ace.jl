@@ -15,34 +15,74 @@ using Random
 include("../utils/utils.jl")
 include("HyperLearn.jl")
 
+
+# Setup experiment #############################################################
+
 # Experiment folder
 path = "a-HfO2-Opt/"
 run(`mkdir -p $path`)
 
-# Configuration dataset
+
+# Define training and test configuration datasets ##############################
+
+# Load complete configuration dataset
 ds_path = string("../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz")
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
-# Training and test configuration datasets
+# Split configuration dataset into training and test
 n_train, n_test = 500, 500
 conf_train, conf_test = split(ds, n_train, n_test)
 
-# Dataset selector
-ε, min_pts, sample_size = 0.05, 5, 10
+
+# Define dataset generator #####################################################
+dataset_generator = Nothing
+
+
+# Define dataset subselector ###################################################
+
+# Subselector, option 1: RandomSelector
+#dataset_selector = RandomSelector(conf_train; batch_size = sample_size)
+
+# Subselector, option 2: DBSCANSelector
+ε, min_pts, sample_size = 0.05, 5, 3
 dataset_selector = DBSCANSelector(  conf_train,
                                     ε,
                                     min_pts,
                                     sample_size)
-#dataset_selector = RandomSelector(conf_train,; batch_size = sample_size)
-#dataset_selector = kDPP(conf_train, GlobalMean(), DotProduct(); batch_size = sample_size)
 
-# Dataset generator
-dataset_generator = Nothing
+# Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
+#basis = ACE(species           = [:Hf, :O],
+#            body_order        = 3,
+#            polynomial_degree = 3,
+#            wL                = 1.0,
+#            csp               = 1.0,
+#            r0                = 1.0,
+#            rcutoff           = 5.0)
+#e_descr = compute_local_descriptors(conf_train,
+#                                    basis,
+#                                    pbar = false)
+#conf_train_kDPP = DataSet(conf_train .+ e_descr)
+#dataset_selector = kDPP(  conf_train_kDPP,
+#                          GlobalMean(),
+#                          DotProduct();
+#                          batch_size = sample_size)
 
-# IAP model
+# Subsample trainig dataset
+inds = get_random_subset(dataset_selector)
+conf_train = conf_train[inds]
+GC.gc()
+
+# Define parameters to compute optimal sample size (not used for now)
+max_iterations = 1
+end_condition() = return false
+
+
+# Define IAP model and candidate parameters ####################################
+
+# Define IAP model
 model = ACE
 
-# IAP constants and parameters to be optimized
+# Define IAP parameters to be optimized
 model_pars = OrderedDict(
                     :species           => [[:Hf, :O]],
                     :body_order        => [2, 3, 4],
@@ -52,11 +92,18 @@ model_pars = OrderedDict(
                     :r0                => [0.5, 1.0, 1.5],
                     :rcutoff           => [4.5, 5.0, 5.5])
 
-# Hyper-optimizer
-n_samples = 20
+# Define hyper-optimizer parameters ############################################
+
+# Sampler, option 1: RandomSampler
 sampler = RandomSampler()
-#sampler = LHSampler() # Requires all candidate vectors to have the same length as the number of iterations
+
+# Sampler, option 2: LHSampler (requires all candidate vectors to have the same length as the number of iterations)
+#sampler = LHSampler()
+
+# Sampler, option 3: Hyperband + RandomSampler()
 #sampler = Hyperband(R=10, η=3, inner=RandomSampler())
+
+# Sampler, option 4: Hyperband + BOHB
 #sampler = Hyperband(R=10, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
 #                                                 Hyperopt.Continuous(),
 #                                                 Hyperopt.Continuous(),
@@ -64,37 +111,31 @@ sampler = RandomSampler()
 #                                                 Hyperopt.Continuous(),
 #                                                 Hyperopt.Continuous(),
 #                                                 Hyperopt.Continuous()]))
+
+
+n_samples = 20
+
 ho_pars = OrderedDict(:i => n_samples,
                       :sampler => sampler)
 
-# Maximum no. of iterations
-max_iterations = 1
-
-# End condition
-end_condition() = return false
-
-# Accuracy threshold
 acc_threshold = 0.1
 
-# Weights and intercept
+# Define linear solver parameters
 weights = [1.0, 1.0]
 intercept = false
 
-# Hyper-learn
-hyper_optimizer =
-hyperlearn!(model,
-            model_pars,
-            ho_pars,
-            conf_train,
-            dataset_selector,
-            dataset_generator,
-            max_iterations,
-            end_condition,
-            acc_threshold,
-            weights,
-            intercept)
+# Perform hyper-parameter optimization #########################################
 
-# Post-process output: calculate metrics, create plots, and save results
+hyper_optimizer =
+hyperlearn!(conf_train,
+            model,
+            model_pars,
+            ho_pars;
+            acc_threshold = acc_threshold,
+            weights = weights,
+            intercept = intercept)
+
+# Post-process output: calculate metrics, create plots, and save results #######
 
 # Optimal IAP
 opt_iap = hyper_optimizer.minimum.opt_iap
