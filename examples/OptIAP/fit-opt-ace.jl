@@ -118,7 +118,8 @@ n_samples = 20
 ho_pars = OrderedDict(:i => n_samples,
                       :sampler => sampler)
 
-acc_threshold = 0.1
+e_mae_max = 0.05
+f_mae_max = 0.05
 
 # Define linear solver parameters
 weights = [1.0, 1.0]
@@ -131,8 +132,9 @@ hyperlearn!(conf_train,
             model,
             model_pars,
             ho_pars;
-            acc_threshold = acc_threshold,
-            weights = weights,
+            e_mae_max = e_mae_max,
+            f_mae_max = f_mae_max,
+            weights   = weights,
             intercept = intercept)
 
 # Post-process output: calculate metrics, create plots, and save results #######
@@ -140,6 +142,8 @@ hyperlearn!(conf_train,
 # Optimal IAP
 opt_iap = hyper_optimizer.minimum.opt_iap
 @save_var path opt_iap.β
+@save_var path opt_iap.β0
+@save_var path opt_iap.basis
 
 # Prnt and save optimization results
 results = get_results(hyper_optimizer)
@@ -151,8 +155,8 @@ pars_acc_plot = plot(hyper_optimizer)
 @save_fig path pars_acc_plot
 
 # Plot loss vs time
-loss_time = plot_loss_time(hyper_optimizer)
-@save_fig path loss_time
+acc_time = plot_acc_time(hyper_optimizer)
+@save_fig path acc_time
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")

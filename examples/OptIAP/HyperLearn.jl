@@ -12,7 +12,8 @@ function hyperlearn!(   conf_train,
                         ho_pars;
                         dataset_selector = Nothing,
                         dataset_generator = Nothing,
-                        acc_threshold = 0.1,
+                        e_mae_max = 0.05,
+                        f_mae_max = 0.05,
                         max_iterations = 1,
                         end_condition = true,
                         weights = [1.0, 1.0], 
@@ -39,23 +40,32 @@ function hyperlearn!(   conf_train,
             # Compute metrics
             e_mae, e_rmse, e_rsq = calc_metrics(e_pred, e)
             f_mae, f_rmse, f_rsq = calc_metrics(f_pred, f)
-
-            # Compute accuracy based on MSE of energies and forces
+            time_us  = estimate_time(conf_train, iap) * 10^6
             accuracy = weights[1] * e_rmse^2 + weights[2] * f_rmse^2
-
-            # Estimate time to compute forces [ms]
-            time = estimate_time(conf_train, iap) * 1000.0
+            metrics  = OrderedDict( :e_mae     => e_mae,
+                                    :e_rmse    => e_rmse,
+                                    :e_rsq     => e_rsq,
+                                    :f_mae     => f_mae,
+                                    :f_rmse    => f_rmse,
+                                    :f_rsq     => f_rsq,
+                                    :accuracy  => accuracy,
+                                    :time_us   => time_us)
             
-            # Compute loss based on accuracy and time
-            loss = accuracy < acc_threshold ? time : time + accuracy
+            # Compute multi-objetive loss based on accuracy and time
+            if e_mae < e_mae_max &&
+               f_mae < f_mae_max
+               loss = time_us
+            else
+               loss = time_us + accuracy * 10^3
+            end
             
             # Print results
             print("E_MAE:$(round(e_mae; digits=3)), ")
             print("F_MAE:$(round(f_mae; digits=3)), ")
-            println("Time per force per atom [ms]:$(round(time; digits=6))")
+            println("Time per force per atom | µs:$(round(time_us; digits=3))")
             
             # Return loss
-            HOResult(loss, accuracy, time, iap)
+            HOResult(loss, metrics, iap)
         end
     end)
     return hyper_optimizer
@@ -80,16 +90,16 @@ function estimate_time(confs, iap; batch_size = 30)
 end
 
 
-function plot_loss_time(hyper_optimizer)
-    accuracies = map(x -> x.accuracy,
-                 hyper_optimizer.results)
-    times = map(x -> x.time,
-                hyper_optimizer.results)
+function plot_acc_time(hyper_optimizer)
+    accuracies = [ r.metrics[:accuracy]
+                   for r in hyper_optimizer.results]
+    times      = [ r.metrics[:time_us]
+                   for r in hyper_optimizer.results]
     scatter(times,
             accuracies,
             label = "",
-            xaxis = "Time | s",
-            yaxis = "Accuracy")
+            xaxis = "Time per force per atom | µs",
+            yaxis = "we MSE(E, E') + wf MSE(F, F')")
 end
 
 

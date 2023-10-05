@@ -1,5 +1,5 @@
 # Extension of HyperOpt.jl to handle the following cases:
-#    - Allow `results` in `Hyperoptimizer` contain other elements: `loss` and `opt_iap`.
+#    - Allow `results` in `Hyperoptimizer` contain other elements: `loss`, `metrics`, and `opt_iap`.
 #    - A temporary common interface for all samplers based on the function `inject_pars`.
 
 import Base: <, isless, ==, isequal, isinf
@@ -7,16 +7,14 @@ export <, isless, ==, isequal, isinf
 
 struct HOResult <: Number
     loss
-    accuracy
-    time
+    metrics
     opt_iap
 end
 
 function get_results(hyper_optimizer)
-    column_names = string.([:accuracy, :time,
-                            hyper_optimizer.params[2:end]...])
-    results = map(x -> [x.accuracy, x.time],
-                  hyper_optimizer.results)
+    column_names = string.(vcat(keys(hyper_optimizer.results[1].metrics)...,
+                                hyper_optimizer.params[2:end]...))
+    results = [values(r.metrics) for r in hyper_optimizer.results]
     results = [[r..., h[2:end]...] for (r, h) in
                zip(results, hyper_optimizer.history)]
     results = hcat(results...)'
