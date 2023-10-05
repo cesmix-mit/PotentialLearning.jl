@@ -41,34 +41,34 @@ dataset_generator = Nothing
 # Define dataset subselector ###################################################
 
 # Subselector, option 1: RandomSelector
-#dataset_selector = RandomSelector(conf_train; batch_size = sample_size)
+#dataset_selector = RandomSelector(length(conf_train); batch_size = 100)
 
 # Subselector, option 2: DBSCANSelector
-ε, min_pts, sample_size = 0.05, 5, 3
-dataset_selector = DBSCANSelector(  conf_train,
-                                    ε,
-                                    min_pts,
-                                    sample_size)
+#ε, min_pts, sample_size = 0.05, 5, 3
+#dataset_selector = DBSCANSelector(  conf_train,
+#                                    ε,
+#                                    min_pts,
+#                                    sample_size)
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
-#basis = ACE(species           = [:Hf, :O],
-#            body_order        = 3,
-#            polynomial_degree = 3,
-#            wL                = 1.0,
-#            csp               = 1.0,
-#            r0                = 1.0,
-#            rcutoff           = 5.0)
-#e_descr = compute_local_descriptors(conf_train,
-#                                    basis,
-#                                    pbar = false)
-#conf_train_kDPP = DataSet(conf_train .+ e_descr)
-#dataset_selector = kDPP(  conf_train_kDPP,
-#                          GlobalMean(),
-#                          DotProduct();
-#                          batch_size = sample_size)
+basis = ACE(species           = [:Hf, :O],
+            body_order        = 3,
+            polynomial_degree = 3,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0,
+            rcutoff           = 5.0)
+e_descr = compute_local_descriptors(conf_train,
+                                    basis,
+                                    pbar = false)
+conf_train_kDPP = DataSet(conf_train .+ e_descr)
+dataset_selector = kDPP(  conf_train_kDPP,
+                          GlobalMean(),
+                          DotProduct();
+                          batch_size = 100)
 
 # Subsample trainig dataset
-inds = get_random_subset(dataset_selector)
+inds = PotentialLearning.get_random_subset(dataset_selector)
 conf_train = conf_train[inds]
 GC.gc()
 
@@ -95,7 +95,7 @@ model_pars = OrderedDict(
 # Define hyper-optimizer parameters ############################################
 
 # Sampler, option 1: RandomSampler
-sampler = RandomSampler()
+#sampler = RandomSampler()
 
 # Sampler, option 2: LHSampler (requires all candidate vectors to have the same length as the number of iterations)
 #sampler = LHSampler()
@@ -104,13 +104,13 @@ sampler = RandomSampler()
 #sampler = Hyperband(R=10, η=3, inner=RandomSampler())
 
 # Sampler, option 4: Hyperband + BOHB
-#sampler = Hyperband(R=10, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
-#                                                 Hyperopt.Continuous(),
-#                                                 Hyperopt.Continuous(),
-#                                                 Hyperopt.Continuous(),
-#                                                 Hyperopt.Continuous(),
-#                                                 Hyperopt.Continuous(),
-#                                                 Hyperopt.Continuous()]))
+sampler = Hyperband(R=10, η=3, inner=BOHB(dims=[ Hyperopt.Categorical(1),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous(),
+                                                 Hyperopt.Continuous()]))
 
 
 n_samples = 20
