@@ -163,7 +163,8 @@ function learn!(
 )
     lp = LinearProblem(ds)
     learn!(lp, args...)
+
     copy!(iap.β, lp.β)
     copy!(iap.β0, lp.β0)
-    return lp.Σ
+    return lp
 end
