@@ -1,5 +1,5 @@
 using Flux
-using Optim
+using Optim, Optimization
 
 # Neural network interatomic potential #########################################
 
@@ -119,7 +119,8 @@ function PotentialLearning.learn!(
     epochs::Int,
     loss::Function,
     w_e::Real,
-    w_f::Real
+    w_f::Real,
+    log_step::Int
 )
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
     ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
@@ -129,9 +130,44 @@ function PotentialLearning.learn!(
         grads = ∇loss(nniap.nn, nniap.iap, ds, w_e, w_f)
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
-        curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
-        push!(losses, curr_loss)
-        println(curr_loss)
+        if epoch % log_step == 0
+            curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+            push!(losses, curr_loss)
+            println("Epoch: $epoch, loss: $curr_loss")
+            GC.gc()
+        end
+    end
+end
+
+function PotentialLearning.learn!(
+    nniap::NNIAP,
+    ds::DataSet,
+    opt::Flux.Optimise.AbstractOptimiser,
+    epochs::Int,
+    loss::Function,
+    w_e::Real,
+    w_f::Real,
+    batch_size::Int,
+    log_step::Int
+)
+    optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
+    ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+    losses = []
+    n_batches = length(ds) ÷ batch_size
+    for epoch in 1:epochs
+        for _ in 1:n_batches
+            # Compute gradient with current parameters and update model
+            batch_inds = rand(1:length(ds), batch_size)
+            grads = ∇loss(nniap.nn, nniap.iap, ds[batch_inds], w_e, w_f)
+            Flux.update!(optim, nniap.nn, grads[1])
+        end
+        # Logging
+        if epoch % log_step == 0
+            curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+            push!(losses, curr_loss)
+            println("Epoch: $epoch, loss: $curr_loss")
+        end
+        GC.gc()
     end
 end
 
@@ -193,7 +229,7 @@ function PotentialLearning.learn!(
     batchloss(ps, p) = loss(re(ps), nniap.iap, ds, w_e, w_f)
     ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
     prob = OptimizationProblem(∇bacthloss, ps, []) # prob = remake(prob,u0=sol.minimizer)
-    cb = function (p, l) println("Loss BFGS: $l"); return false end
+    cb = function (p, l) println("Loss BFGS: $l"); GC.gc(); return false end
     sol = solve(prob, opt, maxiters=maxiters, callback = cb)
     ps = sol.u
     nn = re(ps)

@@ -14,137 +14,202 @@ using Random
 include("../utils/utils.jl")
 
 
-# Load input parameters
-args = ["experiment_path",      "a-Hfo2-300K-NVT-6000-NeuralACE/",
-        "dataset_path",         "../data/a-HfO2/",
-        "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
-        "energy_units",         "eV",
-        "distance_units",       "Å",
-        "random_seed",          "100",
-        "n_train_sys",          "20",
-        "n_test_sys",           "20",
-        "n_red_desc",           "0", # No. of reduced descriptors. O: don't apply reduction
-        "nn",                   "Chain(Dense(n_desc,8,relu),Dense(8,1))",
-        "n_epochs",             "100",
-        "n_batches",            "1",
-        "optimiser",            "Adam(0.001)", # e.g. Adam(0.01) or BFGS()
-        "n_body",               "3",
-        "max_deg",              "3",
-        "r0",                   "1.0",
-        "rcutoff",              "5.0",
-        "wL",                   "1.0",
-        "csp",                  "1.0",
-        "w_e",                  "0.01",
-        "w_f",                  "1.0"]
-args = length(ARGS) > 0 ? ARGS : args
-input = get_input(args)
+# Setup experiment #############################################################
 
-
-# Create experiment folder
-path = input["experiment_path"]
-run(`mkdir -p $path`)
-@savecsv path input
+# Experiment folder
+path = "a-HfO2-NACE/" #"Ta-NACE/"
+run(`mkdir -p $path/`)
 
 # Fix random seed
-if "random_seed" in keys(input)
-    Random.seed!(input["random_seed"])
-end
+Random.seed!(100)
 
-# Load dataset
-ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
-energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
-ds = load_data(ds_path, energy_units, distance_units)
 
-# Split dataset
-n_train, n_test = input["n_train_sys"], input["n_test_sys"]
-conf_train, conf_test = split(ds, n_train, n_test)
+# Define training and test configuration datasets ##############################
 
-# Start measuring learning time
-learn_time = @elapsed begin #learn_time = 0.0
+# Load complete configuration dataset
+ds_path = "../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz" # "../data/Ta.extxyz"
+ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
-# Define ACE parameters
-ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
-          body_order = input["n_body"],
-          polynomial_degree = input["max_deg"],
-          wL = input["wL"],
-          csp = input["csp"],
-          r0 = input["r0"],
-          rcutoff = input["rcutoff"])
-@savevar path ace
+# Split configuration dataset into training and test
+n_train, n_test = 100, 400 #300, 63
+conf_train, conf_test = split(ds, n_train, n_test, f = 0.827)
+
+# Free memory
+ds = nothing
+GC.gc()
+
+
+# Define dataset generator #####################################################
+dataset_generator = Nothing
+
+
+# Define dataset subselector ###################################################
+
+# Subselector, option 1: RandomSelector
+dataset_selector = RandomSelector(length(conf_train); batch_size = 100)
+
+# Subselector, option 2: DBSCANSelector
+#ε, min_pts, sample_size = 0.05, 5, 3
+#dataset_selector = DBSCANSelector(  conf_train,
+#                                    ε,
+#                                    min_pts,
+#                                    sample_size)
+
+# Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
+#ace = ACE(species           = [:Hf, :O],
+#          body_order        = 2,
+#          polynomial_degree = 3,
+#          wL                = 1.0,
+#          csp               = 1.0,
+#          r0                = 1.0,
+#          rcutoff           = 5.0)
+#e_descr = compute_local_descriptors(conf_train,
+#                                    ace,
+#                                    T = Float32)
+#conf_train_kDPP = DataSet(conf_train .+ e_descr)
+#dataset_selector = kDPP(  conf_train_kDPP,
+#                          GlobalMean(),
+#                          DotProduct();
+#                          batch_size = 100)
+
+# Subsample trainig dataset
+inds = PotentialLearning.get_random_subset(dataset_selector)
+conf_train = conf_train[inds]
+GC.gc()
+
+
+# Define IAP model #############################################################
+
+# Define ACE
+ace = ACE(species           = [:Hf, :O], #[:Ta],
+          body_order        = 3,
+          polynomial_degree = 3,
+          wL                = 1.0,
+          csp               = 1.0,
+          r0                = 1.0,
+          rcutoff           = 5.0)
+@save_var path ace
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace, T = Float32)
+e_descr_train = compute_local_descriptors(conf_train,
+                                          ace,
+                                          T = Float32)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace, T = Float32)
-GC.gc()
+f_descr_train = compute_force_descriptors(conf_train,
+                                          ace,
+                                          T = Float32)
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
-n_desc = length(e_descr_train[1][1])
 
-# Dimension reduction of energy and force descriptors of training dataset
-reduce_descriptors = input["n_red_desc"] > 0
+
+# Dimension reduction of energy and force descriptors of training dataset ######
+reduce_descriptors = false
+n_desc = length(e_descr_train[1][1])
 if reduce_descriptors
-    n_desc = input["n_red_desc"]
+    n_desc = n_desc / 2
     pca = PCAState(tol = n_desc)
     fit!(ds_train, pca)
     transform!(ds_train, pca)
 end
 
 # Define neural network model
-nn = eval(Meta.parse(input["nn"])) # e.g. Chain(Dense(n_desc,8,Flux.leakyrelu), Dense(8,1))
+#nn = Chain( Dense(n_desc,60,Flux.sigmoid),
+#            Dense(60,60,Flux.sigmoid),
+#            Dense(60,1))
+nn = Chain( Dense(n_desc,8,Flux.sigmoid),
+            Dense(8,1))
 nace = NNIAP(nn, ace)
 
 # Learn
 println("Learning energies and forces...")
-w_e, w_f = input["w_e"], input["w_f"]
-opt = eval(Meta.parse(input["optimiser"]))
-n_epochs = input["n_epochs"]
-learn!(nace, ds_train, opt, n_epochs, loss, w_e, w_f)
+#opt = Adam(0.0001, (.9, .8)) # BFGS()
+opt = Adam(5e-4)
+n_epochs = 1000
+log_step = 10
+batch_size = 4
+w_e, w_f = 1.0, 0.65 # 0.01, 1.0
+learn!(nace,
+       ds_train,
+       opt,
+       n_epochs,
+       loss,
+       w_e,
+       w_f,
+       batch_size,
+       log_step
+)
+@save_var path Flux.params(nace.nn)
 
-end # end of "learn_time = @elapsed begin"
 
-@savevar path Flux.params(nace.nn)
-
-# Post-process output: calculate metrics, create plots, and save results
-
-# Update test dataset by adding energy and force descriptors
-println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test, ace, T = Float32)
-println("Computing force descriptors of test dataset...")
-f_descr_test = compute_force_descriptors(conf_test, ace, T = Float32)
-GC.gc()
-ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
+# Post-process output: calculate metrics, create plots, and save results #######
 
 # Dimension reduction of energy and force descriptors of test dataset
 if reduce_descriptors
     transform!(ds_test, pca)
 end
 
+# Update test dataset by adding energy and force descriptors
+println("Computing energy descriptors of test dataset...")
+e_descr_test = compute_local_descriptors(conf_test,
+                                         ace,
+                                         T = Float32)
+println("Computing force descriptors of test dataset...")
+f_descr_test = compute_force_descriptors(conf_test,
+                                         ace,
+                                         T = Float32)
+GC.gc()
+ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
+
 # Get true and predicted values
-e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
-e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
-e_train_pred, f_train_pred = get_all_energies(ds_train, nace), get_all_forces(ds_train, nace)
-e_test_pred, f_test_pred = get_all_energies(ds_test, nace), get_all_forces(ds_test, nace)
-@savevar path e_train
-@savevar path e_train_pred
-@savevar path f_train
-@savevar path f_train_pred
-@savevar path e_test
-@savevar path e_test_pred
-@savevar path f_test
-@savevar path f_test_pred
+e_train, e_train_pred = get_all_energies(ds_train),
+                        get_all_energies(ds_train, nace)
+f_train, f_train_pred = get_all_forces(ds_train),
+                        get_all_forces(ds_train, nace)
+@save_var path e_train
+@save_var path e_train_pred
+@save_var path f_train
+@save_var path f_train_pred
+
+e_test, e_test_pred = get_all_energies(ds_test),
+                      get_all_energies(ds_test, nace)
+f_test, f_test_pred = get_all_forces(ds_test),
+                      get_all_forces(ds_test, nace)
+@save_var path e_test
+@save_var path e_test_pred
+@save_var path f_test
+@save_var path f_test_pred
 
 # Compute metrics
-metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
-                       e_test_pred, e_test, f_test_pred, f_test,
-                       B_time, dB_time, learn_time)
-@savecsv path metrics
+e_train_metrics = get_metrics(e_train_pred, e_train,
+                              metrics = [mae, rmse, rsq],
+                              label = "e_train")
+f_train_metrics = get_metrics(f_train_pred, f_train,
+                              metrics = [mae, rmse, rsq, mean_cos],
+                              label = "f_train")
+train_metrics = merge(e_train_metrics, f_train_metrics)
+@save_dict path train_metrics
+
+e_test_metrics = get_metrics(e_test_pred, e_test,
+                             metrics = [mae, rmse, rsq],
+                             label = "e_test")
+f_test_metrics = get_metrics(f_test_pred, f_test,
+                             metrics = [mae, rmse, rsq, mean_cos],
+                             label = "f_test")
+test_metrics = merge(e_test_metrics, f_test_metrics)
+@save_dict path test_metrics
 
 # Plot and save results
+e_train_plot = plot_energy(e_train_pred, e_train)
+f_train_plot = plot_forces(f_train_pred, f_train)
+f_train_cos  = plot_cos(f_train_pred, f_train)
+@save_fig path e_train_plot
+@save_fig path f_train_plot
+@save_fig path f_train_cos
+
 e_test_plot = plot_energy(e_test_pred, e_test)
-@savefig path e_test_plot
 f_test_plot = plot_forces(f_test_pred, f_test)
-@savefig path f_test_plot
-f_test_cos = plot_cos(f_test_pred, f_test)
-@savefig path f_test_cos
+f_test_cos  = plot_cos(f_test_pred, f_test)
+@save_fig path e_test_plot
+@save_fig path f_test_plot
+@save_fig path f_test_cos
 

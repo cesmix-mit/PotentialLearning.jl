@@ -56,10 +56,10 @@ end
 
 # New function to Split datasets ###############################################
 
-function Base.split(ds, n, m)
-    k = floor(Int32, 0.8 * length(ds))
-    i_tr = randperm(length(ds[1:k]))
-    i_ts = randperm(length(ds[k+1:end]))
+function Base.split(ds, n, m; f = 0.8)
+    k = floor(Int64, f * length(ds))
+    i_tr = randperm(k)
+    i_ts = randperm(length(ds)-k) .+ k
     return @views ds[first(i_tr, n)], ds[first(i_ts, m)]
 end
 
