@@ -26,7 +26,7 @@ CFG_TYPE = Union{AtomsBase.FlexibleSystem,ConfigurationData}
 
 Removes units from a position.
 """
-get_values(v::SVector) = [v.data[1].val, v.data[2].val, v.data[3].val]
+get_values(v::SVector) = ustrip(v)
 
 """
     Energy <: ConfigurationData
