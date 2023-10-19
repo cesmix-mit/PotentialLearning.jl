@@ -31,7 +31,7 @@ ds_path = "../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz" # "../data/Ta.extxyz"
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
 # Split configuration dataset into training and test
-n_train, n_test = 100, 400 #300, 63
+n_train, n_test = 150, 400 #300, 63
 conf_train, conf_test = split(ds, n_train, n_test, f = 0.827)
 
 # Free memory
@@ -46,7 +46,7 @@ dataset_generator = Nothing
 # Define dataset subselector ###################################################
 
 # Subselector, option 1: RandomSelector
-dataset_selector = RandomSelector(length(conf_train); batch_size = 100)
+dataset_selector = RandomSelector(length(conf_train); batch_size = 150)
 
 # Subselector, option 2: DBSCANSelector
 #ε, min_pts, sample_size = 0.05, 5, 3
@@ -112,22 +112,70 @@ if reduce_descriptors
     transform!(ds_train, pca)
 end
 
+######### Site energy d
+using ACE1, JuLIP
+
+function compute_local_descriptors_d(A::AbstractSystem, ace::ACE)
+    return [ACE1.site_energy_d(ace.rpib, InteratomicBasisPotentials.convert_system_to_atoms(A), i) for i = 1:length(A)]
+end
+
+#c = ds_train[1]
+#d = compute_local_descriptors_d(get_system(c), ace)
+
+#atom_j, coor, i = 10, 3, 1
+#[[d[i][k][atom_j][coor] for k in 1:26] for i in 1:96]
+
+dbdr_c = Dict()
+for c_ind in 1:length(ds_train)
+    c = ds_train[c_ind]
+    d = compute_local_descriptors_d(get_system(c), ace)
+    dbdr = Array{Any}(undef, 3, 96)
+    for coor in 1:3
+        for atom_j in 1:96
+            dbdr[coor, atom_j] = reduce(hcat, [[d[i][k][atom_j][coor]
+                                               for k in 1:n_desc] for i in 1:96])
+            dbdr_c[c] = dbdr
+        end
+    end
+end
+
 # Define neural network model
-#nn = Chain( Dense(n_desc,60,Flux.sigmoid),
-#            Dense(60,60,Flux.sigmoid),
-#            Dense(60,1))
-nn = Chain( Dense(n_desc,8,Flux.sigmoid),
+#nn = Chain( Dense(n_desc,64,Flux.sigmoid; init = Flux.glorot_uniform),
+#            Dense(64,64,Flux.sigmoid; init = Flux.glorot_uniform),
+#            Dense(64,1; init = Flux.glorot_uniform))
+#nn = Chain( Dense(n_desc,60,Flux.sigmoid;init=Flux.glorot_normal),
+#            Dense(60,60,Flux.sigmoid;init=Flux.glorot_normal),
+#            Dense(60,1;init=Flux.glorot_normal))
+#nn = Chain( Dense(n_desc,8,Flux.sigmoid; init=Flux.glorot_normal),
+#            Dense(8,1; init=Flux.glorot_normal))
+nn = Chain( Dense(n_desc,8,Flux.relu),
             Dense(8,1))
 nace = NNIAP(nn, ace)
 
 # Learn
 println("Learning energies and forces...")
-#opt = Adam(0.0001, (.9, .8)) # BFGS()
+
+#opt = BFGS()
+#n_epochs = 50
+#w_e, w_f = 1.0, 1.0 #0.65 # 0.01, 1.0
+#learn!(nace,
+#       ds_train,
+#       opt,
+#       n_epochs,
+#       loss,
+#       w_e,
+#       w_f
+#)
+
+#(W2 sigmoid(W1 X + b1) + b2)
+
+#opt = Adam(.1, (.9, .8)) # opt = Adam(0.001) #Adam(5e-4, (.9, .8)) # Adam(5e-4)
+#opt = Adam(5e-4, (.9, .8)) # 
 opt = Adam(5e-4)
-n_epochs = 1000
+n_epochs = 3000
 log_step = 10
 batch_size = 4
-w_e, w_f = 1.0, 0.65 # 0.01, 1.0
+w_e, w_f =  1.0, 1.0 #0.01, 1.0 # 1.0, 0.65
 learn!(nace,
        ds_train,
        opt,
@@ -138,6 +186,8 @@ learn!(nace,
        batch_size,
        log_step
 )
+
+
 @save_var path Flux.params(nace.nn)
 
 

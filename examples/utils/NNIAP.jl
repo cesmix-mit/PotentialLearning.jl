@@ -15,19 +15,45 @@ function potential_energy(
     c::Configuration,
     nniap::NNIAP
 )
-    Bs = get_values(get_local_descriptors(c))
-    s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
-    return s
+#    Bs = get_values(get_local_descriptors(c))
+#    s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
+#    return s
+    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+    return sum(nniap.nn(Bs))
 end
 
 function force(
     c::Configuration,
     nniap::NNIAP
 )
-    Bs = get_values(get_local_descriptors(c))
-    dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
-    dbdr = get_values(get_force_descriptors(c))
-    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
+#    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+#    dnndb = first(gradient(x->sum(nniap.nn(x)), Bs))        # gradient function of MLP can be predefined
+#    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
+#    n_atoms = size(dbdr, 2)
+#    return [[-sum( dot.(eachcol(dnndb), [dbdr[coor, atom_j]]) )
+#             for coor in 1:3]
+#             for atom_j in 1:n_atoms]
+    
+#    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+#    dnndb = first(gradient(x->sum(nniap.nn(x)), Bs))        # gradient function of MLP can be predefined
+#    sum_dnndb = sum(dnndb, dims = 2)
+#    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
+#    n_atoms = size(dbdr, 2)
+#    return [[-(sum_dnndb ⋅ dbdr[coor, atom_j] / n_atoms) for coor in 1:3]
+#             for atom_j in 1:n_atoms]
+    
+    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+    dnndb = first(Flux.gradient(x->sum(nniap.nn(x)), Bs))   # gradient function of MLP can be predefined
+    n_atoms = size(dnndb, 2)
+    global dbdr_c
+    return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
+              for coor in 1:3]
+              for atom_j in 1:n_atoms]
+
+#    Bs = get_values(get_local_descriptors(c))
+#    dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
+#    dbdr = get_values(get_force_descriptors(c))
+#    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
 end
 
 # Formulation using global descriptors to compute energy and forces
@@ -57,8 +83,8 @@ function loss(
     w_f::Real = 1.0
 )
     nniap = NNIAP(nn, iap)
-    es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
-    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)
+    es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)  # get_all_energies(ds) can be precomputed
+    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)      # get_all_forces(ds) can be precomputed
     return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
 end
 
@@ -151,7 +177,7 @@ function PotentialLearning.learn!(
     log_step::Int
 )
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+    ∇loss(nn, iap, ds, w_e, w_f) = Flux.gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
     losses = []
     n_batches = length(ds) ÷ batch_size
     for epoch in 1:epochs
