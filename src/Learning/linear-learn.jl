@@ -178,7 +178,7 @@ Fit energies using weighted least squares.
 function learn!(
     lp::UnivariateLinearProblem,
     ws::Vector,
-    int::Bool
+    int::Bool # intercept
 )
     @views B_train = reduce(hcat, lp.iv_data)'
     @views e_train = lp.dv_data
@@ -194,15 +194,22 @@ function learn!(
 
     # Calculate coefficients β.
     Q = Diagonal(ws[1] * ones(length(e_train)))
-    βs = (A'*Q*A) \ (A'*Q*b)
-    
+    AtA = A'*Q*A
+    Atb = A'*Q*b
+
+    βs = AtA \ Atb
+    σ = std(Atb - AtA * βs)
+    Σ = Symmetric(σ[1]^2 * inv(AtA))
+
     # Update lp.
-    if int
+    if int 
         copyto!(lp.β0, [βs[1]])
         copyto!(lp.β, βs[2:end])
     else
         copyto!(lp.β, βs)
     end
+    copyto!(lp.σ, σ)
+    copyto!(lp.Σ, Σ)
     
 end
 
@@ -237,7 +244,12 @@ function learn!(
     # Calculate coefficients βs.
     Q = Diagonal([ws[1] * ones(length(e_train));
                   ws[2] * ones(length(f_train))])
-    βs = (A'*Q*A) \ (A'*Q*b)
+    AtA = A'*Q*A
+    Atb = A'*Q*b
+
+    βs = AtA \ Atb
+    σ = std(Atb - AtA * βs)
+    Σ = Symmetric(σ[1]^2 * inv(AtA))
 
     # Update lp.
     if int
@@ -246,6 +258,8 @@ function learn!(
     else
         copyto!(lp.β, βs)
     end
+    copyto!(lp.σ, σ)
+    copyto!(lp.Σ, Σ)
 
 end
 
