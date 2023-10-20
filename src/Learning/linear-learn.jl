@@ -60,12 +60,10 @@ function learn!(
     copyto!(lp.σe, exp(sol.u[1]))
     copyto!(lp.σf, exp(sol.u[2]))
     copyto!(lp.β, sol.u[3:end])
-    Q = pinv(
-        Symmetric(
+    Σ = Symmetric(
             lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α),
-        ),
     )
-    copyto!(lp.Σ, Symmetric(Q))
+    copyto!(lp.Σ, Σ)
 end
 
 """
@@ -156,12 +154,10 @@ function learn!(
     copyto!(lp.β, params[3:end])
     AtAe = sum(b * b' for b in lp.B)
     AtAf = sum(db * db' for db in lp.dB)
-    Q = pinv(
-        Symmetric(
+    Σ = Symmetric(
             lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α),
         ),
-    )
-    copyto!(lp.Σ, Symmetric(Q))
+    copyto!(lp.Σ, Σ)
 end
 
 # Weighted least squares functions #############################################
@@ -180,6 +176,7 @@ function learn!(
     ws::Vector,
     int::Bool # intercept
 )
+    α = 1e-10 # for conditioning matrix inversion
     @views B_train = reduce(hcat, lp.iv_data)'
     @views e_train = lp.dv_data
 
@@ -199,7 +196,7 @@ function learn!(
 
     βs = AtA \ Atb
     σ = std(Atb - AtA * βs)
-    Σ = Symmetric(σ[1]^2 * inv(AtA))
+    Σ = Symmetric(σ[1]^2 * pinv(Symmetric(AtA), α))
 
     # Update lp.
     if int 
@@ -246,10 +243,21 @@ function learn!(
                   ws[2] * ones(length(f_train))])
     AtA = A'*Q*A
     Atb = A'*Q*b
+    βs = AtA \ Atb    
 
-    βs = AtA \ Atb
-    σ = std(Atb - AtA * βs)
-    Σ = Symmetric(σ[1]^2 * inv(AtA))
+    AtAe = sum(b * b' for b in lp.B)
+    Atbe = sum(b * e for (b, e) in zip(lp.B, lp.e))
+
+    AtAf = sum(db * db' for db in lp.dB)
+    Atbf = sum(db * f for (db, f) in zip(lp.dB, lp.f))
+    
+
+    copyto!(lp.σe, std(Atbe - AtAe * lp.β))
+    copyto!(lp.σf, std(Atbf - AtAf * lp.β))
+
+    Σ = Symmetric(
+        lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α),
+    )
 
     # Update lp.
     if int
@@ -258,7 +266,8 @@ function learn!(
     else
         copyto!(lp.β, βs)
     end
-    copyto!(lp.σ, σ)
+    copyto!(lp.σe, σe)
+    copyto!(lp.σf, σf)
     copyto!(lp.Σ, Σ)
 
 end
