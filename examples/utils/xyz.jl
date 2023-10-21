@@ -14,7 +14,7 @@ end
 function load_data(file::String, energy_units::Unitful.FreeUnits,
                    distance_units::Unitful.FreeUnits; nmax = Inf, T = Float64)
     ext = []
-    if lowercase(split(ds_path, ".")[end]) == "extxyz"
+    if lowercase(split(file, ".")[end]) == "extxyz"
         ext = ExtXYZ(energy_units, distance_units)
     else # "xyz"
         ext = XYZ(energy_units, distance_units)

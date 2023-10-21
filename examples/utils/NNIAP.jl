@@ -143,13 +143,13 @@ function PotentialLearning.learn!(
     ds::DataSet,
     opt::Flux.Optimise.AbstractOptimiser,
     epochs::Int,
-    loss::Function,
+    loss0::Function,
     w_e::Real,
     w_f::Real,
     log_step::Int
 )
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+    ∇loss(nn, iap, ds, w_e, w_f) = gradient((nn) -> loss0(nn, iap, ds, w_e, w_f), nn)
     losses = []
     for epoch in 1:epochs
         # Compute gradient with current parameters and update model
@@ -157,7 +157,7 @@ function PotentialLearning.learn!(
         Flux.update!(optim, nniap.nn, grads[1])
         # Logging
         if epoch % log_step == 0
-            curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+            curr_loss = loss0(nniap.nn, nniap.iap, ds, w_e, w_f)
             push!(losses, curr_loss)
             println("Epoch: $epoch, loss: $curr_loss")
             GC.gc()
@@ -170,14 +170,14 @@ function PotentialLearning.learn!(
     ds::DataSet,
     opt::Flux.Optimise.AbstractOptimiser,
     epochs::Int,
-    loss::Function,
+    loss0::Function,
     w_e::Real,
     w_f::Real,
     batch_size::Int,
     log_step::Int
 )
     optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    ∇loss(nn, iap, ds, w_e, w_f) = Flux.gradient((nn) -> loss(nn, iap, ds, w_e, w_f), nn)
+    ∇loss(nn, iap, ds, w_e, w_f) = Flux.gradient((nn) -> loss0(nn, iap, ds, w_e, w_f), nn)
     losses = []
     n_batches = length(ds) ÷ batch_size
     for epoch in 1:epochs
@@ -189,7 +189,7 @@ function PotentialLearning.learn!(
         end
         # Logging
         if epoch % log_step == 0
-            curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
+            curr_loss = loss0(nniap.nn, nniap.iap, ds, w_e, w_f)
             push!(losses, curr_loss)
             println("Epoch: $epoch, loss: $curr_loss")
         end

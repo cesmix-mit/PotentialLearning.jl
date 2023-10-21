@@ -1,8 +1,9 @@
-struct POD
+using Glob
+using NaturalSort
+
+struct POD <: BasisSystem
     # chemical element symbols
     species
-    # periodic boundary conditions
-    pbc
     # inner cut-off radius
     rin
     # outer cut-off radius
@@ -72,50 +73,62 @@ function POD(;
 end
 
 
-function compute_local_descriptors(confs, pod::POD, T = Float32)
-    
-
+# Harcoded function to compute local descriptors
+function compute_local_descriptors(
+    confs::DataSet,
+    pod::POD;
+    T = Float32, 
+    path = "../../../POD/get_descriptors/train/"
+)
+    file_names = sort(glob("$path/localdescriptors_config*.bin"), lt=natural)
+    e_des = Vector{LocalDescriptors}(undef, length(confs))
+    for (j, file_desc) in enumerate(file_names)
+        file_desc = first(file_names)
+        row_data = reinterpret(Float64, read(file_desc))
+        n_atoms = convert(Int, row_data[1])
+        n_desc = convert(Int, row_data[2])
+        ld = reshape(row_data[3:end], n_atoms, n_desc)
+        e_des[j] = PotentialLearning.LocalDescriptors([T.(ld_i) for ld_i in eachrow(ld)])
+    end
+    return e_des
 end
+
+
+#function compute_local_descriptors(
+#    ds::DataSet,
+#    basis::BasisSystem;
+#    pbar = true,
+#    T = Float64
+#)
+#    iter = collect(enumerate(get_system.(ds)))
+#    if pbar
+#        iter = ProgressBar(iter)
+#    end
+#    e_des = Vector{LocalDescriptors}(undef, length(ds))
+#    Threads.@threads for (j, sys) in iter
+#        e_des[j] = LocalDescriptors([T.(d) for d in compute_local_descriptors(sys, basis)])
+#    end
+#    return e_des
+#end
+
+
+
+#function PotentialLearning.get_all_energies(
+#    ds::DataSet,
+#    nniap::NNIAP
+#)
+#    return [nniap.nn(gd[c])[1] for c in 1:length(gd)]
+#end
 
 function energy_loss(
     nn::Chain,
     iap::BasisSystem,
-    ds::DataSet
+    ds::DataSet,
+    args...
 )
     nniap = NNIAP(nn, iap)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
     return Flux.mse(es_pred, es)
-end
-
-
-function PotentialLearning.learn!(
-    nniap::NNIAP,
-    ds::DataSet,
-    opt::Flux.Optimise.AbstractOptimiser,
-    epochs::Int,
-    loss::Function,
-    batch_size::Int,
-    log_step::Int
-)
-    optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    ∇loss(nn, iap, ds, w_e, w_f) = Flux.gradient((nn) -> energy_loss(nn, iap, ds), nn)
-    losses = []
-    n_batches = length(ds) ÷ batch_size
-    for epoch in 1:epochs
-        for _ in 1:n_batches
-            # Compute gradient with current parameters and update model
-            batch_inds = rand(1:length(ds), batch_size)
-            grads = ∇loss(nniap.nn, nniap.iap, ds[batch_inds], w_e, w_f)
-            Flux.update!(optim, nniap.nn, grads[1])
-        end
-        # Logging
-        if epoch % log_step == 0
-            curr_loss = loss(nniap.nn, nniap.iap, ds, w_e, w_f)
-            push!(losses, curr_loss)
-            println("Epoch: $epoch, loss: $curr_loss")
-        end
-        GC.gc()
-    end
 end
 
 
