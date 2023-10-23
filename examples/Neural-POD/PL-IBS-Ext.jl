@@ -83,10 +83,10 @@ function compute_local_descriptors(
     file_names = sort(glob("$path/localdescriptors_config*.bin"), lt=natural)
     e_des = Vector{LocalDescriptors}(undef, length(confs))
     for (j, file_desc) in enumerate(file_names)
-        file_desc = first(file_names)
         row_data = reinterpret(Float64, read(file_desc))
         n_atoms = convert(Int, row_data[1])
         n_desc = convert(Int, row_data[2])
+        #ld = reshape(row_data[3:end], n_desc, n_atoms)
         ld = reshape(row_data[3:end], n_atoms, n_desc)
         e_des[j] = PotentialLearning.LocalDescriptors([T.(ld_i) for ld_i in eachrow(ld)])
     end
@@ -119,7 +119,7 @@ end
 #)
 #    return [nniap.nn(gd[c])[1] for c in 1:length(gd)]
 #end
-
+pen_l2(x::AbstractArray) = sum(abs2, x)/2
 function energy_loss(
     nn::Chain,
     iap::BasisSystem,
@@ -127,8 +127,9 @@ function energy_loss(
     args...
 )
     nniap = NNIAP(nn, iap)
+    #penalty = sum(pen_l2, Flux.params(nn))
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
-    return Flux.mse(es_pred, es)
+    return Flux.mse(es_pred, es) #+ 1e-8 * penalty
 end
 
 
