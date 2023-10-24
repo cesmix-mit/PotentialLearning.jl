@@ -5,7 +5,6 @@ using LinearAlgebra, Random, Statistics, StatsBase, Distributions
 using AtomsBase, Unitful, UnitfulAtomic
 using InteratomicPotentials, InteratomicBasisPotentials
 using Determinantal
-using CairoMakie
 using InvertedIndices
 using CSV
 using JLD
@@ -24,7 +23,6 @@ outpath = "./DPP_training/$elname/"
 file_arr = readext(inpath, "xyz")
 nfile = length(file_arr)
 confs_arr = [load_data(inpath*file, ExtXYZ(u"eV", u"Å")) for file in file_arr]
-confs = concat_dataset(confs_arr)
 
 # Id of configurations per file
 n = 0
@@ -39,15 +37,15 @@ end
 # confs = load_data(inpath*datafile, ExtXYZ(u"eV", u"Å"))
 
 # Define cases -----------------------------------------------------------------
-param_sets = [[4,4], [4,6], [4,8],
-                     [5,6], [5,8],
-                            [6,8],
-                            [7,8]]
-batch_sets = [5000, 2000, 1000, 500, 200, 100, 50]
+param_sets = [[5,4], [5,6], [5,8]]
+            #   [[5,4], [5,6], [5,8],
+            #   [4,4], [4,6], [4,8]]
+batch_sets = [10000] # , 5000, 1000, 500, 100, 50]
 
 # Run experiments -----------------------------------------------------------------
 
 for param in param_sets
-    @async DPP_training_trial(elspec, confs, param[1], param[2], batch_sets, outpath; nfold=5)
+    println("=========== PARAMS $param ===========")
+    DPP_training_trial(elspec, param[1], param[2], batch_sets, file_arr, confs_arr, outpath; nfold=5)
 end
     
