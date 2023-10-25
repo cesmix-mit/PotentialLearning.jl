@@ -93,31 +93,6 @@ function compute_local_descriptors(
 end
 
 
-#function compute_local_descriptors(
-#    ds::DataSet,
-#    basis::BasisSystem;
-#    pbar = true,
-#    T = Float64
-#)
-#    iter = collect(enumerate(get_system.(ds)))
-#    if pbar
-#        iter = ProgressBar(iter)
-#    end
-#    e_des = Vector{LocalDescriptors}(undef, length(ds))
-#    Threads.@threads for (j, sys) in iter
-#        e_des[j] = LocalDescriptors([T.(d) for d in compute_local_descriptors(sys, basis)])
-#    end
-#    return e_des
-#end
-
-
-
-#function PotentialLearning.get_all_energies(
-#    ds::DataSet,
-#    nniap::NNIAP
-#)
-#    return [nniap.nn(gd[c])[1] for c in 1:length(gd)]
-#end
 pen_l2(x::AbstractArray) = sum(abs2, x)/2
 function energy_loss(
     nn::Chain,
