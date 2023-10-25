@@ -86,7 +86,6 @@ function compute_local_descriptors(
         row_data = reinterpret(Float64, read(file_desc))
         n_atoms = convert(Int, row_data[1])
         n_desc = convert(Int, row_data[2])
-        #ld = reshape(row_data[3:end], n_desc, n_atoms)
         ld = reshape(row_data[3:end], n_atoms, n_desc)
         e_des[j] = PotentialLearning.LocalDescriptors([T.(ld_i) for ld_i in eachrow(ld)])
     end
@@ -128,7 +127,9 @@ function energy_loss(
 )
     nniap = NNIAP(nn, iap)
     #penalty = sum(pen_l2, Flux.params(nn))
-    es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)
+    n_atoms = [ length(get_local_descriptors(ds[i])) for i in 1:length(ds)]
+    es, es_pred = get_all_energies(ds) ./ n_atoms,
+                  get_all_energies(ds, nniap) ./ n_atoms
     return Flux.mse(es_pred, es) #+ 1e-8 * penalty
 end
 

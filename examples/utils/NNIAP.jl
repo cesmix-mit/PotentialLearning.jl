@@ -110,7 +110,7 @@ function PotentialLearning.get_all_energies(
     ds::DataSet,
     nniap::NNIAP
 )
-    return [potential_energy(ds[c], nniap) for c in 1:length(ds)]
+    return [potential_energy(ds[i], nniap) for i in 1:length(ds)]
 end
 
 function PotentialLearning.get_all_forces(
@@ -173,11 +173,12 @@ function PotentialLearning.learn!(
     loss0::Function,
     w_e::Real,
     w_f::Real,
+    reg::Real,
     batch_size::Int,
     log_step::Int
 )
     #optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
-    optim = Flux.setup(OptimiserChain(WeightDecay(1e-7), opt), nniap.nn)
+    optim = Flux.setup(OptimiserChain(WeightDecay(reg), opt), nniap.nn)
     ∇loss(nn, iap, ds, w_e, w_f) = Flux.gradient((nn) -> loss0(nn, iap, ds, w_e, w_f), nn)
     losses = []
     n_batches = length(ds) ÷ batch_size
