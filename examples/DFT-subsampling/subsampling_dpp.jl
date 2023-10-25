@@ -6,7 +6,6 @@ using AtomsBase, Unitful, UnitfulAtomic
 using InteratomicPotentials, InteratomicBasisPotentials
 using Determinantal
 using InvertedIndices
-using CSV
 using JLD
 using DataFrames
 
@@ -23,6 +22,7 @@ outpath = "./DPP_training/$elname/"
 file_arr = readext(inpath, "xyz")
 nfile = length(file_arr)
 confs_arr = [load_data(inpath*file, ExtXYZ(u"eV", u"Å")) for file in file_arr]
+confs = concat_dataset(confs_arr[1:2])
 
 # Id of configurations per file
 n = 0
@@ -37,15 +37,13 @@ end
 # confs = load_data(inpath*datafile, ExtXYZ(u"eV", u"Å"))
 
 # Define cases -----------------------------------------------------------------
-param_sets = [[5,4], [5,6], [5,8]]
-            #   [[5,4], [5,6], [5,8],
-            #   [4,4], [4,6], [4,8]]
-batch_sets = [10000] # , 5000, 1000, 500, 100, 50]
+param_sets = [[5,6]]
+batch_sets = [50, 100] # [500, 1000, 2000, 4000, 8000, 16000]
 
 # Run experiments -----------------------------------------------------------------
 
 for param in param_sets
     println("=========== PARAMS $param ===========")
-    DPP_training_trial(elspec, param[1], param[2], batch_sets, file_arr, confs_arr, outpath; nfold=5)
+    DPP_training_trial(elspec, param[1], param[2], batch_sets, confs, outpath; nfold=5)
 end
     

@@ -5,8 +5,7 @@ function DPP_training_trial(
     nbody::Int64,
     deg::Int64,
     batch_size::Vector,
-    files::Vector{String},
-    confs::Vector{DataSet},
+    conf::DataSet,
     save_dir::String;
     nfold::Int64=10)
 
@@ -24,22 +23,22 @@ function DPP_training_trial(
             rcutoff = 10.0)
 
     # Update dataset by adding energy (local) descriptors
-    conf = concat_dataset(confs)
+    
 
     println("Computing local descriptors")
-    try 
-        e_descr = JLD.load(exp_dir*"energy_descriptors.jld")["e_descr"]
-        f_descr = JLD.load(exp_dir*"force_descriptors.jld")["f_descr"]
-    catch
-        @time e_descr = compute_local_descriptors(conf, ace)
-        @time f_descr = compute_force_descriptors(conf, ace)
-        JLD.save(exp_dir*"energy_descriptors.jld", "e_descr", e_descr)
-        JLD.save(exp_dir*"force_descriptors.jld", "f_descr", f_descr)
-    end
+
+    e_descr = JLD.load(exp_dir*"energy_descriptors.jld")["e_descr"]
+    f_descr = JLD.load(exp_dir*"force_descriptors.jld")["f_descr"]
+
+    # @time e_descr = compute_local_descriptors(conf, ace)
+    # @time f_descr = compute_force_descriptors(conf, ace)
+    # JLD.save(exp_dir*"energy_descriptors.jld", "e_descr", e_descr)
+    # JLD.save(exp_dir*"force_descriptors.jld", "f_descr", f_descr)
+
     ds = DataSet(conf .+ e_descr .+ f_descr)
 
     # Compute cross validation error from training
-    res_dpp, res_srs = cross_validation_training(ds, batch_size, exp_dir; ndiv=nfold)
+    res_dpp, res_srs = cross_validation_training(ds, ace, batch_size, exp_dir; ndiv=nfold)
 
 end
 
@@ -91,6 +90,7 @@ end
 # cross validation training
 function cross_validation_training(
     ds::DataSet,
+    ace::ACE,
     batch_size::Vector,
     save_dir::String;
     ndiv=10,
@@ -121,7 +121,7 @@ function cross_validation_training(
         for bs in batch_size
             t = @elapsed begin
                 # train by DPP
-                lpd ,lbd, dpp_ind = train_potential(ds_train, ace, L, bs)
+                lpd, lbd, dpp_ind = train_potential(ds_train, ace, L, bs)
                 res_dpp[bs] = update_res_dict(i, res_dpp[bs], ds, lpd, lbd, dpp_ind)
 
                 # train by simple random sampling
@@ -237,48 +237,36 @@ function update_res_dict(
 end
 
 
-# function _compute_cv_metadata(
-#     res::Dict,
-#     file_vec::Vector{String},
-# )
-#     df_conf = DataFrame(
-#         "file" => file_vec,
-#         # "DFT energy" => get_all_energies(ds),
-#         # "E err mean" => mean(res["energy_err"]), # mean error from k-fold CV
-#         # "E err std" => std(res["energy_err"]), # std of error
-#         "E mae mean" => mean(res["energy_mae"]),
-#         "E mae std" => std(res["energy_mae"]),
-#         "E rmse mean" => mean(res["energy_rmse"]),
-#         "E rmse std" => std(res["energy_rmse"]),
-#         "E rsq mean" => mean(res["energy_rsq"]),
-#         "E rsq std" => std(res["energy_rsq"]),
-#         # "DFT force" => get_all_forces_mag(ds),
-#         # "F err mean" =>  mean(res["force_err"]), # mean error from k-fold CV
-#         # "F err std" => std(res["force_err"]), # std of error
-#         "F mae mean" => mean(res["force_mae"]),
-#         "F mae std" => std(res["force_mae"]),
-#         "F rmse mean" => mean(res["force_rmse"]),
-#         "F rmse std" => std(res["force_rmse"]),
-#         "F rsq mean" => mean(res["force_rsq"]),
-#         "F rsq std" => std(res["force_rsq"]),
-#     )
-#     return df_conf
-# end
+function compute_cv_metadata(
+    res::Dict,
+)
+    batches = sort(collect(keys(res)))
 
-# function compute_cv_metadata(
-#     res::Dict,
-#     files::Vector{String},
-#     confs::Vector{DataSet},
-#     save_dir::String
-# )
-#     batch_size = keys(res)
-#     file_vec = reduce(vcat, [[files[j] for i = 1:length(confs[j])] for j = 1:length(confs)])
+    df_conf = DataFrame(
+        "batch size" => batches,
+        # "DFT energy" => get_all_energies(ds),
+        # "E err mean" => mean(res["energy_err"]), # mean error from k-fold CV
+        # "E err std" => std(res["energy_err"]), # std of error
+        "E mae mean" => [mean(res[bs]["energy_mae"]) for bs in batches],
+        "E mae std" => [std(res[bs]["energy_mae"]) for bs in batches],
+        "E rmse mean" => [mean(res[bs]["energy_rmse"]) for bs in batches],
+        "E rmse std" => [std(res[bs]["energy_rmse"]) for bs in batches],
+        "E rsq mean" => [mean(res[bs]["energy_rsq"]) for bs in batches],
+        "E rsq std" => [std(res[bs]["energy_rsq"]) for bs in batches],
+        # "DFT force" => get_all_forces_mag(ds),
+        # "F err mean" =>  mean(res["force_err"]), # mean error from k-fold CV
+        # "F err std" => std(res["force_err"]), # std of error
+        "F mae mean" => [mean(res[bs]["force_mae"]) for bs in batches],
+        "F mae std" => [std(res[bs]["force_mae"]) for bs in batches],
+        "F rmse mean" => [mean(res[bs]["force_rmse"]) for bs in batches],
+        "F rmse std" => [std(res[bs]["force_rmse"]) for bs in batches],
+        "F rsq mean" => [mean(res[bs]["force_rsq"]) for bs in batches],
+        "F rsq std" => [std(res[bs]["force_rsq"]) for bs in batches],
+    )
+    return df_conf
+end
 
-#     for bs in batch_size
-#         df_conf = _compute_cv_metadata(res[bs], file_vec)
-#         CSV.write(save_dir*"training_metadata_N=$bs.csv", df_conf)
-#     end
-# end
+
 
 
 
