@@ -92,20 +92,3 @@ function compute_local_descriptors(
     return e_des
 end
 
-
-pen_l2(x::AbstractArray) = sum(abs2, x)/2
-function energy_loss(
-    nn::Chain,
-    iap::BasisSystem,
-    ds::DataSet,
-    args...
-)
-    nniap = NNIAP(nn, iap)
-    #penalty = sum(pen_l2, Flux.params(nn))
-    n_atoms = [ length(get_local_descriptors(ds[i])) for i in 1:length(ds)]
-    es, es_pred = get_all_energies(ds) ./ n_atoms,
-                  get_all_energies(ds, nniap) ./ n_atoms
-    return Flux.mse(es_pred, es) #+ 1e-8 * penalty
-end
-
-

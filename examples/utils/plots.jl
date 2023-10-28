@@ -40,7 +40,7 @@ function plot_energy(
     r0 = minimum(es); r1 = maximum(es); rs = (r1-r0)/10
     plot(e_train_true, e_train_pred, seriestype=:scatter, label="Training energies",
          markersize=5, markerstrokewidth=0, markershape=:circle, markercolor=:gray)
-    plot!(e_test_pred, e_test_true, seriestype=:scatter,  label="Test energies",
+    plot!(e_test_true, e_test_pred, seriestype=:scatter,  label="Test energies",
           markersize=5, markerstrokewidth=0, markershape=:utriangle, markercolor=:black)
     plot!(label="", xlabel = "E DFT | eV", ylabel = "E predicted | eV")
     p = plot!( r0:rs:r1, r0:rs:r1, label="", linecolor=:gray)

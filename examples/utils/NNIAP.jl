@@ -11,15 +11,24 @@ end
 # Formulation using local descriptors to compute energy and forces
 # See 10.1103/PhysRevLett.98.146401, https://fitsnap.github.io/Pytorch.html
 
+function PotentialLearning.get_system(c::Configuration)
+    for k in keys(c.data)
+        if k <: AtomsBase.AbstractSystem
+            return c.data[k]
+        end
+    end
+end
+
 function potential_energy(
     c::Configuration,
     nniap::NNIAP
 )
-#    Bs = get_values(get_local_descriptors(c))
-#    s = sum(sum([nniap.nn(B_atom) for B_atom in Bs]))
-#    return s
-    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-    return sum(nniap.nn(Bs))
+    # Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+    # return sum(nniap.nn(Bs))
+    
+    local_descr = get_values(get_local_descriptors(c))
+    species = atomic_symbol.(get_system(c).particles)
+    return sum([nniap.nn[s](d) for (s, d) in zip(species, local_descr)])[1]
 end
 
 function force(
@@ -199,49 +208,99 @@ function PotentialLearning.learn!(
     end
 end
 
+pen_l2(x::AbstractArray) = sum(abs2, x)/2
+function energy_loss(
+    nn::Dict,
+    iap::BasisSystem,
+    ds::DataSet,
+    args...
+)
+    nniap = NNIAP(nn, iap)
+    #penalty = sum(pen_l2, Flux.params(nn))
+    n_atoms = [length(get_local_descriptors(ds[i])) for i in 1:length(ds)]
+    es, es_pred = get_all_energies(ds) ./ n_atoms,
+                  get_all_energies(ds, nniap) ./ n_atoms
+    return Flux.mse(es_pred, es) #+ 1e-8 * penalty
+end
+
+
 function PotentialLearning.learn!(
-    nace::NNIAP,
-    ds_train::DataSet,
+    nniap::NNIAP,
+    ds::DataSet,
     opt::Flux.Optimise.AbstractOptimiser,
-    n_epochs::Int,
-    n_batches::Int,
-    loss::Function,
+    epochs::Int,
+    loss0::Function,
     w_e::Real,
     w_f::Real,
-    _device::Function
+    reg::Real,
+    batch_size::Int,
+    log_step::Int
 )
-    nn = nace.nn |> _device
-    optim = Flux.setup(opt, nn) |> _device
-    ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
+    #optim = Flux.setup(opt, nniap.nn)  # will store optimiser momentum, etc.
+    optim = Flux.setup(OptimiserChain(WeightDecay(reg), opt), nniap.nn)
+    ∇loss(nn, iap, ds, w_e, w_f) = Flux.gradient((nn) -> loss0(nn, iap, ds, w_e, w_f), nn)
     losses = []
-    batch_lists = batch_and_shuffle(collect(1:length(ds_train)), n_batches)
-    batch_list_len = length(batch_lists)
-    
-    for epoch in 1:n_epochs
-        batch_index = mod(epoch, batch_list_len) + 1 
-        ds_batch = ds_train[batch_lists[batch_index]]
-
-        true_energy = Float32.(get_all_energies(ds_batch))
-        
-        local_descriptors = get_values.(get_local_descriptors.(ds_batch))
-        local_descriptors = reduce(hcat, reduce(hcat, local_descriptors)) |> _device
-
-        atom_config_list = vcat([0], cumsum(length.(get_system.(ds_batch))))
-
-        # Compute gradient with current parameters and update model
-        grads = ∇loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
-        Flux.update!(optim, nn, grads[1])
-
+    n_batches = length(ds) ÷ batch_size
+    for epoch in 1:epochs
+        for _ in 1:n_batches
+            # Compute gradient with current parameters and update model
+            batch_inds = rand(1:length(ds), batch_size)
+            grads = ∇loss(nniap.nn, nniap.iap, ds[batch_inds], w_e, w_f)
+            Flux.update!(optim, nniap.nn, grads[1])
+        end
         # Logging
-        if epoch % 100 == 0
-            curr_loss = loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
+        if epoch % log_step == 0
+            curr_loss = loss0(nniap.nn, nniap.iap, ds, w_e, w_f)
             push!(losses, curr_loss)
             println("Epoch: $epoch, loss: $curr_loss")
         end
-        
+        GC.gc()
     end
-    nace.nn = nn |> cpu
 end
+
+#function PotentialLearning.learn!(
+#    nace::NNIAP,
+#    ds_train::DataSet,
+#    opt::Flux.Optimise.AbstractOptimiser,
+#    n_epochs::Int,
+#    n_batches::Int,
+#    loss::Function,
+#    w_e::Real,
+#    w_f::Real,
+#    _device::Function
+#)
+#    nn = nace.nn |> _device
+#    optim = Flux.setup(opt, nn) |> _device
+#    ∇loss(nn, iap, atom_config_list, true_energy, local_descriptors, w_e, w_f) = gradient((nn) -> loss(nn, iap, atom_config_list,  true_energy, local_descriptors, w_e, w_f), nn)
+#    losses = []
+#    batch_lists = batch_and_shuffle(collect(1:length(ds_train)), n_batches)
+#    batch_list_len = length(batch_lists)
+#    
+#    for epoch in 1:n_epochs
+#        batch_index = mod(epoch, batch_list_len) + 1 
+#        ds_batch = ds_train[batch_lists[batch_index]]
+
+#        true_energy = Float32.(get_all_energies(ds_batch))
+#        
+#        local_descriptors = get_values.(get_local_descriptors.(ds_batch))
+#        local_descriptors = reduce(hcat, reduce(hcat, local_descriptors)) |> _device
+
+#        atom_config_list = vcat([0], cumsum(length.(get_system.(ds_batch))))
+
+#        # Compute gradient with current parameters and update model
+#        grads = ∇loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
+#        Flux.update!(optim, nn, grads[1])
+
+#        # Logging
+#        if epoch % 100 == 0
+#            curr_loss = loss(nn, nace.iap, atom_config_list, true_energy, local_descriptors, w_e, w_f)
+#            push!(losses, curr_loss)
+#            println("Epoch: $epoch, loss: $curr_loss")
+#        end
+#        
+#    end
+#    nace.nn = nn |> cpu
+#end
 
 # Optimization.jl training
 function PotentialLearning.learn!(
