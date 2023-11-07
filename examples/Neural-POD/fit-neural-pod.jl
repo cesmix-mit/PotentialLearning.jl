@@ -134,9 +134,9 @@ n_desc = length(e_descr_train[1][1])
 # Define neural network model
 nns = Dict()
 for s in species
-    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-1.5)),
-                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.5)),
-                    Dense(128,1; init = Flux.glorot_uniform(gain=-1.5)))
+    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
+                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
+                    Dense(128,1; init = Flux.glorot_uniform(gain=-1.43)))
 end
 npod = NNIAP(nns, pod)
 
