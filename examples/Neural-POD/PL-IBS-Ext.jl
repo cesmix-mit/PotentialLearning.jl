@@ -13,7 +13,7 @@ function compute_local_descriptors(
     confs::DataSet,
     pod::POD;
     T = Float32, 
-    ds_path = "../../../data/HfO2/",
+    ds_path = "../data/HfO2/",
     lammps_path = "../../POD/lammps/build/lmp"
 )
     params = pod.pod_params
@@ -42,8 +42,7 @@ function compute_local_descriptors(
     end
     
     # fit pod using lammps
-    run(Cmd(`mpirun -n 1 $lammps_path -in fit.pod`,
-            dir="./$ds_path/"))
+    run(Cmd(`mpirun -n 1 $lammps_path -in fit.pod`, dir=ds_path))
 
 end
 
@@ -52,7 +51,7 @@ function load_local_descriptors(
     confs::DataSet,
     pod::POD;
     T = Float32, 
-    ds_path = "../../../data/HfO2/train/"
+    ds_path = "../data/HfO2/train/"
 )
     file_names = sort(glob("$ds_path/localdescriptors_config*.bin"), lt=natural)
     e_des = Vector{LocalDescriptors}(undef, length(confs))
