@@ -197,10 +197,6 @@ e_descr_test = load_local_descriptors(conf_test,
 ds_test = DataSet(conf_test .+ e_descr_test)
 GC.gc()
 
-# Dimension reduction of energy descriptors of test dataset
-if reduce_descriptors
-    transform!(ds_test, pca)
-end
 
 # Get true and predicted values
 n_atoms_train = length.(get_system.(ds_train))
