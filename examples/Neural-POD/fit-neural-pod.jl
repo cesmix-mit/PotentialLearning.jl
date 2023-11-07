@@ -28,8 +28,8 @@ Random.seed!(100)
 
 # Define training and test configuration datasets ##############################
 
-ds_path = "../data/HfO2/"
-#ds_path = "../data/HfO2_large/"
+ds_path = "../../../data/HfO2/"
+#ds_path = "../../../data/HfO2_large/"
 
 # Load complete configuration dataset
 #ds_train_path = "$(ds_path)/train/a-HfO2-300K-NVT-6000-train.extxyz"
@@ -117,7 +117,7 @@ pod = POD(  species                                 = "Hf O",
 
 # Update training dataset by adding energy descriptors
 println("Computing energy descriptors of training dataset...")
-lammps_path = "../../../../POD/lammps/build/lmp"
+lammps_path = "../../POD/lammps/build/lmp"
 compute_local_descriptors(conf_train,
                           pod,
                           T = Float32,
@@ -161,12 +161,12 @@ learn!(npod,
        log_step
 )
 
-opt = Adam(1e-4)
+opt = Adam(1e-4, (.9, .8))
 n_epochs = 100
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
-reg = 1e-4
+reg = 1e-8
 learn!(npod,
        ds_train,
        opt,
@@ -232,6 +232,8 @@ e_train_plot = plot_energy(e_train_pred, e_train)
 e_test_plot = plot_energy(e_test_pred, e_test)
 @save_fig path e_test_plot
 
+#e_plot = plot_energy(e_train_pred[1:50:5000], e_train[1:50:5000], 
+#                     e_test_pred[1:10:1000], e_test[1:10:1000])
 e_plot = plot_energy(e_train_pred, e_train,
                      e_test_pred, e_test)
 @save_fig path e_plot
