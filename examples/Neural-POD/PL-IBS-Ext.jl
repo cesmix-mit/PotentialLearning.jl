@@ -2,85 +2,59 @@ using Glob
 using NaturalSort
 
 struct POD <: BasisSystem
-    # chemical element symbols
-    species
-    # inner cut-off radius
-    rin
-    # outer cut-off radius
-    rcut
-    # polynomial degrees for radial basis functions
-    bessel_polynomial_degree
-    inverse_polynomial_degree
-    # one-body potential
-    onebody
-    # two-body linear POD potential
-    twobody_number_radial_basis_functions
-    # three-body linear POD potential
-    threebody_number_radial_basis_functions
-    threebody_angular_degree
-    # four-body linear POD potential
-    fourbody_number_radial_basis_functions
-    fourbody_angular_degree
-    true4BodyDesc
-    # five-body linear POD potential
-    fivebody_number_radial_basis_functions
-    fivebody_angular_degree
-    # six-body linear POD potential
-    sixbody_number_radial_basis_functions
-    sixbody_angular_degree
-    # seven-body linear POD potential
-    sevenbody_number_radial_basis_functions
-    sevenbody_angular_degree
+    pod_params
 end
 
-function POD(;
-    species = [:Hf, :O],
-    rin = 1.0,
-    rcut = 7.5,
-    bessel_polynomial_degree = 4,
-    inverse_polynomial_degree = 10,
-    onebody = 1,
-    twobody_number_radial_basis_functions = 3,
-    threebody_number_radial_basis_functions = 3,
-    threebody_angular_degree = 3,
-    fourbody_number_radial_basis_functions = 0,
-    fourbody_angular_degree = 0,
-    true4BodyDesc = 0,
-    fivebody_number_radial_basis_functions = 0,
-    fivebody_angular_degree = 0,
-    sixbody_number_radial_basis_functions = 0,
-    sixbody_angular_degree = 0,
-    sevenbody_number_radial_basis_functions = 0,
-    sevenbody_angular_degree = 0)
-    return  POD(species,
-                rin,
-                rcut,
-                bessel_polynomial_degree,
-                inverse_polynomial_degree,
-                onebody,
-                twobody_number_radial_basis_functions,
-                threebody_number_radial_basis_functions,
-                threebody_angular_degree,
-                fourbody_number_radial_basis_functions,
-                fourbody_angular_degree,
-                true4BodyDesc,
-                fivebody_number_radial_basis_functions,
-                fivebody_angular_degree,
-                sixbody_number_radial_basis_functions,
-                sixbody_angular_degree,
-                sevenbody_number_radial_basis_functions,
-                sevenbody_angular_degree)
+function POD(;args...)
+    return POD(args)
 end
 
-
-# Harcoded function to compute local descriptors
 function compute_local_descriptors(
     confs::DataSet,
     pod::POD;
     T = Float32, 
-    path = "../../../POD/get_descriptors/train/"
+    ds_path = "../../../data/HfO2/",
+    lammps_path = "../../POD/lammps/build/lmp"
 )
-    file_names = sort(glob("$path/localdescriptors_config*.bin"), lt=natural)
+    params = pod.pod_params
+    data = OrderedDict()
+    data[:file_format] = "extxyz"
+    data[:file_extension] = "extxyz"
+    data[:path_to_training_data_set] = "train"
+    data[:path_to_test_data_set] = "test"
+    data[:compute_pod_descriptors] = 1
+
+    run(`mkdir -p $ds_path`)
+
+    # Create data.pod
+    open("$ds_path/data.pod", "w") do io
+        [println(io, "$k $v") for (k, v) in data]
+    end
+
+    # Create params.pod
+    open("$ds_path/params.pod", "w") do io
+        [println(io, "$k $v") for (k, v) in params]
+    end
+    
+    # Create fit.pod
+    open("$ds_path/fit.pod", "w") do io
+        println(io, "fitpod params.pod data.pod")
+    end
+    
+    # fit pod using lammps
+    run(Cmd(`mpirun -n 1 $lammps_path -in fit.pod`,
+            dir="./$ds_path/"))
+
+end
+
+# Load local descriptors
+function load_local_descriptors(
+    confs::DataSet,
+    pod::POD;
+    T = Float32, 
+    ds_path = "../../../data/HfO2/train/"
+)
+    file_names = sort(glob("$ds_path/localdescriptors_config*.bin"), lt=natural)
     e_des = Vector{LocalDescriptors}(undef, length(confs))
     for (j, file_desc) in enumerate(file_names)
         row_data = reinterpret(Float64, read(file_desc))
@@ -91,4 +65,20 @@ function compute_local_descriptors(
     end
     return e_des
 end
+
+#ds_train_1 = ds_train[rand(1:length(ds_train), 200)]
+#ds_train = ds_train[rand(1:length(ds_train), length(ds_train))]
+
+# Load global energy descriptors
+#gd = []
+#open("global_energy_descriptors.dat") do f
+#    linecounter = 0
+#    for l in eachline(f)
+#        d = parse.(Float32, split(replace(l, "\n" => ""), " "))
+#        push!(gd, d)
+#        linecounter += 1
+#    end
+#end
+#n_desc = length(gd[1])using Glob
+
 
