@@ -28,8 +28,8 @@ Random.seed!(100)
 
 # Define training and test configuration datasets ##############################
 
-ds_path = "../data/HfO2/"
 #ds_path = "../data/HfO2_large/"
+ds_path = "../data/HfO2/"
 
 # Load complete configuration dataset
 #ds_train_path = "$(ds_path)/train/a-HfO2-300K-NVT-6000-train.extxyz"
@@ -135,7 +135,9 @@ n_desc = length(e_descr_train[1][1])
 nns = Dict()
 for s in species
     nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
+#                    Dropout(0.4),
                     Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
+#                    Dropout(0.4),
                     Dense(128,1; init = Flux.glorot_uniform(gain=-1.43)))
 end
 npod = NNIAP(nns, pod)
@@ -180,8 +182,8 @@ learn!(npod,
 )
 
 # Save current NN parameters
-ps1, _ = Flux.destructure(npod.nn[:Hf])
-ps2, _ = Flux.destructure(npod.nn[:O])
+ps1, _ = Flux.destructure(npod.nns[:Hf])
+ps2, _ = Flux.destructure(npod.nns[:O])
 @save_var path ps1
 @save_var path ps2
 
