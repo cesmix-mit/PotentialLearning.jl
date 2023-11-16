@@ -60,6 +60,21 @@ function force(
 end
 
 
+function force(
+    c::Configuration,
+    nniap::NNIAP
+)
+    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+    dnnsdb = [first(Flux.gradient(x->sum(nn(x)), Bs)) for nn in nniap.nns] # gradient function of MLP can be predefined
+
+    n_atoms = size(dnndb, 2)
+    global dbdr_c
+    return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
+              for coor in 1:3]
+              for atom_j in 1:n_atoms]
+end
+
+
 # Loss functions ###############################################################
 
 function energy_loss(
