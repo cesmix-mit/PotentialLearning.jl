@@ -18,7 +18,7 @@ include("../PCA-ACE/pca.jl")
 # Setup experiment #############################################################
 
 # Experiment folder
-path = "HfO2-NeuralACE"
+path = "HfO2-NeuralACE/"
 run(`mkdir -p $path/`)
 
 # Fix random seed
@@ -44,7 +44,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Define dataset subselector ###################################################
 
 # Subselector, option 1: RandomSelector
-dataset_selector = RandomSelector(length(conf_train); batch_size = 50)
+dataset_selector = RandomSelector(length(conf_train); batch_size = 75)
 
 # Subselector, option 2: DBSCANSelector
 #ε, min_pts, sample_size = 0.05, 5, 3
@@ -68,7 +68,7 @@ dataset_selector = RandomSelector(length(conf_train); batch_size = 50)
 #dataset_selector = kDPP(  conf_train_kDPP,
 #                          GlobalMean(),
 #                          DotProduct();
-#                          batch_size = 100)
+#                          batch_size = 50)
 
 # Subsample trainig dataset
 inds = PotentialLearning.get_random_subset(dataset_selector)
@@ -109,17 +109,17 @@ end
 # Define neural network model
 nns = Dict()
 for s in species
-    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
-                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
-                    Dense(128,1; init = Flux.glorot_uniform(gain=-1.43), bias = false))
+    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=0)),
+                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=0)),
+                    Dense(128,1; init = Flux.glorot_uniform(gain=0), bias = false))
 end
 nace = NNIAP(nns, ace)
 
 # Learn
 println("Learning energies...")
 
-opt = Adam(5e-4)
-n_epochs = 100
+opt = Adam(1e-4)
+n_epochs = 500
 log_step = 10
 batch_size = 4
 w_e, w_f =  1.0, 0.0
@@ -137,8 +137,8 @@ learn!(nace,
 )
 
 # Save current NN parameters
-ps1, _ = Flux.destructure(npod.nns[:Hf])
-ps2, _ = Flux.destructure(npod.nns[:O])
+ps1, _ = Flux.destructure(nace.nns[:Hf])
+ps2, _ = Flux.destructure(nace.nns[:O])
 @save_var path ps1
 @save_var path ps2
 
@@ -163,12 +163,12 @@ n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
 e_train, e_train_pred = get_all_energies(ds_train),
-                        get_all_energies(ds_train, npod)
+                        get_all_energies(ds_train, nace)
 @save_var path e_train
 @save_var path e_train_pred
 
 e_test, e_test_pred = get_all_energies(ds_test),
-                      get_all_energies(ds_test, npod)
+                      get_all_energies(ds_test, nace)
 @save_var path e_test
 @save_var path e_test_pred
 
