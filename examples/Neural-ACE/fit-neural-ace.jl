@@ -44,7 +44,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Define dataset subselector ###################################################
 
 # Subselector, option 1: RandomSelector
-dataset_selector = RandomSelector(length(conf_train); batch_size = 75)
+dataset_selector = RandomSelector(length(conf_train); batch_size = 76)
 
 # Subselector, option 2: DBSCANSelector
 #ε, min_pts, sample_size = 0.05, 5, 3
@@ -68,7 +68,7 @@ dataset_selector = RandomSelector(length(conf_train); batch_size = 75)
 #dataset_selector = kDPP(  conf_train_kDPP,
 #                          GlobalMean(),
 #                          DotProduct();
-#                          batch_size = 50)
+#                          batch_size = 76)
 
 # Subsample trainig dataset
 inds = PotentialLearning.get_random_subset(dataset_selector)
@@ -109,9 +109,9 @@ end
 # Define neural network model
 nns = Dict()
 for s in species
-    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=0)),
-                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=0)),
-                    Dense(128,1; init = Flux.glorot_uniform(gain=0), bias = false))
+    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-1.5)),
+                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.5)),
+                    Dense(128,1; init = Flux.glorot_uniform(gain=-1.5), bias = false))
 end
 nace = NNIAP(nns, ace)
 
@@ -119,7 +119,7 @@ nace = NNIAP(nns, ace)
 println("Learning energies...")
 
 opt = Adam(1e-4)
-n_epochs = 500
+n_epochs = 300
 log_step = 10
 batch_size = 4
 w_e, w_f =  1.0, 0.0
@@ -162,25 +162,25 @@ ds_test = DataSet(conf_test .+ e_descr_test)
 n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
-e_train, e_train_pred = get_all_energies(ds_train),
-                        get_all_energies(ds_train, nace)
+e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
+                        get_all_energies(ds_train, nace) ./ n_atoms_train
 @save_var path e_train
 @save_var path e_train_pred
 
-e_test, e_test_pred = get_all_energies(ds_test),
-                      get_all_energies(ds_test, nace)
+e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
+                      get_all_energies(ds_test, nace) ./ n_atoms_test
 @save_var path e_test
 @save_var path e_test_pred
 
 # Compute metrics
-e_train_metrics = get_metrics(e_train_pred ./ n_atoms_train,
-                              e_train ./ n_atoms_train,
+e_train_metrics = get_metrics(e_train_pred,
+                              e_train,
                               metrics = [mae, rmse, rsq],
                               label = "e_train")
 @save_dict path e_train_metrics
 
-e_test_metrics = get_metrics(e_test_pred ./ n_atoms_test,
-                             e_test ./ n_atoms_test,
+e_test_metrics = get_metrics(e_test_pred,
+                             e_test,
                              metrics = [mae, rmse, rsq],
                              label = "e_test")
 @save_dict path e_test_metrics

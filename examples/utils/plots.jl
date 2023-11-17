@@ -13,7 +13,7 @@ function plot_energy(e_pred, e_true)
     r0 = minimum(e_true); r1 = maximum(e_true); rs = (r1-r0)/10
     plot( e_true, e_pred, seriestype = :scatter, 
           markersize=5, markerstrokewidth=0, markershape=:circle, markercolor=:gray,
-          label="", xlabel = "E DFT | eV", ylabel = "E predicted | eV")
+          label="", xlabel = "E DFT | eV/atom", ylabel = "E predicted | eV/atom")
     p = plot!( r0:rs:r1, r0:rs:r1, label="")
     return p
 end
@@ -42,7 +42,7 @@ function plot_energy(
          markersize=5, markerstrokewidth=0, markershape=:circle, markercolor=:gray)
     plot!(e_test_true, e_test_pred, seriestype=:scatter,  label="Test energies",
           markersize=5, markerstrokewidth=0, markershape=:utriangle, markercolor=:black)
-    plot!(label="", xlabel = "E DFT | eV", ylabel = "E predicted | eV")
+    plot!(label="", xlabel = "E DFT | eV/atom", ylabel = "E predicted | eV/atom")
     p = plot!( r0:rs:r1, r0:rs:r1, label="", linecolor=:gray)
     return p
 end
