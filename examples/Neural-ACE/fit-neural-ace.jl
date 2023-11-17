@@ -137,7 +137,7 @@ learn!(nace,
 )
 
 opt = Adam(1e-4)
-n_epochs = 300
+n_epochs = 350
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
