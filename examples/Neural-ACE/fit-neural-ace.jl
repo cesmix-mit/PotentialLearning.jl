@@ -109,20 +109,38 @@ end
 # Define neural network model
 nns = Dict()
 for s in species
-    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-1.5)),
-                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.5)),
-                    Dense(128,1; init = Flux.glorot_uniform(gain=-1.5), bias = false))
+    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-10.43)),
+                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-10.43)),
+                    Dense(128,1; init = Flux.glorot_uniform(gain=-10.43), bias = false))
 end
 nace = NNIAP(nns, ace)
 
 # Learn
 println("Learning energies...")
 
+opt = Adam(1e-2)
+n_epochs = 50
+log_step = 10
+batch_size = 4
+w_e, w_f = 1.0, 0.0
+reg = 1e-8
+learn!(nace,
+       ds_train,
+       opt,
+       n_epochs,
+       energy_loss,
+       w_e,
+       w_f,
+       reg,
+       batch_size,
+       log_step
+)
+
 opt = Adam(1e-4)
 n_epochs = 300
 log_step = 10
 batch_size = 4
-w_e, w_f =  1.0, 0.0
+w_e, w_f = 1.0, 0.0
 reg = 1e-4
 learn!(nace,
        ds_train,
