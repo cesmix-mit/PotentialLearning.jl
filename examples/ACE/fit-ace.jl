@@ -108,8 +108,12 @@ GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
 # Get true and predicted values
-e_train, e_train_pred = get_all_energies(ds_train),
-                        get_all_energies(ds_train, lb)
+
+n_atoms_train = length.(get_system.(ds_train))
+n_atoms_test = length.(get_system.(ds_test))
+
+e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
+                        get_all_energies(ds_train, lb) ./ n_atoms_train
 f_train, f_train_pred = get_all_forces(ds_train),
                         get_all_forces(ds_train, lb)
 @save_var path e_train
@@ -117,8 +121,8 @@ f_train, f_train_pred = get_all_forces(ds_train),
 @save_var path f_train
 @save_var path f_train_pred
 
-e_test, e_test_pred = get_all_energies(ds_test),
-                      get_all_energies(ds_test, lb)
+e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
+                      get_all_energies(ds_test, lb) ./ n_atoms_test
 f_test, f_test_pred = get_all_forces(ds_test),
                       get_all_forces(ds_test, lb)
 @save_var path e_test
