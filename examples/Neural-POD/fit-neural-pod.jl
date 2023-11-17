@@ -19,7 +19,7 @@ include("../PCA-ACE/pca.jl")
 # Setup experiment #############################################################
 
 # Experiment folder
-path = "HfO2-large-NeuralPOD-200-biasfalse/"
+path = "HfO2-NeuralPOD/"
 run(`mkdir -p $path/`)
 
 # Fix random seed
@@ -28,18 +28,18 @@ Random.seed!(100)
 
 # Define training and test configuration datasets ##############################
 
-ds_path = "../data/HfO2_large/"
-#ds_path = "../data/HfO2/"
+#ds_path = "../data/HfO2_large/"
+ds_path = "../data/HfO2/"
 
 # Load complete configuration dataset
 #ds_train_path = "$(ds_path)/train/a-HfO2-300K-NVT-6000-train.extxyz"
-ds_train_path = "$(ds_path)/train/HfO2_figshare_form_sorted_train.extxyz"
-#ds_train_path = "$(ds_path)/train/HfO2_mp352_ads_form_sorted.extxyz"
+#ds_train_path = "$(ds_path)/train/HfO2_figshare_form_sorted_train.extxyz"
+ds_train_path = "$(ds_path)/train/HfO2_mp352_ads_form_sorted.extxyz"
 conf_train = load_data(ds_train_path, uparse("eV"), uparse("Å"))
 
 #ds_test_path = "$(ds_path)/test/a-HfO2-300K-NVT-6000-test.extxyz"
-ds_test_path = "$(ds_path)/test/HfO2_figshare_form_sorted_test.extxyz"
-#ds_test_path = "$(ds_path)/test/Hf_mp103_ads_form_sorted.extxyz"
+#ds_test_path = "$(ds_path)/test/HfO2_figshare_form_sorted_test.extxyz"
+ds_test_path = "$(ds_path)/test/Hf_mp103_ads_form_sorted.extxyz"
 conf_test = load_data(ds_test_path, uparse("eV"), uparse("Å"))
 
 n_train, n_test = length(conf_train), length(conf_test)
@@ -129,7 +129,7 @@ e_descr_train = load_local_descriptors(conf_train,
                                        ds_path = "$ds_path/train")
 ds_train = DataSet(conf_train .+ e_descr_train)
 
-ds_train = ds_train[rand(1:n_train, 200)]
+#ds_train = ds_train[rand(1:n_train, 200)]
 
 n_desc = length(e_descr_train[1][1])
 
@@ -146,7 +146,7 @@ npod = NNIAP(nns, pod)
 println("Learning energies...")
 
 opt = Adam(1f-2)
-n_epochs = 30
+n_epochs = 50
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
@@ -163,8 +163,8 @@ learn!(npod,
        log_step
 )
 
-opt = Adam(1e-5)
-n_epochs = 200
+opt = Adam(1e-4)
+n_epochs = 100
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
@@ -205,12 +205,12 @@ n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
 e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
-                        get_all_energies(ds_train, nace) ./ n_atoms_train
+                        get_all_energies(ds_train, npod) ./ n_atoms_train
 @save_var path e_train
 @save_var path e_train_pred
 
 e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
-                      get_all_energies(ds_test, nace) ./ n_atoms_test
+                      get_all_energies(ds_test, npod) ./ n_atoms_test
 @save_var path e_test
 @save_var path e_test_pred
 
