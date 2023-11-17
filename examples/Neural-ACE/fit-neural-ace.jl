@@ -100,7 +100,7 @@ ds_train = DataSet(conf_train .+ e_descr_train)
 reduce_descriptors = false
 n_desc = length(e_descr_train[1][1])
 if reduce_descriptors
-    n_desc = n_desc / 2
+    n_desc = n_desc ÷ 2
     pca = PCAState(tol = n_desc)
     fit!(ds_train, pca)
     transform!(ds_train, pca)
@@ -163,11 +163,6 @@ ps2, _ = Flux.destructure(nace.nns[:O])
 
 # Post-process output: calculate metrics, create plots, and save results #######
 
-# Dimension reduction of energy and force descriptors of test dataset
-if reduce_descriptors
-    transform!(ds_test, pca)
-end
-
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
 e_descr_test = compute_local_descriptors(conf_test,
@@ -175,6 +170,11 @@ e_descr_test = compute_local_descriptors(conf_test,
                                          T = Float32)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test)
+
+# Dimension reduction of energy and force descriptors of test dataset
+if reduce_descriptors
+    transform!(ds_test, pca)
+end
 
 # Get true and predicted values
 n_atoms_train = length.(get_system.(ds_train))
