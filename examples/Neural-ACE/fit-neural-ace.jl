@@ -46,7 +46,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Subselector, option 1: RandomSelector
 dataset_selector = RandomSelector(length(conf_train); batch_size = 76)
 
-# Subselector, option 2: DBSCANSelector
+# Subselector, option 2: DBSCANSelector. Pre-cond: const. no. of atoms
 #ε, min_pts, sample_size = 0.05, 5, 3
 #dataset_selector = DBSCANSelector(  conf_train,
 #                                    ε,
@@ -68,7 +68,7 @@ dataset_selector = RandomSelector(length(conf_train); batch_size = 76)
 #dataset_selector = kDPP(  conf_train_kDPP,
 #                          GlobalMean(),
 #                          DotProduct();
-#                          batch_size = 76)
+#                          batch_size = 75)
 
 # Subsample trainig dataset
 inds = PotentialLearning.get_random_subset(dataset_selector)
@@ -109,9 +109,9 @@ end
 # Define neural network model
 nns = Dict()
 for s in species
-    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-10.43)),
-                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-10.43)),
-                    Dense(128,1; init = Flux.glorot_uniform(gain=-10.43), bias = false))
+    nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-10)),
+                    Dense(128,128,σ; init = Flux.glorot_uniform(gain=-10)),
+                    Dense(128,1; init = Flux.glorot_uniform(gain=-10), bias = false))
 end
 nace = NNIAP(nns, ace)
 
@@ -137,7 +137,7 @@ learn!(nace,
 )
 
 opt = Adam(1e-4)
-n_epochs = 350
+n_epochs = 500
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
