@@ -1,88 +1,95 @@
 # Run this script:
 #   $ cd examples/ACE
 #   $ julia --project=../ --threads=4
-#   julia> include("fit-pca-ace.jl")
+#   julia> include("fit-ace.jl")
 
 push!(Base.LOAD_PATH, "../../")
 
 using AtomsBase
-using Unitful, UnitfulAtomic
-using InteratomicPotentials 
-using InteratomicBasisPotentials
+using InteratomicPotentials, InteratomicBasisPotentials
 using PotentialLearning
+using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
 include("../utils/utils.jl")
-include("pca.jl")
+include("../PCA-ACE/pca.jl")
 
 
-# Load input parameters
-args = ["experiment_path",      "a-HfO2-PCA-ACE/",
-        "dataset_path",         "../data/a-HfO2/",
-        "dataset_filename",     "a-Hfo2-300K-NVT-6000.extxyz",
-        "energy_units",         "eV",
-        "distance_units",       "Å",
-        "random_seed",          "100",
-        "n_train_sys",          "100",
-        "n_test_sys",           "100",
-        "n_red_desc",           "20", # no. of reduced descriptors
-        "n_body",               "3",
-        "max_deg",              "4",
-        "r0",                   "1.0",
-        "rcutoff",              "5.0",
-        "wL",                   "1.0",
-        "csp",                  "1.0",
-        "w_e",                  "1.0",
-        "w_f",                  "1.0"]
-args = length(ARGS) > 0 ? ARGS : args
-input = get_input(args)
+# Setup experiment #############################################################
 
-
-# Create experiment folder
-path = input["experiment_path"]
+# Experiment folder
+path = "a-HfO2-ACE/"
 run(`mkdir -p $path`)
-@savecsv path input
 
-# Fix random seed
-if "random_seed" in keys(input)
-    Random.seed!(input["random_seed"])
-end
+# Define training and test configuration datasets ##############################
 
-# Load dataset
-ds_path = input["dataset_path"]*input["dataset_filename"] # dirname(@__DIR__)*"/data/"*input["dataset_filename"]
-energy_units, distance_units = uparse(input["energy_units"]), uparse(input["distance_units"])
-ds = load_data(ds_path, energy_units, distance_units)
+# Load complete configuration dataset
+ds_path = string("../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz")
+ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
-# Split dataset
-n_train, n_test = input["n_train_sys"], input["n_test_sys"]
+# Split configuration dataset into training and test
+n_train, n_test = 100, 100
 conf_train, conf_test = split(ds, n_train, n_test)
 
-# Start measuring learning time
-learn_time = @elapsed begin
+# Define dataset subselector ###################################################
+
+# Subselector, option 1: RandomSelector
+#dataset_selector = RandomSelector(length(conf_train); batch_size = 100)
+
+# Subselector, option 2: DBSCANSelector
+#ε, min_pts, sample_size = 0.05, 5, 3
+#dataset_selector = DBSCANSelector(  conf_train,
+#                                    ε,
+#                                    min_pts,
+#                                    sample_size)
+
+# Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
+#basis = ACE(species           = [:Hf, :O],
+#            body_order        = 2,
+#            polynomial_degree = 3,
+#            wL                = 1.0,
+#            csp               = 1.0,
+#            r0                = 1.0,
+#            rcutoff           = 5.0)
+#e_descr = compute_local_descriptors(conf_train,
+#                                    basis,
+#                                    pbar = false)
+#conf_train_kDPP = DataSet(conf_train .+ e_descr)
+#dataset_selector = kDPP(  conf_train_kDPP,
+#                          GlobalMean(),
+#                          DotProduct();
+#                          batch_size = 100)
+
+# Subsample trainig dataset
+#inds = PotentialLearning.get_random_subset(dataset_selector)
+#conf_train = conf_train[inds]
+#GC.gc()
+
+# Define IAP model #############################################################
 
 # Define ACE
-ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
-          body_order = input["n_body"],
-          polynomial_degree = input["max_deg"],
-          wL = input["wL"],
-          csp = input["csp"],
-          r0 = input["r0"],
-          rcutoff = input["rcutoff"])
-@savevar path ace
+basis = ACE(species           = [:Hf, :O],
+            body_order        = 3,
+            polynomial_degree = 4,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0,
+            rcutoff           = 5.0)
+@save_var path basis
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, ace)
+B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, basis)
 println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, ace)
+dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, basis)
 GC.gc()
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 n_desc = length(e_descr_train[1][1])
 
 # Dimension reduction of energy and force descriptors of training dataset
-reduce_descriptors = input["n_red_desc"] > 0
+reduce_descriptors = true
 if reduce_descriptors
-    n_desc = input["n_red_desc"]
+    n_desc = 20
     pca = PCAState(tol = n_desc)
     fit!(ds_train, pca)
     transform!(ds_train, pca)
@@ -90,21 +97,20 @@ end
 
 # Learn
 println("Learning energies and forces...")
-lb = LBasisPotentialExt(ace)
-ws, int = [input["w_e"], input["w_f"]], true
+lb = LBasisPotentialExt(basis)
+ws, int = [1.0, 1.0], false
 learn!(lb, ds_train, ws, int)
 
-end # end of "learn_time = @elapsed begin"
+@save_var path lb.β
+@save_var path lb.β0
 
-@savevar path lb.β
-
-# Post-process output: calculate metrics, create plots, and save results
+# Post-process output: calculate metrics, create plots, and save results #######
 
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test, ace)
+e_descr_test = compute_local_descriptors(conf_test, basis)
 println("Computing force descriptors of test dataset...")
-f_descr_test = compute_force_descriptors(conf_test, ace)
+f_descr_test = compute_force_descriptors(conf_test, basis)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
@@ -114,30 +120,59 @@ if reduce_descriptors
 end
 
 # Get true and predicted values
-e_train, f_train = get_all_energies(ds_train), get_all_forces(ds_train)
-e_test, f_test = get_all_energies(ds_test), get_all_forces(ds_test)
-e_train_pred, f_train_pred = get_all_energies(ds_train, lb), get_all_forces(ds_train, lb)
-e_test_pred, f_test_pred = get_all_energies(ds_test, lb), get_all_forces(ds_test, lb)
-@savevar path e_train
-@savevar path e_train_pred
-@savevar path f_train
-@savevar path f_train_pred
-@savevar path e_test
-@savevar path e_test_pred
-@savevar path f_test
-@savevar path f_test_pred
+
+n_atoms_train = length.(get_system.(ds_train))
+n_atoms_test = length.(get_system.(ds_test))
+
+e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
+                        get_all_energies(ds_train, lb) ./ n_atoms_train
+f_train, f_train_pred = get_all_forces(ds_train),
+                        get_all_forces(ds_train, lb)
+@save_var path e_train
+@save_var path e_train_pred
+@save_var path f_train
+@save_var path f_train_pred
+
+e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
+                      get_all_energies(ds_test, lb) ./ n_atoms_test
+f_test, f_test_pred = get_all_forces(ds_test),
+                      get_all_forces(ds_test, lb)
+@save_var path e_test
+@save_var path e_test_pred
+@save_var path f_test
+@save_var path f_test_pred
 
 # Compute metrics
-metrics = get_metrics( e_train_pred, e_train, f_train_pred, f_train,
-                       e_test_pred, e_test, f_test_pred, f_test,
-                       B_time, dB_time, learn_time)
-@savecsv path metrics
+e_train_metrics = get_metrics(e_train_pred, e_train,
+                              metrics = [mae, rmse, rsq],
+                              label = "e_train")
+f_train_metrics = get_metrics(f_train_pred, f_train,
+                              metrics = [mae, rmse, rsq, mean_cos],
+                              label = "f_train")
+train_metrics = merge(e_train_metrics, f_train_metrics)
+@save_dict path train_metrics
+
+e_test_metrics = get_metrics(e_test_pred, e_test,
+                             metrics = [mae, rmse, rsq],
+                             label = "e_test")
+f_test_metrics = get_metrics(f_test_pred, f_test,
+                             metrics = [mae, rmse, rsq, mean_cos],
+                             label = "f_test")
+test_metrics = merge(e_test_metrics, f_test_metrics)
+@save_dict path test_metrics
 
 # Plot and save results
+e_train_plot = plot_energy(e_train_pred, e_train)
+f_train_plot = plot_forces(f_train_pred, f_train)
+f_train_cos  = plot_cos(f_train_pred, f_train)
+@save_fig path e_train_plot
+@save_fig path f_train_plot
+@save_fig path f_train_cos
+
 e_test_plot = plot_energy(e_test_pred, e_test)
-@savefig path e_test_plot
 f_test_plot = plot_forces(f_test_pred, f_test)
-@savefig path f_test_plot
-f_test_cos = plot_cos(f_test_pred, f_test)
-@savefig path f_test_cos
+f_test_cos  = plot_cos(f_test_pred, f_test)
+@save_fig path e_test_plot
+@save_fig path f_test_plot
+@save_fig path f_test_cos
 
