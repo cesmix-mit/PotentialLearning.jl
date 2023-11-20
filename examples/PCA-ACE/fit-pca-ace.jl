@@ -98,7 +98,7 @@ end
 # Learn
 println("Learning energies and forces...")
 lb = LBasisPotentialExt(basis)
-ws, int = [1.0, 1.0], false
+ws, int = [1.0, 1.0], true
 learn!(lb, ds_train, ws, int)
 
 @save_var path lb.β
@@ -120,7 +120,6 @@ if reduce_descriptors
 end
 
 # Get true and predicted values
-
 n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
@@ -162,6 +161,11 @@ test_metrics = merge(e_test_metrics, f_test_metrics)
 @save_dict path test_metrics
 
 # Plot and save results
+
+e_plot = plot_energy(e_train, e_train_pred,
+                     e_test, e_test_pred)
+@save_fig path e_plot
+
 e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)
 f_train_cos  = plot_cos(f_train, f_train_pred)

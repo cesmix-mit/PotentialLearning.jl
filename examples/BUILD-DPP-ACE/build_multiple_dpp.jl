@@ -82,4 +82,4 @@ for i = 1:4
 
 end
 
-save("figures/aHfO2_multiple_dpp_distances_inclusion_probabilities.pdf", fig)
+save("aHfO2_multiple_dpp_distances_inclusion_probabilities.pdf", fig)

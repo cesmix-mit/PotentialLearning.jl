@@ -150,8 +150,10 @@ test_metrics = merge(e_test_metrics, f_test_metrics)
 
 # Plot and save results
 
-e_test_plot = plot_energy(e_train, e_train_pred,
-                          e_test, e_test_pred)
+e_plot = plot_energy(e_train, e_train_pred,
+                     e_test, e_test_pred)
+@save_fig path e_plot
+
 e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)
 f_train_cos  = plot_cos(f_train, f_train_pred)

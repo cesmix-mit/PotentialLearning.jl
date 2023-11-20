@@ -16,7 +16,7 @@ include("subsampling_utils.jl")
 # Load dataset -----------------------------------------------------------------
 elname = "Si"
 elspec = [:Si]
-inpath = "../Si-3Body-LAMMPS/"
+inpath = "../data/Si-3Body-LAMMPS/"
 outpath = "./output/$elname/"
 
 # Read all data

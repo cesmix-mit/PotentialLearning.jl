@@ -34,10 +34,6 @@ n_train, n_test = 500, 500
 conf_train, conf_test = split(ds, n_train, n_test)
 
 
-# Define dataset generator #####################################################
-dataset_generator = Nothing
-
-
 # Define dataset subselector ###################################################
 
 # Subselector, option 1: RandomSelector
@@ -52,7 +48,7 @@ dataset_generator = Nothing
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
 basis = ACE(species           = [:Hf, :O],
-            body_order        = 3,
+            body_order        = 2,
             polynomial_degree = 3,
             wL                = 1.0,
             csp               = 1.0,
@@ -123,7 +119,7 @@ f_mae_max = 0.05
 
 # Define linear solver parameters
 weights = [1.0, 1.0]
-intercept = false
+intercept = true
 
 # Perform hyper-parameter optimization #########################################
 
@@ -158,6 +154,13 @@ pars_acc_plot = plot(hyper_optimizer)
 acc_time = plot_acc_time(hyper_optimizer)
 @save_fig path acc_time
 
+# Update training dataset by adding energy and force descriptors
+println("Computing energy descriptors of training dataset...")
+e_descr_train = compute_local_descriptors(conf_train, opt_iap.basis)
+println("Computing force descriptors of training dataset...")
+f_descr_train = compute_force_descriptors(conf_train, opt_iap.basis)
+ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
+
 # Update test dataset by adding energy and force descriptors
 println("Computing energy descriptors of test dataset...")
 e_descr_test = compute_local_descriptors(conf_test, opt_iap.basis)
@@ -165,9 +168,23 @@ println("Computing force descriptors of test dataset...")
 f_descr_test = compute_force_descriptors(conf_test, opt_iap.basis)
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
 
+GC.gc()
+
 # Get true and predicted values
-e_test, e_test_pred = get_all_energies(ds_test),
-                      get_all_energies(ds_test, opt_iap)
+n_atoms_train = length.(get_system.(ds_train))
+n_atoms_test = length.(get_system.(ds_test))
+
+e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
+                        get_all_energies(ds_train, opt_iap) ./ n_atoms_train
+f_train, f_train_pred = get_all_forces(ds_train),
+                        get_all_forces(ds_train, opt_iap)
+@save_var path e_train
+@save_var path e_train_pred
+@save_var path f_train
+@save_var path f_train_pred
+
+e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
+                      get_all_energies(ds_test, opt_iap) ./ n_atoms_test
 f_test, f_test_pred = get_all_forces(ds_test),
                       get_all_forces(ds_test, opt_iap)
 @save_var path e_test
@@ -176,19 +193,40 @@ f_test, f_test_pred = get_all_forces(ds_test),
 @save_var path f_test_pred
 
 # Compute metrics
-e_metrics = get_metrics(e_test_pred, e_test,
-                        metrics = [mae, rmse, rsq],
-                        label = "e_test")
-f_metrics = get_metrics(f_test_pred, f_test,
-                        metrics = [mae, rmse, rsq, mean_cos],
-                        label = "f_test")
-test_metrics = merge(e_metrics, f_metrics)
+e_train_metrics = get_metrics(e_train, e_train_pred,
+                              metrics = [mae, rmse, rsq],
+                              label = "e_train")
+f_train_metrics = get_metrics(f_train, f_train_pred,
+                              metrics = [mae, rmse, rsq, mean_cos],
+                              label = "f_train")
+train_metrics = merge(e_train_metrics, f_train_metrics)
+@save_dict path train_metrics
+
+e_test_metrics = get_metrics(e_test, e_test_pred,
+                             metrics = [mae, rmse, rsq],
+                             label = "e_test")
+f_test_metrics = get_metrics(f_test, f_test_pred,
+                             metrics = [mae, rmse, rsq, mean_cos],
+                             label = "f_test")
+test_metrics = merge(e_test_metrics, f_test_metrics)
 @save_dict path test_metrics
 
 # Plot and save results
-e_test_plot = plot_energy(e_test_pred, e_test)
-f_test_plot = plot_forces(f_test_pred, f_test)
-f_test_cos  = plot_cos(f_test_pred, f_test)
+
+e_plot = plot_energy(e_train, e_train_pred,
+                     e_test, e_test_pred)
+@save_fig path e_plot
+
+e_train_plot = plot_energy(e_train, e_train_pred)
+f_train_plot = plot_forces(f_train, f_train_pred)
+f_train_cos  = plot_cos(f_train, f_train_pred)
+@save_fig path e_train_plot
+@save_fig path f_train_plot
+@save_fig path f_train_cos
+
+e_test_plot = plot_energy(e_test, e_test_pred)
+f_test_plot = plot_forces(f_test, f_test_pred)
+f_test_cos  = plot_cos(f_test, f_test_pred)
 @save_fig path e_test_plot
 @save_fig path f_test_plot
 @save_fig path f_test_cos
