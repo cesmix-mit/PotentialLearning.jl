@@ -191,26 +191,26 @@ e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
 @save_var path e_test_pred
 
 # Compute metrics
-e_train_metrics = get_metrics(e_train_pred,
-                              e_train,
+e_train_metrics = get_metrics(e_train,
+                              e_train_pred,
                               metrics = [mae, rmse, rsq],
                               label = "e_train")
 @save_dict path e_train_metrics
 
-e_test_metrics = get_metrics(e_test_pred,
-                             e_test,
+e_test_metrics = get_metrics(e_test,
+                             e_test_pred,
                              metrics = [mae, rmse, rsq],
                              label = "e_test")
 @save_dict path e_test_metrics
 
 # Plot and save results
-e_train_plot = plot_energy(e_train_pred, e_train)
+e_train_plot = plot_energy(e_train, e_train_pred)
 @save_fig path e_train_plot
 
-e_test_plot = plot_energy(e_test_pred, e_test)
+e_test_plot = plot_energy(e_test, e_test_pred)
 @save_fig path e_test_plot
 
-e_plot = plot_energy(e_train_pred, e_train,
-                     e_test_pred, e_test)
+e_plot = plot_energy(e_train, e_train_pred,
+                     e_test, e_test_pred)
 @save_fig path e_plot
 

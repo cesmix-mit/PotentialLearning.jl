@@ -143,35 +143,35 @@ f_test, f_test_pred = get_all_forces(ds_test),
 @save_var path f_test_pred
 
 # Compute metrics
-e_train_metrics = get_metrics(e_train_pred, e_train,
+e_train_metrics = get_metrics(e_train, e_train_pred,
                               metrics = [mae, rmse, rsq],
                               label = "e_train")
-f_train_metrics = get_metrics(f_train_pred, f_train,
+f_train_metrics = get_metrics(f_train, f_train_pred,
                               metrics = [mae, rmse, rsq, mean_cos],
                               label = "f_train")
 train_metrics = merge(e_train_metrics, f_train_metrics)
 @save_dict path train_metrics
 
-e_test_metrics = get_metrics(e_test_pred, e_test,
+e_test_metrics = get_metrics(e_test, e_test_pred,
                              metrics = [mae, rmse, rsq],
                              label = "e_test")
-f_test_metrics = get_metrics(f_test_pred, f_test,
+f_test_metrics = get_metrics(f_test, f_test_pred,
                              metrics = [mae, rmse, rsq, mean_cos],
                              label = "f_test")
 test_metrics = merge(e_test_metrics, f_test_metrics)
 @save_dict path test_metrics
 
 # Plot and save results
-e_train_plot = plot_energy(e_train_pred, e_train)
-f_train_plot = plot_forces(f_train_pred, f_train)
-f_train_cos  = plot_cos(f_train_pred, f_train)
+e_train_plot = plot_energy(e_train, e_train_pred)
+f_train_plot = plot_forces(f_train, f_train_pred)
+f_train_cos  = plot_cos(f_train, f_train_pred)
 @save_fig path e_train_plot
 @save_fig path f_train_plot
 @save_fig path f_train_cos
 
-e_test_plot = plot_energy(e_test_pred, e_test)
-f_test_plot = plot_forces(f_test_pred, f_test)
-f_test_cos  = plot_cos(f_test_pred, f_test)
+e_test_plot = plot_energy(e_test, e_test_pred)
+f_test_plot = plot_forces(f_test, f_test_pred)
+f_test_cos  = plot_cos(f_test, f_test_pred)
 @save_fig path e_test_plot
 @save_fig path f_test_plot
 @save_fig path f_test_cos
