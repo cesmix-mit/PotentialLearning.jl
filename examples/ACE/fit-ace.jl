@@ -27,7 +27,7 @@ ds_path = string("../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz")
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
 # Split configuration dataset into training and test
-n_train, n_test = 500, 500
+n_train, n_test = 200, 200
 conf_train, conf_test = split(ds, n_train, n_test)
 
 
@@ -40,11 +40,11 @@ dataset_generator = Nothing
 #dataset_selector = RandomSelector(length(conf_train); batch_size = 100)
 
 # Subselector, option 2: DBSCANSelector
-#ε, min_pts, sample_size = 0.05, 5, 3
-#dataset_selector = DBSCANSelector(  conf_train,
-#                                    ε,
-#                                    min_pts,
-#                                    sample_size)
+#ε, min_pts, sample_size = 0.05, 3, 100
+#dataset_selector = DBSCANSelector(conf_train,
+#                                  ε,
+#                                  min_pts,
+#                                  sample_size)
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
 basis = ACE(species           = [:Hf, :O],
@@ -64,7 +64,7 @@ dataset_selector = kDPP(  conf_train_kDPP,
                           batch_size = 100)
 
 # Subsample trainig dataset
-inds = PotentialLearning.get_random_subset(dataset_selector)
+inds = get_random_subset(dataset_selector)
 conf_train = conf_train[inds]
 GC.gc()
 
@@ -91,7 +91,7 @@ ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 # Learn
 println("Learning energies and forces...")
 lb = LBasisPotentialExt(basis)
-ws, int = [1.0, 1.0], false
+ws, int = [1.0, 1.0], true
 learn!(lb, ds_train, ws, int)
 
 @save_var path lb.β
@@ -153,6 +153,10 @@ test_metrics = merge(e_test_metrics, f_test_metrics)
 e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig path e_plot
+
+f_plot = plot_forces(f_train, f_train_pred,
+                     f_test, f_test_pred)
+@save_fig path f_plot
 
 e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)

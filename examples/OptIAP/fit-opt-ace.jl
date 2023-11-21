@@ -40,11 +40,11 @@ conf_train, conf_test = split(ds, n_train, n_test)
 #dataset_selector = RandomSelector(length(conf_train); batch_size = 100)
 
 # Subselector, option 2: DBSCANSelector
-#ε, min_pts, sample_size = 0.05, 5, 3
-#dataset_selector = DBSCANSelector(  conf_train,
-#                                    ε,
-#                                    min_pts,
-#                                    sample_size)
+#ε, min_pts, sample_size = 0.05, 3, 100
+#dataset_selector = DBSCANSelector(conf_train,
+#                                  ε,
+#                                  min_pts,
+#                                  sample_size)
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
 basis = ACE(species           = [:Hf, :O],
@@ -64,7 +64,7 @@ dataset_selector = kDPP(  conf_train_kDPP,
                           batch_size = 100)
 
 # Subsample trainig dataset
-inds = PotentialLearning.get_random_subset(dataset_selector)
+inds = get_random_subset(dataset_selector)
 conf_train = conf_train[inds]
 GC.gc()
 

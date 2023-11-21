@@ -145,6 +145,66 @@ end
 
 
 """
+    plot_forces(
+        f_train_true,
+        f_train_pred
+        f_test_true,
+        f_test_pred
+    )
+
+`f_train_true`: vector of true training forces
+`f_train_pred`: vector of predicted training forces
+`f_test_true`: vector of true test forces
+`f_test_pred`: vector of predicted test forces
+
+Returns an true vs predicted force plot for training and test.
+
+"""
+function plot_forces(
+    f_train_true,
+    f_train_pred,
+    f_test_true,
+    f_test_pred
+)
+    fs =[f_train_true; f_train_pred; f_test_true; f_test_pred]
+    r0 = minimum(fs)
+    r1 = maximum(fs)
+    rs = (r1-r0)/10
+    plot(f_train_true,
+         f_train_pred,
+         seriestype = :scatter,
+         alpha = 0.35,
+         thickness_scaling = 1.35,
+         markersize = 3,
+         markerstrokewidth = 1,
+         markerstrokecolor = :black,
+         markershape = :circle,
+         markercolor = :gray,
+         label="Training forces")
+    plot!(f_test_true,
+          f_test_pred,
+          seriestype = :scatter,
+          alpha = 0.35,
+          thickness_scaling = 1.35,
+          markersize = 3,
+          markerstrokewidth = 1,
+          markerstrokecolor = :red,
+          markershape = :utriangle,
+          markercolor = :red2,
+          label = "Test forces")
+    plot!(dpi = 300,
+          label = "",
+          xlabel = "F DFT | eV/Å",
+          ylabel = "F predicted | eV/Å")
+    p = plot!(r0:rs:r1,
+              r0:rs:r1,
+              label = "", 
+              color = :red)
+    return p
+end
+
+
+"""
     plot_cos(
         f_true,
         f_pred
