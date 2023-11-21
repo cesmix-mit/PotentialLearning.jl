@@ -27,8 +27,8 @@ function DPP_training_trial(
 
     println("Computing local descriptors")
 
-    e_descr = JLD.load(exp_dir*"energy_descriptors.jld")["e_descr"]
-    f_descr = JLD.load(exp_dir*"force_descriptors.jld")["f_descr"]
+    e_descr = JLD.load(exp_dir*"energy_descriptors_allfiles.jld")["e_descr"]
+    f_descr = JLD.load(exp_dir*"force_descriptors_allfiles.jld")["f_descr"]
 
     # @time e_descr = compute_local_descriptors(conf, ace)
     # @time f_descr = compute_force_descriptors(conf, ace)
@@ -38,7 +38,9 @@ function DPP_training_trial(
     ds = DataSet(conf .+ e_descr .+ f_descr)
 
     # Compute cross validation error from training
-    res_dpp, res_srs = cross_validation_training(ds, ace, batch_size, exp_dir; ndiv=nfold)
+    # res_dpp, res_srs = cross_validation_training(ds, ace, batch_size, exp_dir; nfold=nfold)
+    println("Monte Carlo trials")
+    res_dpp, res_srs = monte_carlo_training(ds, ace, batch_size, exp_dir; niter=nfold)
 
 end
 
@@ -87,6 +89,61 @@ function train_potential(
 end 
 
 
+function monte_carlo_training(
+    ds::DataSet,
+    ace::ACE,
+    batch_size::Vector,
+    save_dir::String;
+    niter=10,
+    )
+    
+    # init results dict
+    res_srs = init_res_dict(batch_size, niter)
+    res_dpp = init_res_dict(batch_size, niter)
+
+   # split train set
+    ndata = length(ds)
+    ind_all = rand(1:ndata, ndata)
+    cut = Int(floor(ndata * 0.5))
+    train_ind = ind_all[1:cut]
+    test_ind = ind_all[cut+1:end]
+    ds_train = ds[train_ind]
+    ds_test = ds[test_ind]
+
+    # compute L-ensemble for DPP once
+    t = @elapsed L = compute_ell_ensemble(ds_train, GlobalMean(), DotProduct())
+    println("Compute L-ensemble: $t sec. ")
+
+
+    # iterate over divisions
+    for i = 1:niter
+        println("----------- iter $i ----------")
+
+        for bs in batch_size
+            t = @elapsed begin
+                # train by DPP
+                lpd, lbd, dpp_ind = train_potential(ds_train, ace, L, bs)
+                res_dpp[bs] = update_res_dict(i, res_dpp[bs], ds_test, lpd, lbd, dpp_ind)
+
+                # train by simple random sampling
+                lps, lbs, srs_ind = train_potential(ds_train, ace, bs)
+                res_srs[bs] = update_res_dict(i, res_srs[bs], ds_test, lps, lbs, srs_ind)
+
+                JLD.save(save_dir*"DPP_training_results_MC_N=$bs.jld", "res", res_dpp[bs])
+                JLD.save(save_dir*"SRS_training_results_MC_N=$bs.jld", "res", res_srs[bs])
+            end
+            println("Train with batch $bs: $t sec.")
+        end
+    end
+
+    JLD.save(save_dir*"DPP_training_results_MC_all.jld", "res", res_dpp)
+    JLD.save(save_dir*"SRS_training_results_MC_all.jld", "res", res_srs)
+
+    return res_dpp, res_srs
+end
+
+
+
 # cross validation training
 function cross_validation_training(
     ds::DataSet,
@@ -112,7 +169,9 @@ function cross_validation_training(
 
         # split train set
         train_ind = reduce(vcat, cv_ind[Not(i)]) # leave out one cut
+        test_ind = cv_ind[i]
         ds_train = ds[train_ind]
+        ds_test = ds[test_ind]
 
         # compute L-ensemble for DPP once
         t = @elapsed L = compute_ell_ensemble(ds_train, GlobalMean(), DotProduct())
@@ -122,11 +181,11 @@ function cross_validation_training(
             t = @elapsed begin
                 # train by DPP
                 lpd, lbd, dpp_ind = train_potential(ds_train, ace, L, bs)
-                res_dpp[bs] = update_res_dict(i, res_dpp[bs], ds, lpd, lbd, dpp_ind)
+                res_dpp[bs] = update_res_dict(i, res_dpp[bs], ds_test, lpd, lbd, dpp_ind)
 
                 # train by simple random sampling
                 lps, lbs, srs_ind = train_potential(ds_train, ace, bs)
-                res_srs[bs] = update_res_dict(i, res_srs[bs], ds, lps, lbs, srs_ind)
+                res_srs[bs] = update_res_dict(i, res_srs[bs], ds_test, lps, lbs, srs_ind)
 
                 JLD.save(save_dir*"DPP_training_results_N=$bs.jld", "res", res_dpp[bs])
                 JLD.save(save_dir*"SRS_training_results_N=$bs.jld", "res", res_srs[bs])
@@ -247,21 +306,38 @@ function compute_cv_metadata(
         # "DFT energy" => get_all_energies(ds),
         # "E err mean" => mean(res["energy_err"]), # mean error from k-fold CV
         # "E err std" => std(res["energy_err"]), # std of error
-        "E mae mean" => [mean(res[bs]["energy_mae"]) for bs in batches],
-        "E mae std" => [std(res[bs]["energy_mae"]) for bs in batches],
-        "E rmse mean" => [mean(res[bs]["energy_rmse"]) for bs in batches],
-        "E rmse std" => [std(res[bs]["energy_rmse"]) for bs in batches],
-        "E rsq mean" => [mean(res[bs]["energy_rsq"]) for bs in batches],
-        "E rsq std" => [std(res[bs]["energy_rsq"]) for bs in batches],
+        "E mae min" => [minimum(res[bs]["energy_mae"]) for bs in batches],
+        "E mae med" => [median(res[bs]["energy_mae"]) for bs in batches],
+        "E mae lqt" => [quantile!(res[bs]["energy_mae"], 0.25) for bs in batches],
+        "E mae uqt" => [quantile!(res[bs]["energy_mae"], 0.75) for bs in batches],
+
+        "E rmse min" => [minimum(res[bs]["energy_rmse"]) for bs in batches],
+        "E rmse med" => [median(res[bs]["energy_rmse"]) for bs in batches],
+        "E rmse lqt" => [quantile!(res[bs]["energy_rmse"], 0.25) for bs in batches],
+        "E rmse uqt" => [quantile!(res[bs]["energy_rmse"], 0.75) for bs in batches],
+        
+        "E rsq max" => [maximum(abs.(res[bs]["energy_rsq"])) for bs in batches],
+        "E rsq med" => [median(abs.(res[bs]["energy_rsq"])) for bs in batches],
+        "E rsq lqt" => [quantile!(abs.(res[bs]["energy_rsq"]), 0.25) for bs in batches],
+        "E rsq uqt" => [quantile!(abs.(res[bs]["energy_rsq"]), 0.75) for bs in batches],
+
         # "DFT force" => get_all_forces_mag(ds),
         # "F err mean" =>  mean(res["force_err"]), # mean error from k-fold CV
         # "F err std" => std(res["force_err"]), # std of error
-        "F mae mean" => [mean(res[bs]["force_mae"]) for bs in batches],
-        "F mae std" => [std(res[bs]["force_mae"]) for bs in batches],
-        "F rmse mean" => [mean(res[bs]["force_rmse"]) for bs in batches],
-        "F rmse std" => [std(res[bs]["force_rmse"]) for bs in batches],
-        "F rsq mean" => [mean(res[bs]["force_rsq"]) for bs in batches],
-        "F rsq std" => [std(res[bs]["force_rsq"]) for bs in batches],
+        "F mae min" => [minimum(res[bs]["force_mae"]) for bs in batches],
+        "F mae med" => [median(res[bs]["force_mae"]) for bs in batches],
+        "F mae lqt" => [quantile!(res[bs]["force_mae"], 0.25) for bs in batches],
+        "F mae uqt" => [quantile!(res[bs]["force_mae"], 0.75) for bs in batches],
+
+        "F rmse min" => [minimum(res[bs]["force_rmse"]) for bs in batches],
+        "F rmse med" => [median(res[bs]["force_rmse"]) for bs in batches],
+        "F rmse lqt" => [quantile!(res[bs]["force_rmse"], 0.25) for bs in batches],
+        "F rmse uqt" => [quantile!(res[bs]["force_rmse"], 0.75) for bs in batches],
+
+        "F rsq max" => [maximum(abs.(res[bs]["force_rsq"])) for bs in batches],
+        "F rsq med" => [median(abs.(res[bs]["force_rsq"])) for bs in batches],
+        "F rsq lqt" => [quantile!(abs.(res[bs]["force_rsq"]), 0.25) for bs in batches],
+        "F rsq uqt" => [quantile!(abs.(res[bs]["force_rsq"]), 0.75) for bs in batches],
     )
     return df_conf
 end
