@@ -20,7 +20,8 @@ include("gnniap.jl")
 # Setup experiment #############################################################
 
 # Experiment folder
-path = "HfO2-GNNACE/"
+path = "Hf-GNNACE/"
+#path = "aHfO2-GNNACE/"
 run(`mkdir -p $path/`)
 
 # Fix random seed
@@ -40,11 +41,13 @@ device = Flux.gpu
 #n_train, n_test = length(conf_train), length(conf_test)
 
 # Load complete configuration dataset
-ds_path = "../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz"
+ds_path = "../data/Hf/Hf128_MC_rattled_random_form_sorted.extxyz"
+#ds_path = "../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz" 
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
+ds = ds[shuffle(1:length(ds))]
 
 # Split configuration dataset into training and test
-n_train, n_test = 100, 100
+n_train, n_test = 400, 98 # 100, 100
 conf_train, conf_test = split(ds, n_train, n_test)
 
 species = unique(vcat([atomic_symbol.(get_system(c).particles)
@@ -54,7 +57,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Define IAP model #############################################################
 
 # Define ACE parameters
-ace = ACE(species           = [:Hf, :O],
+ace = ACE(species           = [:Hf], #[:Hf, :O], 
           body_order        = 3,
           polynomial_degree = 3,
           wL                = 1.0,
@@ -80,12 +83,12 @@ ds_test = DataSet(conf_test .+ e_descr_test)
 # Compute training and test graphs
 train_graphs = compute_graphs(ds_train,
                               rcutoff = 5.0u"Å",
-                              normalize = true)
+                              normalize = false)
 train_graphs_gpu = [g |> device for g in train_graphs]
 
 test_graphs = compute_graphs(ds_test,
                              rcutoff = 5.0u"Å",
-                             normalize = true)
+                             normalize = false)
 test_graphs_gpu = [g |> device for g in test_graphs]
 
 # Define GNN model for each species
@@ -94,8 +97,8 @@ gnn = GNNChain(GCNConv(n_desc => 32, σ),
                GCNConv(32 => 32, σ),
                GlobalPool(mean),
                Dense(32, 1, init = Flux.glorot_uniform,
-                                bias = false)) |> device
-                                
+                            bias = false)) |> device
+
 #gnn = GNNChain(GCNConv(n_desc => n_desc, tanh_fast),
 #               GCNConv(n_desc => n_desc),
 #               GlobalPool(mean),
@@ -103,37 +106,36 @@ gnn = GNNChain(GCNConv(n_desc => 32, σ),
 
 
 # Loss #########################################################################
-energy_loss(g::GNNGraph) = Flux.mse(first(gnn(g, g.x)), g.z)
+energy_loss(gnn, g::GNNGraph) = Flux.mse(first(gnn(g, g.x)), g.z)
 
 # Learn ########################################################################
 println("Learning energies...")
 
 log_step = 10
-ps = Flux.params(gnn)
 
-opt = Adam(1f-1, (.9, .8))
-n_epochs = 100
+opt = Flux.setup(Adam(1f-3), gnn)
+n_epochs = 500
 for epoch in 1:n_epochs
     for g in train_graphs_gpu
-        grad = gradient(() -> energy_loss(g), ps)
-        Flux.Optimise.update!(opt, ps, grad)
+        grad = gradient(gnn -> energy_loss(gnn, g), gnn)
+        Flux.update!(opt, gnn, grad[1])
     end
     if epoch % log_step == 0
-        @info (; epoch, train_loss=mean(energy_loss.(train_graphs_gpu)),
-                        test_loss=mean(energy_loss.(test_graphs_gpu)))
+        @info (; epoch, train_loss=mean(energy_loss.([gnn], train_graphs_gpu)),
+                        test_loss=mean(energy_loss.([gnn], test_graphs_gpu)))
     end
 end
 
-opt = Adam(1f-5, (.9, .8))
-n_epochs = 100
+opt = Flux.setup(Adam(1f-5), gnn)
+n_epochs = 500
 for epoch in 1:n_epochs
     for g in train_graphs_gpu
-        grad = gradient(() -> energy_loss(g), ps)
-        Flux.Optimise.update!(opt, ps, grad)
+        grad = gradient(gnn -> energy_loss(gnn, g), gnn)
+        Flux.update!(opt, gnn, grad[1])
     end
     if epoch % log_step == 0
-        @info (; epoch, train_loss=mean(energy_loss.(train_graphs_gpu)),
-                        test_loss=mean(energy_loss.(test_graphs_gpu)))
+        @info (; epoch, train_loss=mean(energy_loss.([gnn], train_graphs_gpu)),
+                        test_loss=mean(energy_loss.([gnn], test_graphs_gpu)))
     end
 end
 

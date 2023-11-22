@@ -3,8 +3,8 @@ function PotentialLearning.get_all_energies(graphs::Vector, gnn::GNNChain)
     return [first(gnn(g, g.x)) for g in graphs]
 end
 
-function dist(x1, y1, z1, x2, y2, z2)
-    return sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
+function dist(x, y)
+    return sqrt(sum((x .- y).^2))
 end
 
 function compute_adjacency_matrix(
@@ -13,16 +13,18 @@ function compute_adjacency_matrix(
     rcutoff = 5.0u"Å",
     normalize = true
 )
-    adjacency = Matrix{Bool}(undef, length(positions), length(positions))
-    degrees = zeros(length(positions)) # place to store the diagonal of degree matrix
-    for i in 1:length(positions)
-        @simd for j in 1:i
+    n = length(positions)
+    adjacency = Matrix{Bool}(undef, n, n)
+    degrees = zeros(n) # place to store the diagonal of degree matrix
+    for i in 1:n
+        @simd for j in i:n
             adjacency[i, j] = minimum([
-                dist(positions[i]..., positions[j]...),
-                dist((positions[i] + bounding_box[1])..., positions[j]...),
-                dist((positions[i] + bounding_box[2])..., positions[j]...),
-                dist((positions[i] + bounding_box[3])..., positions[j]...)
+                dist(positions[i], positions[j]),
+                dist((positions[i] + bounding_box[1]), positions[j]),
+                dist((positions[i] + bounding_box[2]), positions[j]),
+                dist((positions[i] + bounding_box[3]), positions[j])
             ]) < rcutoff
+            adjacency[j, i] = adjacency[i, j]
             degrees[i] += adjacency[i, j]
             degrees[j] += adjacency[i, j]
         end
