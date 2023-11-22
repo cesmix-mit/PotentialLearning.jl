@@ -99,14 +99,10 @@ gnn = GNNChain(GCNConv(n_desc => 32, σ),
                Dense(32, 1, init = Flux.glorot_uniform,
                             bias = false)) |> device
 
-#gnn = GNNChain(GCNConv(n_desc => n_desc, tanh_fast),
-#               GCNConv(n_desc => n_desc),
-#               GlobalPool(mean),
-#               Dense(n_desc, 1, init = Flux.glorot_uniform)) |> device
-
 
 # Loss #########################################################################
 energy_loss(gnn, g::GNNGraph) = Flux.mse(first(gnn(g, g.x)), g.z)
+#energy_loss(gnn, g::GNNGraph) = mean((vec(gnn(g, g.x)) - g.z).^2)
 
 # Learn ########################################################################
 println("Learning energies...")
@@ -114,7 +110,7 @@ println("Learning energies...")
 log_step = 10
 
 opt = Flux.setup(Adam(1f-3), gnn)
-n_epochs = 500
+n_epochs = 3000
 for epoch in 1:n_epochs
     for g in train_graphs_gpu
         grad = gradient(gnn -> energy_loss(gnn, g), gnn)
@@ -127,7 +123,7 @@ for epoch in 1:n_epochs
 end
 
 opt = Flux.setup(Adam(1f-5), gnn)
-n_epochs = 500
+n_epochs = 2000
 for epoch in 1:n_epochs
     for g in train_graphs_gpu
         grad = gradient(gnn -> energy_loss(gnn, g), gnn)
