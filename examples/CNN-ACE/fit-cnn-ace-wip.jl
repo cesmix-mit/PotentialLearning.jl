@@ -43,7 +43,7 @@ input = get_input(args)
 # Create experiment folder
 path = input["experiment_path"]
 run(`mkdir -p $path`)
-@savecsv path input
+#@save_csv path input
 
 # Fix random seed
 if "random_seed" in keys(input)
@@ -107,7 +107,7 @@ end
 # Aux. functions
 
 function PotentialLearning.get_all_energies(ds::DataSet, nniap::NNIAP)
-    return nniap.nn(get_e_descr_batch(ds))'
+    return nniap.nns(get_e_descr_batch(ds))'
 end
 
 function get_e_descr_batch(ds)
@@ -145,7 +145,7 @@ end
 #function learn!(cnnnace, ds_train, opt, n_epochs, loss)
 #    es = get_all_energies(ds_train) |> gpu
 #    ld = get_e_descr_batch(ds_train) |> gpu
-#    nn = cnnnace.nn |> gpu
+#    nn = cnnnace.nns |> gpu
 #    opt = opt |> gpu
 #    for epoch in 1:n_epochs
 #        #grads = Flux.gradient(m -> loss(m(ld)', es) + sum(sqnorm, Flux.params(m)), nn)
@@ -157,7 +157,7 @@ end
 #            println("epoch = $epoch; loss = $train_loss")
 #        end
 #    end
-#    cnnnace.nn = nn |> cpu
+#    cnnnace.nns = nns |> cpu
 #end
 
 function learn!(cnnace, ds_train, ds_test, opt, n_epochs, loss)
@@ -165,18 +165,18 @@ function learn!(cnnace, ds_train, ds_test, opt, n_epochs, loss)
     ld = get_e_descr_batch(ds_train) |> gpu
     es_test = get_all_energies(ds_test) |> gpu
     ld_test = get_e_descr_batch(ds_test) |> gpu
-    nn = cnnace.nn |> gpu
+    nns = cnnace.nns |> gpu
     opt = opt |> gpu
     for epoch in 1:n_epochs
-        grads = Flux.gradient(m -> loss(m(ld)', es), nn)
-        Flux.update!(opt, nn, grads[1])
+        grads = Flux.gradient(m -> loss(m(ld)', es), nns)
+        Flux.update!(opt, nns, grads[1])
         if epoch % 500 == 0
-            train_loss = loss(nn(ld)', es)
-            test_loss = loss(nn(ld_test)', es_test)
+            train_loss = loss(nns(ld)', es)
+            test_loss = loss(nns(ld_test)', es_test)
             println("epoch = $epoch; train loss = $train_loss, test loss = $test_loss")
         end
     end
-    cnnace.nn = nn |> cpu
+    cnnace.nns = nns |> cpu
 end
 
 # Define neural network model
@@ -196,7 +196,7 @@ batch_size = length(ds_train)
 #    Dense(_ => 1),
 #)
 
-nn = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
+nns = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
     BatchNorm(_),
     Conv((1, 3), 2=>16),
     BatchNorm(_, relu),
@@ -224,7 +224,7 @@ nn = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
 #    Dense(_ => 1)
 #)
 
-cnnace = NNIAP(nn, ace)
+cnnace = NNIAP(nns, ace)
 
 # Learn
 println("Learning energies and forces...")
@@ -236,42 +236,57 @@ println("Learning energies and forces...")
 η = 1e-4         # learning rate
 λ = 1e-2         # for weight decay
 opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
-opt_state = Flux.setup(opt_rule, nn)
+opt_state = Flux.setup(opt_rule, nns)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-@savevar path Flux.params(cnnace.nn)
+@save_var path Flux.params(cnnace.nns)
 
 η = 1e-6         # learning rate
 λ = 1e-3         # for weight decay
 opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
-opt_state = Flux.setup(opt_rule, nn)
+opt_state = Flux.setup(opt_rule, nns)
 n_epochs = 10_000
 learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-@savevar path Flux.params(cnnace.nn)
-
-
-
+@save_var path Flux.params(cnnace.nns)
 
 # Post-process output: calculate metrics, create plots, and save results
 
 # Get true and predicted values
-e_train = get_all_energies(ds_train)
-e_test = get_all_energies(ds_test)
-e_train_pred = get_all_energies(ds_train, cnnace)
-e_test_pred = get_all_energies(ds_test, cnnace)
-@savevar path e_train
-@savevar path e_train_pred
-@savevar path e_test
-@savevar path e_test_pred
+n_atoms_train = length.(get_system.(ds_train))
+n_atoms_test = length.(get_system.(ds_test))
+
+e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
+                        get_all_energies(ds_train, cnnace) ./ n_atoms_train
+@save_var path e_train
+@save_var path e_train_pred
+
+e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
+                      get_all_energies(ds_test, cnnace) ./ n_atoms_test
+@save_var path e_test
+@save_var path e_test_pred
 
 # Compute metrics
-metrics = get_metrics(e_train_pred, e_train, e_test_pred, e_test)
-@savecsv path metrics
+e_train_metrics = get_metrics(e_train,
+                              e_train_pred,
+                              metrics = [mae, rmse, rsq],
+                              label = "e_train")
+@save_dict path e_train_metrics
+
+e_test_metrics = get_metrics(e_test,
+                             e_test_pred,
+                             metrics = [mae, rmse, rsq],
+                             label = "e_test")
+@save_dict path e_test_metrics
 
 # Plot and save results
-e_train_plot = plot_energy(e_train_pred, e_train)
-@savefig path e_train_plot
-e_test_plot = plot_energy(e_test_pred, e_test)
-@savefig path e_test_plot
+e_train_plot = plot_energy(e_train, e_train_pred)
+@save_fig path e_train_plot
+
+e_test_plot = plot_energy(e_test, e_test_pred)
+@save_fig path e_test_plot
+
+e_plot = plot_energy(e_train, e_train_pred,
+                     e_test, e_test_pred)
+@save_fig path e_plot
 
 
