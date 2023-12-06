@@ -23,8 +23,6 @@ function DPP_training_trial(
             rcutoff = 10.0)
 
     # Update dataset by adding energy (local) descriptors
-    
-
     println("Computing local descriptors")
 
     e_descr = JLD.load(exp_dir*"energy_descriptors_allfiles.jld")["e_descr"]
@@ -101,7 +99,7 @@ function monte_carlo_training(
     res_srs = init_res_dict(batch_size, niter)
     res_dpp = init_res_dict(batch_size, niter)
 
-   # split train set
+    # split train set
     ndata = length(ds)
     ind_all = rand(1:ndata, ndata)
     cut = Int(floor(ndata * 0.5))
@@ -218,16 +216,7 @@ function compute_cond_num(lp::PotentialLearning.CovariateLinearProblem)
 end
 
 
-function compute_ell_ensemble(
-    ds::DataSet,
-    f::Feature,
-    k::Kernel;
-    dt = LocalDescriptors,
-)
-    K = KernelMatrix(ds, f, k; dt = dt)
-    ell = EllEnsemble(K)
-    return ell
-end
+
 
 
 # get all force magnitudes ---------------------------------------------------------------------------
@@ -348,18 +337,3 @@ end
 
 
 
-# I/O helper functions ----------------------------------------------------------------------
-function readext(path::String, ext::String)
-    dir = readdir(path)
-    substr = [split(f, ".") for f in dir]
-    id = findall(x -> x[end] == ext, substr)
-    return dir[id]
-end
-
-
-function concat_dataset(confs::Vector{DataSet})
-    N = length(confs)
-    confs_vec = [[confs[i][j] for j = 1:length(confs[i])] for i = 1:N]
-    confs_all = reduce(vcat, confs_vec)
-    return DataSet(confs_all)
-end
