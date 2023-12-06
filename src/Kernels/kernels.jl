@@ -90,9 +90,7 @@ function KernelMatrix(
     K = zeros(n, n)
     for i = 1:n
         for j = i:n
-            Kij = compute_kernel(F[i], F[j], k)
-            K[i, j] = Kij
-            K[j, i] = Kij
+            K[i, j] = compute_kernel(F[i], F[j], k)
         end
     end
     Symmetric(K)
