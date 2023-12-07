@@ -14,7 +14,7 @@ ace = ACE(species = [:Na],         # species
 
 # UnivariateLinearProblem ######################################################
 
-lb = LBasisPotentialExt(ace)
+lb = LBasisPotential(ace)
 
 # Initialize some fake energy descriptors
 d = 8
@@ -65,7 +65,7 @@ learn!(lp, α)
 
 # CovariateLinearProblem #######################################################
 
-lb = LBasisPotentialExt(ace)
+lb = LBasisPotential(ace)
 
 # Initialize some fake energy and force descriptors
 d = 8
@@ -117,7 +117,7 @@ learn!(lp, ws, int)
 
 # Test learning functions based on ordinary least squares approach
 α = 1e-8
-lb = LBasisPotentialExt(ace)
+lb = LBasisPotential(ace)
 Σ = learn!(lb, ds, α)
 lp = PotentialLearning.LinearProblem(ds)
 learn!(lp, α)

@@ -31,7 +31,7 @@ e_descr_train = compute_local_descriptors(conf_train, ace)
 ds_train = DataSet(conf_train .+ e_descr_train)
 
 # Learn using DPP
-lb = LBasisPotentialExt(ace)
+lb = LBasisPotential(ace)
 dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 dpp_inds = get_random_subset(dpp)
 α = 1e-8

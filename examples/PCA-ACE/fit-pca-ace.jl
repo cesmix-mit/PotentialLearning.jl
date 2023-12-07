@@ -97,7 +97,7 @@ end
 
 # Learn
 println("Learning energies and forces...")
-lb = LBasisPotentialExt(basis)
+lb = LBasisPotential(basis)
 ws, int = [1.0, 1.0], true
 learn!(lb, ds_train, ws, int)
 

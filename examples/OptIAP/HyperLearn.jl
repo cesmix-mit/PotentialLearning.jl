@@ -23,7 +23,7 @@ function hyperlearn!(   conf_train,
     quote
          @hyperopt for i = n_samples
             basis = model(state...)
-            iap = LBasisPotentialExt(basis)
+            iap = LBasisPotential(basis)
             
             # Compute energy and force descriptors
             e_descr_new = compute_local_descriptors(conf_train, iap.basis, pbar = false)

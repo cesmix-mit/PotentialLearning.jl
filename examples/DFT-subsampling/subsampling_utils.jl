@@ -16,7 +16,7 @@ end
 
 function train_potential(ds_train::DataSet, ace::ACE, dpp_batch::Int64)
     # learn with DPP
-    lb = LBasisPotentialExt(ace)
+    lb = LBasisPotential(ace)
     dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = dpp_batch)
     dpp_inds = get_random_subset(dpp)
     lp = learn!(lb, ds_train[dpp_inds], [100, 1], false)
