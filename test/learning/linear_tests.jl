@@ -1,5 +1,5 @@
 using Unitful, UnitfulAtomic
-using InteratomicPotentials, InteratomicBasisPotentials
+using InteratomicPotentials
 using Random
 
 Random.seed!(0)

@@ -6,7 +6,7 @@
 push!(Base.LOAD_PATH, "../../")
 
 using AtomsBase
-using InteratomicPotentials, InteratomicBasisPotentials
+using InteratomicPotentials
 using PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra

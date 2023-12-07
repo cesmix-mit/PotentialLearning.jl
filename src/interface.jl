@@ -6,7 +6,6 @@
 
 using AtomsBase
 using InteratomicPotentials
-using InteratomicBasisPotentials
 using OrderedCollections
 using IterTools
 using LinearAlgebra

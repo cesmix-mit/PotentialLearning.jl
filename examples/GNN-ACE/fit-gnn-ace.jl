@@ -124,7 +124,10 @@ end
 
 opt = Flux.setup(Adam(1f-5), gnn)
 n_epochs = 2000
-for epoch in 1:n_epochs
+#for epoch in 1:n_epochs
+train_loss = mean(energy_loss.([gnn], train_graphs_gpu))
+epoch = 1
+while train_loss > 0.1
     for g in train_graphs_gpu
         grad = gradient(gnn -> energy_loss(gnn, g), gnn)
         Flux.update!(opt, gnn, grad[1])
@@ -133,6 +136,8 @@ for epoch in 1:n_epochs
         @info (; epoch, train_loss=mean(energy_loss.([gnn], train_graphs_gpu)),
                         test_loss=mean(energy_loss.([gnn], test_graphs_gpu)))
     end
+    epoch += 1
+    train_loss = mean(energy_loss.([gnn], train_graphs_gpu))
 end
 
 

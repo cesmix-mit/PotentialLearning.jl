@@ -1,7 +1,6 @@
 using Hyperopt
-using InteratomicBasisPotentials
+using InteratomicPotentials
 
-include("InteratomicBasisPotentialsExt.jl")
 include("HyperOptExt.jl")
 include("dbscan.jl")
 

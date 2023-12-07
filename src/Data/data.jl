@@ -1,5 +1,5 @@
 using Unitful, UnitfulAtomic, AtomsBase, ProgressBars
-import InteratomicBasisPotentials: compute_local_descriptors, compute_force_descriptors
+import InteratomicPotentials: compute_local_descriptors, compute_force_descriptors
 
 include("datatypes.jl")
 include("configs.jl")

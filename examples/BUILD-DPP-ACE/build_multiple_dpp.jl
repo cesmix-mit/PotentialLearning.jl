@@ -2,7 +2,7 @@ push!(Base.LOAD_PATH, "../../")
 
 using LinearAlgebra, Random, Statistics, StatsBase, Distributions
 using AtomsBase, Unitful, UnitfulAtomic
-using InteratomicPotentials, InteratomicBasisPotentials
+using InteratomicPotentials
 using CairoMakie
 using JLD
 using Determinantal
