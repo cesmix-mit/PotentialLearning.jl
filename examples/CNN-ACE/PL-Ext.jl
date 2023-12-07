@@ -1,7 +1,7 @@
 # Aux. CNN functions ###########################################################
 
-function PotentialLearning.get_all_energies(ds::DataSet, nniap::NNIAP)
-    return nniap.nns(get_e_descr_batch(ds))'
+function PotentialLearning.get_all_energies(ds::DataSet, nnbp::NNBasisPotential)
+    return nnbp.nns(get_e_descr_batch(ds))'
 end
 
 function get_e_descr_batch(ds)

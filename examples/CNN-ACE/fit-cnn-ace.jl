@@ -12,7 +12,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
 include("../utils/utils.jl")
-include("PL-IBS-Ext.jl")
+include("PL-Ext.jl")
 
 
 # Setup experiment #############################################################
@@ -31,26 +31,26 @@ ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 #ds = ds[shuffle(1:length(ds))]
 
 # Split configuration dataset into training and test
-n_train, n_test = 3000, 1000
+n_train, n_test = 1000, 1000
 conf_train, conf_test = split(ds, n_train, n_test)
 
 species = unique(vcat([atomic_symbol.(get_system(c).particles)
           for c in conf_train]...))
 
 # Define ACE parameters
-ace = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
-          body_order = 3,
-          polynomial_degree = 3,
-          wL = 1.0,
-          csp = 1.0,
-          r0 = 1.0,
-          rcutoff = 5.0)
-@save_var path ace
+basis = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
+            body_order = 3,
+            polynomial_degree = 3,
+            wL = 1.0,
+            csp = 1.0,
+            r0 = 1.0,
+            rcutoff = 5.0)
+@save_var path basis
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
 e_descr_train = compute_local_descriptors(conf_train,
-                                          ace,
+                                          basis,
                                           T = Float32)
 ds_train = DataSet(conf_train .+ e_descr_train)
 n_desc = length(e_descr_train[1][1])
@@ -58,7 +58,7 @@ n_desc = length(e_descr_train[1][1])
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
 e_descr_test = compute_local_descriptors(conf_test,
-                                         ace,
+                                         basis,
                                          T = Float32)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test)
@@ -109,7 +109,7 @@ nns = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
 #    Dense(_ => 1)
 #)
 
-cnnace = NNIAP(nns, ace)
+nnbp = NNBasisPotential(nns, basis)
 
 # Learn
 println("Learning energies and forces...")
@@ -118,16 +118,16 @@ println("Learning energies and forces...")
 opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
 opt_state = Flux.setup(opt_rule, nns)
 n_epochs = 10_000
-learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-@save_var path Flux.params(cnnace.nns)
+learn!(nnbp, ds_train, ds_test, opt_state, n_epochs, loss)
+@save_var path Flux.params(nnbp.nns)
 
 η = 1e-6         # learning rate
 λ = 1e-3         # for weight decay
 opt_rule = OptimiserChain(WeightDecay(λ), Adam(η, (0.9, 0.8)))
 opt_state = Flux.setup(opt_rule, nns)
 n_epochs = 50_000
-learn!(cnnace, ds_train, ds_test, opt_state, n_epochs, loss)
-@save_var path Flux.params(cnnace.nns)
+learn!(nnbp, ds_train, ds_test, opt_state, n_epochs, loss)
+@save_var path Flux.params(nnbp.nns)
 
 
 # Post-process output: calculate metrics, create plots, and save results #######
@@ -137,12 +137,12 @@ n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
 e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
-                        get_all_energies(ds_train, cnnace) ./ n_atoms_train
+                        get_all_energies(ds_train, nnbp) ./ n_atoms_train
 @save_var path e_train
 @save_var path e_train_pred
 
 e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
-                      get_all_energies(ds_test, cnnace) ./ n_atoms_test
+                      get_all_energies(ds_test, nnbp) ./ n_atoms_test
 @save_var path e_test
 @save_var path e_test_pred
 

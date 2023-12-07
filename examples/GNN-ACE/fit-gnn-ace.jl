@@ -6,7 +6,7 @@
 push!(Base.LOAD_PATH, "../../")
 
 using AtomsBase
-using InteratomicPotentials, InteratomicBasisPotentials
+using InteratomicPotentials
 using PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra
@@ -14,7 +14,7 @@ using GraphNeuralNetworks
 using Random
 using JLD
 include("../utils/utils.jl")
-include("gnniap.jl")
+include("PL_IP_Ext.jl")
 
 
 # Setup experiment #############################################################

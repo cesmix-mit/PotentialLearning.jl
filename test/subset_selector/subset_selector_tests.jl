@@ -28,7 +28,8 @@ r = RandomSelector(num_configs; batch_size = batch_size)
 # DBSCANSelector tests
 energy_units = u"eV"
 distance_units = u"Å"
-ds = load_data("../examples/Si-3Body-LAMMPS/data.xyz", ExtXYZ(energy_units, distance_units));
+ds = load_data("../examples/data/Si-3Body-LAMMPS/data.xyz",
+               ExtXYZ(energy_units, distance_units));
 epsi, minpts, sample_size = 0.05, 5, batch_size
 dbscans = DBSCANSelector(   ds,
                             epsi,

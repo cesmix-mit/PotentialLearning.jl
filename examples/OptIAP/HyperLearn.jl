@@ -2,7 +2,6 @@ using Hyperopt
 using InteratomicPotentials
 
 include("HyperOptExt.jl")
-include("dbscan.jl")
 
 
 function hyperlearn!(   conf_train,
