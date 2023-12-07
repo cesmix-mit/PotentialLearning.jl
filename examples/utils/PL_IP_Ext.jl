@@ -1,36 +1,13 @@
 using Flux
-#using Optim, Optimization
 
-# Neural network interatomic potential #########################################
+# ToDo: compute forces for multielement approach and then integrate in InteratomicPotentials.jl
 
-mutable struct NNIAP <: AbstractPotential
-    nns
-    iap
-end
-
-
-# Energies and forces ##########################################################
-# Formulation using local descriptors to compute energy and forces
-# See 10.1103/PhysRevLett.98.146401, https://fitsnap.github.io/Pytorch.html
-
-function potential_energy(
+function force( # see PL/src/Data/utils.jl
     c::Configuration,
-    nniap::NNIAP
-)
-    # Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-    # return sum(nniap.nns(Bs))
-    
-    local_descr = get_values(get_local_descriptors(c))
-    species = atomic_symbol.(get_system(c).particles)
-    return sum([nniap.nns[s](d) for (s, d) in zip(species, local_descr)])[1]
-end
-
-function force(
-    c::Configuration,
-    nniap::NNIAP
+    nnbp::NNBasisPotential
 )
 #    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-#    dnndb = first(gradient(x->sum(nniap.nn(x)), Bs))        # gradient function of MLP can be predefined
+#    dnndb = first(gradient(x->sum(nnbp.nn(x)), Bs))        # gradient function of MLP can be predefined
 #    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
 #    n_atoms = size(dbdr, 2)
 #    return [[-sum( dot.(eachcol(dnndb), [dbdr[coor, atom_j]]) )
@@ -38,7 +15,7 @@ function force(
 #             for atom_j in 1:n_atoms]
     
 #    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-#    dnndb = first(gradient(x->sum(nniap.nn(x)), Bs))        # gradient function of MLP can be predefined
+#    dnndb = first(gradient(x->sum(nnbp.nn(x)), Bs))        # gradient function of MLP can be predefined
 #    sum_dnndb = sum(dnndb, dims = 2)
 #    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
 #    n_atoms = size(dbdr, 2)
@@ -46,7 +23,7 @@ function force(
 #             for atom_j in 1:n_atoms]
     
     Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-    dnndb = first(Flux.gradient(x->sum(nniap.nn(x)), Bs))   # gradient function of MLP can be predefined
+    dnndb = first(Flux.gradient(x->sum(nnbp.nn(x)), Bs))   # gradient function of MLP can be predefined
     n_atoms = size(dnndb, 2)
     global dbdr_c
     return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
@@ -54,7 +31,7 @@ function force(
               for atom_j in 1:n_atoms]
 
 #    Bs = get_values(get_local_descriptors(c))
-#    dnndb = [first(gradient(x->sum(nniap.nn(x)), B_atom)) for B_atom in Bs]
+#    dnndb = [first(gradient(x->sum(nnbp.nn(x)), B_atom)) for B_atom in Bs]
 #    dbdr = get_values(get_force_descriptors(c))
 #    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
 end
@@ -62,10 +39,10 @@ end
 
 function force(
     c::Configuration,
-    nniap::NNIAP
+    nnbp::NNBasisPotential
 )
     Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-    dnnsdb = [first(Flux.gradient(x->sum(nn(x)), Bs)) for nn in nniap.nns] # gradient function of MLP can be predefined
+    dnnsdb = [first(Flux.gradient(x->sum(nn(x)), Bs)) for nn in nnbp.nns] # gradient function of MLP can be predefined
 
     n_atoms = size(dnndb, 2)
     global dbdr_c
@@ -75,31 +52,33 @@ function force(
 end
 
 
+# ToDo: Integrate the code below in PotentialLearning.jl
+
 # Loss functions ###############################################################
 
 function energy_loss(
     nns::Dict,
-    iap::BasisSystem,
+    basis::BasisSystem,
     ds::DataSet,
     args...
 )
-    nniap = NNIAP(nns, iap)
+    nnbp = NNBasisPotential(nns, basis)
     n_atoms = [length(get_local_descriptors(ds[i])) for i in 1:length(ds)]
     es, es_pred = get_all_energies(ds) ./ n_atoms,
-                  get_all_energies(ds, nniap) ./ n_atoms
+                  get_all_energies(ds, nnbp) ./ n_atoms
     return Flux.mse(es_pred, es)
 end
 
 function loss(
     nns::Dict,
-    iap::BasisSystem,
+    basis::BasisSystem,
     ds::DataSet,
     w_e::Real = 1.0,
     w_f::Real = 1.0
 )
-    nniap = NNIAP(nns, iap)
-    es, es_pred = get_all_energies(ds), get_all_energies(ds, nniap)  # get_all_energies(ds) can be precomputed
-    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nniap)      # get_all_forces(ds) can be precomputed
+    nnbp = NNBasisPotentials(nns, basis)
+    es, es_pred = get_all_energies(ds), get_all_energies(ds, nnbp)  # get_all_energies(ds) can be precomputed
+    fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nnbp)      # get_all_forces(ds) can be precomputed
     return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
 end
 
@@ -107,16 +86,16 @@ end
 
 function PotentialLearning.get_all_energies(
     ds::DataSet,
-    nniap::NNIAP
+    nnbp::NNBasisPotential
 )
-    return [potential_energy(ds[i], nniap) for i in 1:length(ds)]
+    return [potential_energy(ds[i], nnbp) for i in 1:length(ds)]
 end
 
 function PotentialLearning.get_all_forces(
     ds::DataSet,
-    nniap::NNIAP
+    nnbp::NNBasisPotential
 )
-    return reduce(vcat,reduce(vcat,[force(ds[c], nniap) for c in 1:length(ds)]))
+    return reduce(vcat,reduce(vcat,[force(ds[c], nnbp) for c in 1:length(ds)]))
 end
 
 function PotentialLearning.get_system(c::Configuration)
@@ -127,11 +106,11 @@ function PotentialLearning.get_system(c::Configuration)
     end
 end
 
-# NNIAP learning functions #####################################################
+# nnbp learning functions #####################################################
 
 # Flux.jl training
 function PotentialLearning.learn!(
-    nniap::NNIAP,
+    nnbp::NNBasisPotential,
     ds::DataSet,
     opt::Flux.Optimise.AbstractOptimiser,
     epochs::Int,
@@ -142,20 +121,20 @@ function PotentialLearning.learn!(
     batch_size::Int,
     log_step::Int
 )
-    optim = Flux.setup(OptimiserChain(WeightDecay(reg), opt), nniap.nns)
-    ∇loss(nns, iap, ds, w_e, w_f) = Flux.gradient((nns) -> loss0(nns, iap, ds, w_e, w_f), nns)
+    optim = Flux.setup(OptimiserChain(WeightDecay(reg), opt), nnbp.nns)
+    ∇loss(nns, basis, ds, w_e, w_f) = Flux.gradient((nns) -> loss0(nns, basis, ds, w_e, w_f), nns)
     losses = []
     n_batches = length(ds) ÷ batch_size
     for epoch in 1:epochs
         for _ in 1:n_batches
             # Compute gradient with current parameters and update model
             batch_inds = rand(1:length(ds), batch_size)
-            grads = ∇loss(nniap.nns, nniap.iap, ds[batch_inds], w_e, w_f)
-            Flux.update!(optim, nniap.nns, grads[1])
+            grads = ∇loss(nnbp.nns, nnbp.basis, ds[batch_inds], w_e, w_f)
+            Flux.update!(optim, nnbp.nns, grads[1])
         end
         # Logging
         if epoch % log_step == 0
-            curr_loss = loss0(nniap.nns, nniap.iap, ds, w_e, w_f)
+            curr_loss = loss0(nnbp.nns, nnbp.basis, ds, w_e, w_f)
             push!(losses, curr_loss)
             println("Epoch: $epoch, loss: $curr_loss")
         end
@@ -166,7 +145,7 @@ end
 # Compatibility with Optimization.jl. ##########################################
 # TODO: update to multielement training.
 #function PotentialLearning.learn!(
-#    nniap::NNIAP,
+#    nnbp::nnbp,
 #    ds::DataSet,
 #    opt::Optim.FirstOrderOptimizer,
 #    maxiters::Int,
@@ -174,17 +153,17 @@ end
 #    w_e::Real,
 #    w_f::Real
 #)
-#    ps, re = Flux.destructure(nniap.nn)
-#    batchloss(ps, p) = loss(re(ps), nniap.iap, ds, w_e, w_f)
+#    ps, re = Flux.destructure(nnbp.nn)
+#    batchloss(ps, p) = loss(re(ps), nnbp.iap, ds, w_e, w_f)
 #    ∇bacthloss = OptimizationFunction(batchloss, Optimization.AutoForwardDiff()) # Optimization.AutoZygote()
 #    prob = OptimizationProblem(∇bacthloss, ps, []) # prob = remake(prob,u0=sol.minimizer)
 #    cb = function (p, l) println("Loss BFGS: $l"); GC.gc(); return false end
 #    sol = solve(prob, opt, maxiters=maxiters, callback = cb)
 #    ps = sol.u
 #    nn = re(ps)
-#    nniap.nn = nn
-#    #copyto!(nniap.nn, nn)
-#    #global nniap = NNIAP(nn, nniap.iap) # TODO: improve this
+#    nnbp.nn = nn
+#    #copyto!(nnbp.nn, nn)
+#    #global nnbp = nnbp(nn, nnbp.iap) # TODO: improve this
 #end
 
 # GPU training #################################################################
@@ -221,7 +200,7 @@ end
 
 # TODO: update to multielement training
 #function PotentialLearning.learn!(
-#    nace::NNIAP,
+#    nace::nnbp,
 #    ds_train::DataSet,
 #    opt::Flux.Optimise.AbstractOptimiser,
 #    n_epochs::Int,

@@ -79,19 +79,19 @@ GC.gc()
 # Define IAP model #############################################################
 
 # Define ACE
-ace = ACE(species           = [:Hf, :O],
-          body_order        = 3,
-          polynomial_degree = 3,
-          wL                = 1.0,
-          csp               = 1.0,
-          r0                = 1.0,
-          rcutoff           = 5.0)
-@save_var path ace
+basis = ACE(species           = [:Hf, :O],
+            body_order        = 3,
+            polynomial_degree = 3,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0,
+            rcutoff           = 5.0)
+@save_var path basis
 
 # Update training dataset by adding energy descriptors
 println("Computing energy descriptors of training dataset...")
 e_descr_train = compute_local_descriptors(conf_train,
-                                          ace,
+                                          basis,
                                           T = Float32)
 ds_train = DataSet(conf_train .+ e_descr_train)
 
@@ -113,7 +113,7 @@ for s in species
                     Dense(128,128,σ; init = Flux.glorot_uniform(gain=-10)),
                     Dense(128,1; init = Flux.glorot_uniform(gain=-10), bias = false))
 end
-nace = NNIAP(nns, ace)
+nnbp = NNBasisPotential(nns, basis)
 
 # Learn
 println("Learning energies...")
@@ -124,7 +124,7 @@ log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
 reg = 1e-8
-learn!(nace,
+learn!(nnbp,
        ds_train,
        opt,
        n_epochs,
@@ -137,12 +137,12 @@ learn!(nace,
 )
 
 opt = Adam(1e-4)
-n_epochs = 500
+n_epochs = 50
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
 reg = 1e-4
-learn!(nace,
+learn!(nnbp,
        ds_train,
        opt,
        n_epochs,
@@ -155,8 +155,8 @@ learn!(nace,
 )
 
 # Save current NN parameters
-ps1, _ = Flux.destructure(nace.nns[:Hf])
-ps2, _ = Flux.destructure(nace.nns[:O])
+ps1, _ = Flux.destructure(nnbp.nns[:Hf])
+ps2, _ = Flux.destructure(nnbp.nns[:O])
 @save_var path ps1
 @save_var path ps2
 
@@ -166,7 +166,7 @@ ps2, _ = Flux.destructure(nace.nns[:O])
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
 e_descr_test = compute_local_descriptors(conf_test,
-                                         ace,
+                                         basis,
                                          T = Float32)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test)
@@ -181,12 +181,12 @@ n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
 e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
-                        get_all_energies(ds_train, nace) ./ n_atoms_train
+                        get_all_energies(ds_train, nnbp) ./ n_atoms_train
 @save_var path e_train
 @save_var path e_train_pred
 
 e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
-                      get_all_energies(ds_test, nace) ./ n_atoms_test
+                      get_all_energies(ds_test, nnbp) ./ n_atoms_test
 @save_var path e_test
 @save_var path e_test_pred
 

@@ -60,7 +60,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 #                                    sample_size)
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
-#pod = POD(  species = [:Hf, :O],
+#basis = POD(  species = [:Hf, :O],
 #            rin = 1.0,
 #            rcut = 7.5,
 #            bessel_polynomial_degree = 4,
@@ -79,7 +79,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 #            sevenbody_number_radial_basis_functions = 0,
 #            sevenbody_angular_degree = 0)
 #path = "../../../POD/get_descriptors/train/"
-#e_descr = compute_local_descriptors(conf_train, pod, T = Float32, path = path)
+#e_descr = compute_local_descriptors(conf_train, basis, T = Float32, path = path)
 #conf_train_kDPP = DataSet(conf_train .+ e_descr)
 #dataset_selector = kDPP(  conf_train_kDPP,
 #                          GlobalMean(),
@@ -95,7 +95,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Define IAP model #############################################################
 
 # Define POD
-pod = POD(  species                                 = "Hf O",
+basis = POD(  species                                 = "Hf O",
             rin                                     = 1.0,
             rcut                                    = 5.0,
             bessel_polynomial_degree                = 4,
@@ -113,18 +113,18 @@ pod = POD(  species                                 = "Hf O",
             sixbody_angular_degree                  = 0,
             sevenbody_number_radial_basis_functions = 0,
             sevenbody_angular_degree                = 0)
-@save_var path pod
+@save_var path basis
 
 # Update training dataset by adding energy descriptors
 println("Computing energy descriptors of training dataset...")
 lammps_path = "../../../../POD/lammps/build/lmp"
 compute_local_descriptors(conf_train,
-                          pod,
+                          basis,
                           T = Float32,
                           ds_path = ds_path,
                           lammps_path = lammps_path)
 e_descr_train = load_local_descriptors(conf_train,
-                                       pod,
+                                       basis,
                                        T = Float32,
                                        ds_path = "$ds_path/train")
 ds_train = DataSet(conf_train .+ e_descr_train)
@@ -140,7 +140,7 @@ for s in species
                     Dense(128,128,σ; init = Flux.glorot_uniform(gain=-1.43)),
                     Dense(128,1; init = Flux.glorot_uniform(gain=-1.43), bias = false))
 end
-npod = NNIAP(nns, pod)
+nnbp = NNBasisPotential(nns, basis)
 
 # Learn
 println("Learning energies...")
@@ -151,7 +151,7 @@ log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
 reg = 1e-8
-learn!(npod,
+learn!(nnbp,
        ds_train,
        opt,
        n_epochs,
@@ -169,7 +169,7 @@ log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
 reg = 1e-4
-learn!(npod,
+learn!(nnbp,
        ds_train,
        opt,
        n_epochs,
@@ -182,8 +182,8 @@ learn!(npod,
 )
 
 # Save current NN parameters
-ps1, _ = Flux.destructure(npod.nns[:Hf])
-ps2, _ = Flux.destructure(npod.nns[:O])
+ps1, _ = Flux.destructure(nnbp.nns[:Hf])
+ps2, _ = Flux.destructure(nnbp.nns[:O])
 @save_var path ps1
 @save_var path ps2
 
@@ -193,7 +193,7 @@ ps2, _ = Flux.destructure(npod.nns[:O])
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
 e_descr_test = load_local_descriptors(conf_test,
-                                      pod,
+                                      basis,
                                       T = Float32,
                                       ds_path = "$ds_path/test")
 ds_test = DataSet(conf_test .+ e_descr_test)
@@ -205,12 +205,12 @@ n_atoms_train = length.(get_system.(ds_train))
 n_atoms_test = length.(get_system.(ds_test))
 
 e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
-                        get_all_energies(ds_train, npod) ./ n_atoms_train
+                        get_all_energies(ds_train, nnbp) ./ n_atoms_train
 @save_var path e_train
 @save_var path e_train_pred
 
 e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
-                      get_all_energies(ds_test, npod) ./ n_atoms_test
+                      get_all_energies(ds_test, nnbp) ./ n_atoms_test
 @save_var path e_test
 @save_var path e_test_pred
 

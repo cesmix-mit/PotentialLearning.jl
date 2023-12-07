@@ -25,6 +25,8 @@ function get_all_forces(
                                     for c in 1:length(ds)]))
 end
 
+# Get all energies and forces for LinearBasisPotential
+
 """
     function get_all_energies(
         ds::DataSet,
@@ -54,6 +56,55 @@ function get_all_forces(
     force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
     return vcat([lb.β0[1] .+  dB' * lb.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
 end
+
+# Get energies and forces for NNBasisPotential
+
+"""
+potential_energy(A::Configuration, p::NNBasisPotential)
+
+`c`: atomic configuration.
+`p`: neural network basis potential.
+
+Returns the potential energy of a system using a neural network basis potential.
+See 10.1103/PhysRevLett.98.146401, https://fitsnap.github.io/Pytorch.html
+"""
+function potential_energy(
+    c::Configuration,
+    nnbp::NNBasisPotential
+)
+    local_descr = get_values(get_local_descriptors(c))
+    species = atomic_symbol.(get_system(c).particles)
+    return sum([nnbp.nns[s](d) for (s, d) in zip(species, local_descr)])[1]
+end
+
+"""
+    function get_all_energies(
+        ds::DataSet,
+        lb::NNBasisPotential
+    )
+
+"""
+function get_all_energies(
+    ds::DataSet,
+    nnbp::NNBasisPotential
+)
+    return [potential_energy(ds[i], nnbp) for i in 1:length(ds)]
+end
+
+#"""
+#function get_all_forces(
+#    ds::DataSet,
+#    lb::NNBasisPotential
+#)
+
+#"""
+#function get_all_forces(
+#    ds::DataSet,
+#    nnbp::NNBasisPotential
+#)
+#    return reduce(vcat,reduce(vcat,[force(ds[c], nnbp) for c in 1:length(ds)]))
+#end
+
 
 # Compute local and force descriptors ##########################################
 
