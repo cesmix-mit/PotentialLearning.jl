@@ -12,3 +12,5 @@ docs/src/generated/
 
 # data too large for github
 examples/aHfO2/
+*.xyz
+*.csv

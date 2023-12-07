@@ -89,7 +89,7 @@ function KernelMatrix(
     n = length(F)
     K = zeros(n, n)
     for i = 1:n
-        for j = 1:n
+        for j = i:n
             K[i, j] = compute_kernel(F[i], F[j], k)
         end
     end
