@@ -1,15 +1,17 @@
-# Get all energies and forces ##################################################
+# Get all energies and forces from a dataset ###################################
 
 """
 function get_all_energies(
     ds::DataSet
 )
 
+`ds`: dataset.
 """
 function get_all_energies(
     ds::DataSet
 )
-    return [get_values(get_energy(ds[c])) for c in 1:length(ds)]
+    return [get_values(get_energy(ds[c]))
+            for c in 1:length(ds)]
 end
 
 """
@@ -17,6 +19,7 @@ end
         ds::DataSet
     )
 
+`ds`: dataset.
 """
 function get_all_forces(
     ds::DataSet
@@ -25,88 +28,81 @@ function get_all_forces(
                                     for c in 1:length(ds)]))
 end
 
-# Get all energies and forces for LinearBasisPotential
+# Get energies and forces of a dataset and basis potential #####################
 
 """
     function get_all_energies(
         ds::DataSet,
-        lb::LinearBasisPotential
+        lb::AbstractBasisPotential
     )
 
+`ds`: dataset.
+`bp`: basis potential.
 """
 function get_all_energies(
     ds::DataSet,
-    lb::LinearBasisPotential
+    bp::AbstractBasisPotential
 )
-    Bs = sum.(get_values.(get_local_descriptors.(ds)))
-    return lb.β0[1] .+ dot.(Bs, [lb.β])
+    return [potential_energy(ds[i], nnbp)
+            for i in 1:length(ds)]
 end
 
 """
 function get_all_forces(
     ds::DataSet,
-    lb::LinearBasisPotential
+    bp::AbstractBasisPotential
 )
 
+`ds`: dataset.
+`bp`: basis potential.
 """
 function get_all_forces(
     ds::DataSet,
-    lb::LinearBasisPotential
+    bp::AbstractBasisPotential
 )
-    force_descriptors = [reduce(vcat, get_values(get_force_descriptors(dsi)) ) for dsi in ds]
-    return vcat([lb.β0[1] .+  dB' * lb.β for dB in [reduce(hcat, fi) for fi in force_descriptors]]...)
+    return reduce(vcat,reduce(vcat, [force(ds[c], nnbp)
+                                     for c in 1:length(ds)]))
 end
 
-# Get energies and forces for NNBasisPotential
 
-"""
-potential_energy(A::Configuration, p::NNBasisPotential)
+# Get energies and forces for a configuration and basis potential ##############
 
-`c`: atomic configuration.
-`p`: neural network basis potential.
-
-Returns the potential energy of a system using a neural network basis potential.
-See 10.1103/PhysRevLett.98.146401, https://fitsnap.github.io/Pytorch.html
 """
 function potential_energy(
     c::Configuration,
-    nnbp::NNBasisPotential
+    bp::AbstractBasisPotential
 )
-    local_descr = get_values(get_local_descriptors(c))
-    species = atomic_symbol.(get_system(c).particles)
-    return sum([nnbp.nns[s](d) for (s, d) in zip(species, local_descr)])[1]
+
+`c`: atomic configuration.
+`bp`: basis potential.
+"""
+function potential_energy(
+    c::Configuration,
+    bp::AbstractBasisPotential
+)
+    B = get_values(get_local_descriptors(c))
+    return potential_energy(B, bp)
 end
 
 """
-    function get_all_energies(
-        ds::DataSet,
-        lb::NNBasisPotential
-    )
-
-"""
-function get_all_energies(
-    ds::DataSet,
-    nnbp::NNBasisPotential
+function potential_energy(
+    c::Configuration,
+    bp::AbstractBasisPotential
 )
-    return [potential_energy(ds[i], nnbp) for i in 1:length(ds)]
+
+`c`: atomic configuration.
+`bp`: basis potential.
+"""
+function potential_energy(
+    c::Configuration,
+    bp::AbstractBasisPotential
+)
+    B = get_values(get_local_descriptors(c))
+    return potential_energy(B, bp)
 end
 
-#"""
-#function get_all_forces(
-#    ds::DataSet,
-#    lb::NNBasisPotential
-#)
 
-#"""
-#function get_all_forces(
-#    ds::DataSet,
-#    nnbp::NNBasisPotential
-#)
-#    return reduce(vcat,reduce(vcat,[force(ds[c], nnbp) for c in 1:length(ds)]))
-#end
-
-
-# Compute local and force descriptors ##########################################
+# Compute local and force descriptors for a dataset and basis system ###########
 
 """
 function compute_local_descriptors(
@@ -115,6 +111,11 @@ function compute_local_descriptors(
     pbar = true,
     T = Float64
 )
+
+`ds`: dataset.
+`basis`: basis system (e.g. ACE)
+`pbar`: progress bar
+`T`: descriptor number type
 
 Compute local descriptors of a basis system and dataset using threads.
 """
@@ -143,7 +144,7 @@ function compute_force_descriptors(
     T = Float64
 )
 
-Compute force descriptors of a basis system and dataset using threads
+Compute force descriptors of a basis system and dataset using threads.
 """
 function compute_force_descriptors(
     ds::DataSet,
