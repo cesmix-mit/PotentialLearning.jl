@@ -27,7 +27,7 @@ ds_path = string("../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz")
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
 # Split configuration dataset into training and test
-n_train, n_test = 200, 200
+n_train, n_test = 30, 30
 conf_train, conf_test = split(ds, n_train, n_test)
 
 
@@ -61,7 +61,7 @@ conf_train_kDPP = DataSet(conf_train .+ e_descr)
 dataset_selector = kDPP(  conf_train_kDPP,
                           GlobalMean(),
                           DotProduct();
-                          batch_size = 100)
+                          batch_size = 10)
 
 # Subsample trainig dataset
 inds = get_random_subset(dataset_selector)

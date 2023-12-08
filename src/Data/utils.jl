@@ -33,7 +33,7 @@ end
 """
     function get_all_energies(
         ds::DataSet,
-        lb::AbstractBasisPotential
+        bp::BasisPotential
     )
 
 `ds`: dataset.
@@ -41,16 +41,16 @@ end
 """
 function get_all_energies(
     ds::DataSet,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
-    return [potential_energy(ds[i], nnbp)
+    return [potential_energy(ds[i], bp)
             for i in 1:length(ds)]
 end
 
 """
 function get_all_forces(
     ds::DataSet,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
 
 `ds`: dataset.
@@ -58,9 +58,9 @@ function get_all_forces(
 """
 function get_all_forces(
     ds::DataSet,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
-    return reduce(vcat,reduce(vcat, [force(ds[c], nnbp)
+    return reduce(vcat,reduce(vcat, [force(ds[c], bp)
                                      for c in 1:length(ds)]))
 end
 
@@ -70,7 +70,7 @@ end
 """
 function potential_energy(
     c::Configuration,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
 
 `c`: atomic configuration.
@@ -78,27 +78,29 @@ function potential_energy(
 """
 function potential_energy(
     c::Configuration,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
     B = get_values(get_local_descriptors(c))
-    return potential_energy(B, bp)
+    e = InteratomicPotentials.potential_energy(B, bp)
+    return e
 end
 
 """
-function potential_energy(
+function force(
     c::Configuration,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
 
 `c`: atomic configuration.
 `bp`: basis potential.
 """
-function potential_energy(
+function force(
     c::Configuration,
-    bp::AbstractBasisPotential
+    bp::BasisPotential
 )
-    B = get_values(get_local_descriptors(c))
-    return potential_energy(B, bp)
+    dB = get_values(get_force_descriptors(c))
+    f = InteratomicPotentials.force(dB, bp)
+    return f
 end
 
 
