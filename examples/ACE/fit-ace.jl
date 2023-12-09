@@ -27,12 +27,8 @@ ds_path = string("../data/a-HfO2/a-Hfo2-300K-NVT-6000.extxyz")
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
 # Split configuration dataset into training and test
-n_train, n_test = 30, 30
+n_train, n_test = 100, 100
 conf_train, conf_test = split(ds, n_train, n_test)
-
-
-# Define dataset generator #####################################################
-dataset_generator = Nothing
 
 # Define dataset subselector ###################################################
 
@@ -47,26 +43,26 @@ dataset_generator = Nothing
 #                                  sample_size)
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
-basis = ACE(species           = [:Hf, :O],
-            body_order        = 2,
-            polynomial_degree = 3,
-            wL                = 1.0,
-            csp               = 1.0,
-            r0                = 1.0,
-            rcutoff           = 5.0)
-e_descr = compute_local_descriptors(conf_train,
-                                    basis,
-                                    pbar = false)
-conf_train_kDPP = DataSet(conf_train .+ e_descr)
-dataset_selector = kDPP(  conf_train_kDPP,
-                          GlobalMean(),
-                          DotProduct();
-                          batch_size = 10)
+#basis = ACE(species           = [:Hf, :O],
+#            body_order        = 2,
+#            polynomial_degree = 3,
+#            wL                = 1.0,
+#            csp               = 1.0,
+#            r0                = 1.0,
+#            rcutoff           = 5.0)
+#e_descr = compute_local_descriptors(conf_train,
+#                                    basis,
+#                                    pbar = false)
+#conf_train_kDPP = DataSet(conf_train .+ e_descr)
+#dataset_selector = kDPP(  conf_train_kDPP,
+#                          GlobalMean(),
+#                          DotProduct();
+#                          batch_size = 100)
 
 # Subsample trainig dataset
-inds = get_random_subset(dataset_selector)
-conf_train = conf_train[inds]
-GC.gc()
+#inds = get_random_subset(dataset_selector)
+#conf_train = conf_train[inds]
+#GC.gc()
 
 # Define IAP model #############################################################
 

@@ -18,7 +18,7 @@ include("../PCA-ACE/pca.jl")
 # Setup experiment #############################################################
 
 # Experiment folder
-path = "a-HfO2-ACE/"
+path = "a-HfO2-PCA-ACE/"
 run(`mkdir -p $path`)
 
 # Define training and test configuration datasets ##############################
@@ -165,6 +165,10 @@ test_metrics = merge(e_test_metrics, f_test_metrics)
 e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig path e_plot
+
+f_plot = plot_forces(f_train, f_train_pred,
+                     f_test, f_test_pred)
+@save_fig path f_plot
 
 e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)
