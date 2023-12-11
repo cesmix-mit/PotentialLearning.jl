@@ -17,9 +17,9 @@ function learn!(
     Atb = sum(v * b for (v, b) in zip(lp.iv_data, lp.dv_data))
 
     Q = pinv(AtA, α)
-    copyto!(lp.β, Q * Atb)
-    copyto!(lp.σ, std(Atb - AtA * lp.β))
-    copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * Q))
+    lp.β .= Q * Atb
+    lp.σ .= std(Atb - AtA * lp.β)
+    lp.Σ .= Symmetric(lp.σ[1]^2 * Q)
 end
 
 
@@ -57,15 +57,15 @@ function learn!(
     p = [AtAe, Atbe, AtAf, Atbf, α]
     prob = Optimization.OptimizationProblem(g, x0, p)
     sol = Optimization.solve(prob, Optim.BFGS())
-    copyto!(lp.σe, exp(sol.u[1]))
-    copyto!(lp.σf, exp(sol.u[2]))
-    copyto!(lp.β, sol.u[3:end])
+    lp.σe .= exp(sol.u[1])
+    lp.σf .= exp(sol.u[2])
+    lp.β  .= sol.u[3:end]
     Q = pinv(
         Symmetric(
             lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α),
         ),
     )
-    copyto!(lp.Σ, Symmetric(Q))
+    lp.Σ .= Symmetric(Q)
 end
 
 """
@@ -102,10 +102,10 @@ function learn!(
         grads = Flux.gradient(x -> f(x, p), params)[1]
         Flux.Optimise.update!(opt, params, grads)
     end
-    copyto!(lp.σ, exp(params[1]))
-    copyto!(lp.β, params[2:end])
+    lp.σ .= exp(params[1])
+    lp.β .= params[2:end]
     AtA = sum(v * v' for v in lp.iv_data)
-    copyto!(lp.Σ, Symmetric(lp.σ[1]^2 * pinv(AtA, α)))
+    lp.Σ .= Symmetric(lp.σ[1]^2 * pinv(AtA, α))
 end
 
 """
@@ -151,9 +151,9 @@ function learn!(
         grads = Flux.gradient(x -> f(x, p), params)
         Flux.Optimise.update!(opt, params, grads)
     end
-    copyto!(lp.σe, exp(params[1]))
-    copyto!(lp.σf, exp(params[2]))
-    copyto!(lp.β, params[3:end])
+    lp.σe .= exp(params[1])
+    lp.σf .= exp(params[2])
+    lp.β  .= params[3:end]
     AtAe = sum(b * b' for b in lp.B)
     AtAf = sum(db * db' for db in lp.dB)
     Q = pinv(
@@ -161,7 +161,7 @@ function learn!(
             lp.σe[1]^2 * pinv(Symmetric(AtAe), α) + lp.σf[1]^2 * pinv(Symmetric(AtAf), α),
         ),
     )
-    copyto!(lp.Σ, Symmetric(Q))
+    lp.Σ .= Symmetric(Q)
 end
 
 # Weighted least squares functions #############################################
@@ -198,10 +198,10 @@ function learn!(
     
     # Update lp.
     if int
-        copyto!(lp.β0, [βs[1]])
-        copyto!(lp.β, βs[2:end])
+        lp.β0 .= βs[1]
+        lp.β  .= βs[2:end]
     else
-        copyto!(lp.β, βs)
+        lp.β  .= βs
     end
     
 end
@@ -242,10 +242,10 @@ function learn!(
 
     # Update lp.
     if int
-        copyto!(lp.β0, [βs[1]])
-        copyto!(lp.β, βs[2:end])
+        lp.β0 .= βs[1]
+        lp.β  .= βs[2:end]
     else
-        copyto!(lp.β, βs)
+        lp.β  .= βs
     end
 
 end
