@@ -18,7 +18,7 @@ include("PL-Ext.jl")
 # Setup experiment #############################################################
 
 # Experiment folder
-path = "aHfO2-CNNACE-b/"
+path = "a-HfO2-CNNACE/"
 run(`mkdir -p $path/`)
 
 # Fix random seed
@@ -34,52 +34,36 @@ ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 n_train, n_test = 1000, 1000
 conf_train, conf_test = split(ds, n_train, n_test)
 
-species = unique(vcat([atomic_symbol.(get_system(c).particles)
+species = unique(vcat([atomic_symbol.(get_system(c))
           for c in conf_train]...))
 
 # Define ACE parameters
 basis = ACE(species = unique(atomic_symbol(get_system(ds[1]))),
             body_order = 3,
             polynomial_degree = 3,
+            rcutoff = 5.0,
             wL = 1.0,
             csp = 1.0,
-            r0 = 1.0,
-            rcutoff = 5.0)
+            r0 = 1.0)
 @save_var path basis
 
 # Update training dataset by adding energy and force descriptors
 println("Computing energy descriptors of training dataset...")
-e_descr_train = compute_local_descriptors(conf_train,
-                                          basis,
-                                          T = Float32)
+e_descr_train = compute_local_descriptors(conf_train, basis)
 ds_train = DataSet(conf_train .+ e_descr_train)
 n_desc = length(e_descr_train[1][1])
 
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test,
-                                         basis,
-                                         T = Float32)
+e_descr_test = compute_local_descriptors(conf_test, basis)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test)
 
-
 # Define neural network model
 n_atoms = length(get_system(first(ds_train)))
-n_types = length(ace.species)
+n_types = length(basis.species)
 n_basis = length(first(get_values(get_local_descriptors(first(ds_train))))) ÷ n_types
 batch_size = length(ds_train)
-
-#nn = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
-#    Conv((3, 3), 2=>6, relu),
-#    MaxPool((2, 2)),
-#    Conv((3, 3), _=>16, relu),
-#    MaxPool((2, 2)),
-#    Flux.flatten,
-#    Dense(_ => 120, relu),
-#    Dense(_ => 84, relu), 
-#    Dense(_ => 1),
-#)
 
 nns = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
     BatchNorm(_),
@@ -90,26 +74,10 @@ nns = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
     BatchNorm(_, relu),
     MeanPool((1, 2)),
     Flux.flatten,
-#    Dropout(0.2),
-#    Dense(_ => 120, relu),
-#    Dense(_ => 84, relu), 
     Dense(_ => 1),
 )
 
-#nn = Flux.@autosize (n_types, n_basis, n_atoms, batch_size) Chain(
-##    BatchNorm(_, affine=true, relu),
-#    Conv((1, 4), n_atoms=>6, relu),
-#    MaxPool((1, 2)),
-#    Conv((1, 4), _=>16, relu),
-#    MaxPool((1, 2)),
-#    Flux.flatten,
-##    Dropout(0.8),
-#    Dense(_ => 120, relu),
-#    Dense(_ => 84, relu), 
-#    Dense(_ => 1)
-#)
-
-nnbp = NNBasisPotential(nns, basis)
+nnbp = CNNBasisPotential(nns, basis)
 
 # Learn
 println("Learning energies and forces...")
@@ -169,4 +137,31 @@ e_test_plot = plot_energy(e_test, e_test_pred)
 e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig path e_plot
+
+
+# Old
+
+#nn = Flux.@autosize (n_atoms, n_basis, n_types, batch_size) Chain(
+#    Conv((3, 3), 2=>6, relu),
+#    MaxPool((2, 2)),
+#    Conv((3, 3), _=>16, relu),
+#    MaxPool((2, 2)),
+#    Flux.flatten,
+#    Dense(_ => 120, relu),
+#    Dense(_ => 84, relu), 
+#    Dense(_ => 1),
+#)
+
+#nn = Flux.@autosize (n_types, n_basis, n_atoms, batch_size) Chain(
+##    BatchNorm(_, affine=true, relu),
+#    Conv((1, 4), n_atoms=>6, relu),
+#    MaxPool((1, 2)),
+#    Conv((1, 4), _=>16, relu),
+#    MaxPool((1, 2)),
+#    Flux.flatten,
+##    Dropout(0.8),
+#    Dense(_ => 120, relu),
+#    Dense(_ => 84, relu), 
+#    Dense(_ => 1)
+#)
 
