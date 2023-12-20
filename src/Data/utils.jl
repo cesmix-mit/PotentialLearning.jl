@@ -124,8 +124,7 @@ Compute local descriptors of a basis system and dataset using threads.
 function compute_local_descriptors(
     ds::DataSet,
     basis::BasisSystem;
-    pbar = true,
-    T = Float64
+    pbar = true
 )
     iter = collect(enumerate(get_system.(ds)))
     if pbar
@@ -133,7 +132,7 @@ function compute_local_descriptors(
     end
     e_des = Vector{LocalDescriptors}(undef, length(ds))
     Threads.@threads for (j, sys) in iter
-        e_des[j] = LocalDescriptors([T.(d) for d in compute_local_descriptors(sys, basis)])
+        e_des[j] = LocalDescriptors(compute_local_descriptors(sys, basis))
     end
     return e_des
 end
@@ -142,8 +141,7 @@ end
 function compute_force_descriptors(
     ds::DataSet,
     basis::BasisSystem;
-    pbar = true,
-    T = Float64
+    pbar = true
 )
 
 Compute force descriptors of a basis system and dataset using threads.
@@ -151,8 +149,7 @@ Compute force descriptors of a basis system and dataset using threads.
 function compute_force_descriptors(
     ds::DataSet,
     basis::BasisSystem;
-    pbar = true,
-    T = Float64
+    pbar = true
 )
     iter = collect(enumerate(get_system.(ds)))
     if pbar
@@ -160,7 +157,7 @@ function compute_force_descriptors(
     end
     f_des = Vector{ForceDescriptors}(undef, length(ds))
     Threads.@threads for (j, sys) in iter
-        f_des[j] = ForceDescriptors([[ T.(fi[i, :]) for i = 1:3] 
+        f_des[j] = ForceDescriptors([[ fi[i, :] for i = 1:3]
                                      for fi in compute_force_descriptors(sys, basis)])
     end
     return f_des
