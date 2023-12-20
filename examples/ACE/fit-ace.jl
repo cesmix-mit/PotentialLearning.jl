@@ -46,10 +46,10 @@ conf_train, conf_test = split(ds, n_train, n_test)
 #basis = ACE(species           = [:Hf, :O],
 #            body_order        = 2,
 #            polynomial_degree = 3,
+#            rcutoff           = 5.0,
 #            wL                = 1.0,
 #            csp               = 1.0,
-#            r0                = 1.0,
-#            rcutoff           = 5.0)
+#            r0                = 1.0)
 #e_descr = compute_local_descriptors(conf_train,
 #                                    basis,
 #                                    pbar = false)
@@ -70,10 +70,10 @@ conf_train, conf_test = split(ds, n_train, n_test)
 basis = ACE(species           = [:Hf, :O],
             body_order        = 3,
             polynomial_degree = 4,
+            rcutoff           = 5.0,
             wL                = 1.0,
             csp               = 1.0,
-            r0                = 1.0,
-            rcutoff           = 5.0)
+            r0                = 1.0)
 @save_var path basis
 
 # Update training dataset by adding energy and force descriptors
@@ -87,7 +87,7 @@ ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 # Learn
 println("Learning energies and forces...")
 lb = LBasisPotential(basis)
-ws, int = [1.0, 1.0], true
+ws, int = [1.0, 1.0], false
 learn!(lb, ds_train, ws, int)
 
 @save_var path lb.β
