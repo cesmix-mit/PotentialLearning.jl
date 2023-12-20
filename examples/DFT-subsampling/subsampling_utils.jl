@@ -40,7 +40,7 @@ function compute_cond_num(lp::PotentialLearning.CovariateLinearProblem)
 end
 
 
-function cross_validation_training(ds; ndiv=10,
+function cross_validation_training(ds, ace; ndiv=10,
     dpp_batch=Int(floor(2*length(ds) / ndiv))
     )
 

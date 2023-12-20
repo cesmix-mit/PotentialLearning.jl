@@ -44,10 +44,10 @@ deg = 5
 ace = ACE(species = elspec,             # species
           body_order = nbody,           # n-body
           polynomial_degree = deg,      # degree of polynomials
+          rcutoff = 10.0,
           wL = 1.0,                     # Defaults, See ACE.jl documentation 
           csp = 1.0,                    # Defaults, See ACE.jl documentation 
-          r0 = 1.0,                     # minimum distance between atoms
-          rcutoff = 10.0)
+          r0 = 1.0)                     # minimum distance between atoms
 
 # Update dataset by adding energy (local) descriptors --------------------------
 println("Computing local descriptors")
@@ -66,7 +66,7 @@ cond_num = Dict{Int64, Vector}()
 
 for bs in batch_size
     println("=============== Starting batch size $bs ===============")
-    sel_ind[bs], cond_num[bs] = cross_validation_training(ds; ndiv=5, dpp_batch=bs)
+    sel_ind[bs], cond_num[bs] = cross_validation_training(ds, ace; ndiv=5, dpp_batch=bs)
 end
 
 JLD.save(outpath*"$(elname)_ACE-$(nbody)-$(deg)_DPP_indices_and_condnum.jld",

@@ -19,10 +19,10 @@ conf_train, conf_test = confs[1:1000], confs[1001:end]
 ace = ACE(species = [:Na],         # species
           body_order = 4,          # 4-body
           polynomial_degree = 8,   # 8 degree polynomials
+          rcutoff = 5.0,           # cutoff radius 
           wL = 1.0,                # Defaults, See ACE.jl documentation 
           csp = 1.0,               # Defaults, See ACE.jl documentation 
-          r0 = 1.0,                # minimum distance between atoms
-          rcutoff = 5.0)           # cutoff radius 
+          r0 = 1.0)                # minimum distance between atoms
 
 # Update training dataset by adding energy (local) descriptors
 println("Computing local descriptors of training dataset")
