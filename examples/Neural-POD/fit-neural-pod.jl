@@ -19,7 +19,7 @@ include("../PCA-ACE/pca.jl")
 # Setup experiment #############################################################
 
 # Experiment folder
-path = "HfO2-NeuralPOD/"
+path = "HfO2-large-NeuralPOD/"
 run(`mkdir -p $path/`)
 
 # Fix random seed
@@ -33,12 +33,12 @@ ds_path = "../data/HfO2/"
 
 # Load complete configuration dataset
 #ds_train_path = "$(ds_path)/train/a-HfO2-300K-NVT-6000-train.extxyz"
-#ds_train_path = "$(ds_path)/train/HfO2_figshare_form_sorted_train.extxyz"
+#ds_train_path = "$(ds_path)/train/HfO2_figshare_form_random_train.extxyz"
 ds_train_path = "$(ds_path)/train/HfO2_mp352_ads_form_sorted.extxyz"
 conf_train = load_data(ds_train_path, uparse("eV"), uparse("Å"))
 
 #ds_test_path = "$(ds_path)/test/a-HfO2-300K-NVT-6000-test.extxyz"
-#ds_test_path = "$(ds_path)/test/HfO2_figshare_form_sorted_test.extxyz"
+#ds_test_path = "$(ds_path)/test/HfO2_figshare_form_random_test.extxyz"
 ds_test_path = "$(ds_path)/test/Hf_mp103_ads_form_sorted.extxyz"
 conf_test = load_data(ds_test_path, uparse("eV"), uparse("Å"))
 
@@ -79,7 +79,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 #            sevenbody_number_radial_basis_functions = 0,
 #            sevenbody_angular_degree = 0)
 #path = "../../../POD/get_descriptors/train/"
-#e_descr = compute_local_descriptors(conf_train, basis, T = Float32, path = path)
+#e_descr = compute_descriptors(conf_train, basis, path = path)
 #conf_train_kDPP = DataSet(conf_train .+ e_descr)
 #dataset_selector = kDPP(  conf_train_kDPP,
 #                          GlobalMean(),
@@ -95,7 +95,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Define IAP model #############################################################
 
 # Define POD
-basis = POD(  species                                 = "Hf O",
+basis = POD(species                                 = "Hf O",
             rin                                     = 1.0,
             rcut                                    = 5.0,
             bessel_polynomial_degree                = 4,
@@ -118,17 +118,12 @@ basis = POD(  species                                 = "Hf O",
 # Update training dataset by adding energy descriptors
 println("Computing energy descriptors of training dataset...")
 lammps_path = "../../../../POD/lammps/build/lmp"
-compute_local_descriptors(conf_train,
-                          basis,
-                          T = Float32,
-                          ds_path = ds_path,
-                          lammps_path = lammps_path)
-e_descr_train = load_local_descriptors(conf_train,
-                                       basis,
-                                       T = Float32,
+compute_descriptors(conf_train, basis,
+                    ds_path = ds_path,
+                    lammps_path = lammps_path)
+e_descr_train = load_local_descriptors(conf_train, basis,
                                        ds_path = "$ds_path/train")
 ds_train = DataSet(conf_train .+ e_descr_train)
-
 #ds_train = ds_train[rand(1:n_train, 200)]
 
 n_desc = length(e_descr_train[1][1])
@@ -192,9 +187,7 @@ ps2, _ = Flux.destructure(nnbp.nns[:O])
 
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
-e_descr_test = load_local_descriptors(conf_test,
-                                      basis,
-                                      T = Float32,
+e_descr_test = load_local_descriptors(conf_test, basis,
                                       ds_path = "$ds_path/test")
 ds_test = DataSet(conf_test .+ e_descr_test)
 GC.gc()
