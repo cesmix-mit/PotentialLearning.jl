@@ -83,10 +83,10 @@ model_pars = OrderedDict(
                     :species           => [[:Hf, :O]],
                     :body_order        => [2, 3, 4],
                     :polynomial_degree => [3, 4, 5],
+                    :rcutoff           => [4.5, 5.0, 5.5],
                     :wL                => [0.5, 1.0, 1.5],
                     :csp               => [0.5, 1.0, 1.5],
-                    :r0                => [0.5, 1.0, 1.5],
-                    :rcutoff           => [4.5, 5.0, 5.5])
+                    :r0                => [0.5, 1.0, 1.5])
 
 # Define hyper-optimizer parameters ############################################
 

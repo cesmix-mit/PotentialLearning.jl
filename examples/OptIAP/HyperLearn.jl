@@ -20,7 +20,7 @@ function hyperlearn!(   conf_train,
     hyper_optimizer = inject_pars(ho_pars, model_pars, 
     quote
          @hyperopt for i = n_samples
-            basis = model(state...)
+            basis = model(; (keys(model_pars) .=> state)...)
             iap = LBasisPotential(basis)
             
             # Compute energy and force descriptors
