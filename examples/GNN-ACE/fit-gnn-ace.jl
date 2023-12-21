@@ -57,27 +57,23 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 # Define IAP model #############################################################
 
 # Define ACE parameters
-ace = ACE(species           = [:Hf], #[:Hf, :O], 
-          body_order        = 3,
-          polynomial_degree = 3,
-          wL                = 1.0,
-          csp               = 1.0,
-          r0                = 1.0,
-          rcutoff           = 5.0)
-@save_var path ace
+basis = ACE(species           = [:Hf], #[:Hf, :O], 
+            body_order        = 3,
+            polynomial_degree = 3,
+            rcutoff           = 5.0,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0)
+@save_var path basis
 
 # Compute energy descriptors and update training dataset
 println("Computing energy descriptors of training dataset...")
-e_descr_train = compute_local_descriptors(conf_train,
-                                          ace,
-                                          T = Float32)
+e_descr_train = compute_local_descriptors(conf_train, basis)
 ds_train = DataSet(conf_train .+ e_descr_train)
 
 # Compute energy descriptors and update test dataset
 println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test,
-                                         ace,
-                                         T = Float32)
+e_descr_test = compute_local_descriptors(conf_test, basis)
 ds_test = DataSet(conf_test .+ e_descr_test)
 
 # Compute training and test graphs
