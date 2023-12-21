@@ -54,16 +54,14 @@ dataset_selector = RandomSelector(length(conf_train); batch_size = 76)
 #                                    sample_size)
 
 # Subselector, option 3: kDPP + ACE (requires calculation of energy descriptors)
-#ace = ACE(species           = [:Hf, :O],
+#basis = ACE(species           = [:Hf, :O],
 #          body_order        = 2,
 #          polynomial_degree = 3,
+#          rcutoff           = 5.0,
 #          wL                = 1.0,
 #          csp               = 1.0,
-#          r0                = 1.0,
-#          rcutoff           = 5.0)
-#e_descr = compute_local_descriptors(conf_train,
-#                                    ace,
-#                                    T = Float32)
+#          r0                = 1.0)
+#e_descr = compute_local_descriptors(conf_train, basis)
 #conf_train_kDPP = DataSet(conf_train .+ e_descr)
 #dataset_selector = kDPP(  conf_train_kDPP,
 #                          GlobalMean(),
@@ -82,17 +80,15 @@ GC.gc()
 basis = ACE(species           = [:Hf, :O],
             body_order        = 3,
             polynomial_degree = 3,
+            rcutoff           = 5.0,
             wL                = 1.0,
             csp               = 1.0,
-            r0                = 1.0,
-            rcutoff           = 5.0)
+            r0                = 1.0)
 @save_var path basis
 
 # Update training dataset by adding energy descriptors
 println("Computing energy descriptors of training dataset...")
-e_descr_train = compute_local_descriptors(conf_train,
-                                          basis,
-                                          T = Float32)
+e_descr_train = compute_local_descriptors(conf_train, basis)
 ds_train = DataSet(conf_train .+ e_descr_train)
 
 
@@ -107,6 +103,7 @@ if reduce_descriptors
 end
 
 # Define neural network model
+Random.seed!(100)
 nns = Dict()
 for s in species
     nns[s] = Chain( Dense(n_desc,128,σ; init = Flux.glorot_uniform(gain=-10)),
@@ -141,7 +138,7 @@ n_epochs = 50
 log_step = 10
 batch_size = 4
 w_e, w_f = 1.0, 0.0
-reg = 1e-4
+reg = 1e-8
 learn!(nnbp,
        ds_train,
        opt,
@@ -165,9 +162,7 @@ ps2, _ = Flux.destructure(nnbp.nns[:O])
 
 # Update test dataset by adding energy descriptors
 println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test,
-                                         basis,
-                                         T = Float32)
+e_descr_test = compute_local_descriptors(conf_test, basis)
 GC.gc()
 ds_test = DataSet(conf_test .+ e_descr_test)
 

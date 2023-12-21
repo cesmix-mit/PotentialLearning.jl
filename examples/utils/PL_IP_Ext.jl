@@ -1,27 +1,6 @@
 using Flux
 
-
-
 # ToDo: compute forces for multielement approach and then integrate in InteratomicPotentials.jl
-
-"""
-potential_energy(c::Configuration, p::NNBasisPotential)
-
-`c`: atomic configuration.
-`p`: neural network basis potential.
-
-Returns the potential energy of a system using a neural network basis potential.
-See 10.1103/PhysRevLett.98.146401, https://fitsnap.github.io/Pytorch.html
-"""
-#function potential_energy(
-#    c::Configuration,
-#    nnbp::NNBasisPotential
-#)
-#    local_descr = get_values(get_local_descriptors(c))
-#    species = atomic_symbol.(get_system(c).particles)
-#    return sum([nnbp.nns[s](d) for (s, d) in zip(species, local_descr)])[1]
-#end
-
 
 function force( # see PL/src/Data/utils.jl
     c::Configuration,
@@ -104,20 +83,6 @@ function loss(
 end
 
 # Auxiliary functions ##########################################################
-
-#function PotentialLearning.get_all_energies(
-#    ds::DataSet,
-#    nnbp::NNBasisPotential
-#)
-#    return [potential_energy(ds[i], nnbp) for i in 1:length(ds)]
-#end
-
-#function PotentialLearning.get_all_forces(
-#    ds::DataSet,
-#    nnbp::NNBasisPotential
-#)
-#    return reduce(vcat,reduce(vcat,[force(ds[c], nnbp) for c in 1:length(ds)]))
-#end
 
 function PotentialLearning.get_system(c::Configuration)
     for k in keys(c.data)

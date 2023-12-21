@@ -103,6 +103,46 @@ function force(
     return f
 end
 
+# Get energies and forces for a configuration and neural basis potential #######
+
+"""
+function potential_energy(
+    c::Configuration,
+    nnbp::NNBasisPotential
+)
+
+`c`: atomic configuration.
+`nnbp`: neural network basis potential.
+"""
+function potential_energy(
+    c::Configuration,
+    nnbp::NNBasisPotential
+)
+    B = get_values(get_local_descriptors(c))
+    s = atomic_symbol.(get_system(c).particles) # mutable version: atomic_symbol(get_system(c))
+    e = InteratomicPotentials.potential_energy(B, s, nnbp)
+    return e
+end
+
+"""
+function force(
+    c::Configuration,
+    nnbp::NNBasisPotential
+)
+
+`c`: atomic configuration.
+`nnbp`: neural network basis potential.
+"""
+function force(
+    c::Configuration,
+    nnbp::NNBasisPotential
+)
+    dB = get_values(get_force_descriptors(c))
+    s = atomic_symbol.(get_system(c).particles) # mutable version: atomic_symbol(get_system(c))
+    f = InteratomicPotentials.force(dB, s, nnbp)
+    return f
+end
+
 
 # Compute local and force descriptors for a dataset and basis system ###########
 
