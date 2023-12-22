@@ -71,10 +71,10 @@ conf_train, conf_test = split(ds, n_train, n_test)
 basis = ACE(species           = [:Hf, :O],
             body_order        = 3,
             polynomial_degree = 4,
+            rcutoff           = 5.0,
             wL                = 1.0,
             csp               = 1.0,
-            r0                = 1.0,
-            rcutoff           = 5.0)
+            r0                = 1.0)
 @save_var path basis
 
 # Update training dataset by adding energy and force descriptors

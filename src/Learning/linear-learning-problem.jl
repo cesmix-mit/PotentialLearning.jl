@@ -156,14 +156,15 @@ function learn!(
 Learning dispatch function, common to ordinary and weghted least squares implementations.
 """
 function learn!(
-    lbp::InteratomicPotentials.LinearBasisPotential,
+    lb::InteratomicPotentials.LinearBasisPotential,
     ds::DataSet,
     args...
 )
     lp = LinearProblem(ds)
     learn!(lp, args...)
 
-    lbp.β .= lp.β
-    lbp.β0 .=  lp.β0
+    resize!(lb.β, length(lp.β))
+    lb.β .= lp.β
+    lb.β0 .= lp.β0
     return lp
 end
