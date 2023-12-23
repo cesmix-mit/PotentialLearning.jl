@@ -14,7 +14,7 @@ Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the follo
 
 Clone `PotentialLearning.jl` repository in your working directory.
 ```shell
-    $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git`
+    $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git
 ```
 Open a Julia REPL activating the `examples`  folder project.
 ```shell
