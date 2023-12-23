@@ -227,7 +227,7 @@ function learn!(
     
     # Calculate A and b.
     if int
-        int_col = ones(size(B_train, 1) + size(dB_train, 1))
+        int_col = [ones(size(B_train, 1)); zeros(size(dB_train, 1))]
         @views A = hcat(int_col, [B_train; dB_train])
     else
         @views A = [B_train; dB_train]
