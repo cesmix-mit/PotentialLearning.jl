@@ -12,7 +12,11 @@ Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the follo
 
 ## Install the dependencies of the `examples` folder project
 
-After cloning the `PotentialLearning.jl` repository in your working directory (`$ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git`), and activate the `examples`  folder project.
+Clone `PotentialLearning.jl` repository in your working directory.
+```shell
+    $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git`
+```
+Open a Julia REPL activating the `examples`  folder project.
 ```shell
     $ julia --project=PotentialLearning.jl/examples
 ```
