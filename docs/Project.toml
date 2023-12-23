@@ -1,4 +1,5 @@
 [deps]
+AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
