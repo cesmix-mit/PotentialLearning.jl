@@ -1,7 +1,7 @@
 module PotentialLearning
 
 using AtomsBase
-using InteratomicPotentials, InteratomicBasisPotentials
+using InteratomicPotentials
 using Unitful, UnitfulAtomic
 using LinearAlgebra, Statistics, Random, Distributions
 using StaticArrays
