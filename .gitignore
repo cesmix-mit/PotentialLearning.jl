@@ -1,4 +1,5 @@
 Manifest.toml
+*.bin
 *.DS_Store
 *.yaml
 *.pdf
