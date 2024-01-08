@@ -40,7 +40,9 @@ makedocs(
       sitename = "PotentialLearning.jl",
       expandfirst = [],
       draft = false,
-      pages = ["Home" => "index.md", "API" => "api.md"],
+      pages = ["Home" => "index.md",
+               "How to run the examples" => "how-to-run-the-examples.md",
+               "API" => "api.md"],
       format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://cesmix-mit.github.io/PotentialLearning.jl",

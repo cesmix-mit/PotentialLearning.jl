@@ -150,14 +150,12 @@ end
 function compute_local_descriptors(
     ds::DataSet,
     basis::BasisSystem;
-    pbar = true,
-    T = Float64
+    pbar = true
 )
 
 `ds`: dataset.
 `basis`: basis system (e.g. ACE)
 `pbar`: progress bar
-`T`: descriptor number type
 
 Compute local descriptors of a basis system and dataset using threads.
 """
