@@ -69,8 +69,7 @@ function LinearProblem(
 Construct a LinearProblem by detecting if there are energy descriptors and/or force descriptors and construct the appropriate LinearProblem (either Univariate, if only a single type of descriptor, or Covariate, if there are both types).
 """
 function LinearProblem(
-    ds::DataSet;
-    T = Float64
+    ds::DataSet
 )
     d_flag, descriptors, energies = try
         true, sum.(get_values.(get_local_descriptors.(ds))), get_values.(get_energy.(ds))
@@ -86,8 +85,8 @@ function LinearProblem(
     end
     if d_flag & ~fd_flag
         dim = length(descriptors[1])
-        β = zeros(T, dim)
-        β0 = zeros(T, 1)
+        β = zeros(dim)
+        β0 = zeros(1)
 
         p = UnivariateLinearProblem(
             descriptors,
@@ -99,8 +98,8 @@ function LinearProblem(
         )
     elseif ~d_flag & fd_flag
         dim = length(force_descriptors[1][1])
-        β = zeros(T, dim)
-        β0 = zeros(T, 1)
+        β = zeros(dim)
+        β0 = zeros(1)
 
         force_descriptors = [reduce(hcat, fi) for fi in force_descriptors]
         p = UnivariateLinearProblem(
@@ -122,8 +121,8 @@ function LinearProblem(
             dim = dim_d
         end
 
-        β = zeros(T, dim)
-        β0 = zeros(T, 1)
+        β = zeros(dim)
+        β0 = zeros(1)
         forces = [reduce(vcat, fi) for fi in forces]
         force_descriptors = [reduce(hcat, fi) for fi in force_descriptors]
 
@@ -157,14 +156,15 @@ function learn!(
 Learning dispatch function, common to ordinary and weghted least squares implementations.
 """
 function learn!(
-    iap::InteratomicPotentials.LinearBasisPotential,
+    lb::InteratomicPotentials.LinearBasisPotential,
     ds::DataSet,
     args...
 )
     lp = LinearProblem(ds)
     learn!(lp, args...)
 
-    copy!(iap.β, lp.β)
-    copy!(iap.β0, lp.β0)
+    resize!(lb.β, length(lp.β))
+    lb.β .= lp.β
+    lb.β0 .= lp.β0
     return lp
 end
