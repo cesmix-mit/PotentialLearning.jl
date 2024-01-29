@@ -195,8 +195,7 @@ function compute_force_descriptors(
     end
     f_des = Vector{ForceDescriptors}(undef, length(ds))
     Threads.@threads for (j, sys) in iter
-        f_des[j] = ForceDescriptors([[ fi[i, :] for i = 1:3]
-                                     for fi in compute_force_descriptors(sys, basis)])
+        f_des[j] = ForceDescriptors([fi for fi in compute_force_descriptors(sys,basis)])
     end
     return f_des
 end
