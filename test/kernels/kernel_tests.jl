@@ -42,11 +42,17 @@ e = Euclidean(d)
 @test compute_distance(f_cm[1], f_cm[1], fo) < eps()
 @test compute_distance(f_cm[1], f_cm[2], fo) > 0.0
 
+@test abs(sum(compute_gradx_distance(f_gm[1], f_gm[1], e))) < eps()
+@test abs(sum(compute_gradx_distance(f_gm[1], f_gm[2], e))) > 0.0
+@test abs(sum(compute_grady_distance(f_gm[1], f_gm[1], e))) < eps()
+@test abs(sum(compute_grady_distance(f_gm[1], f_gm[2], e))) > 0.0
+@test compute_gradxy_distance(f_gm[1], f_gm[1], e) == -2.0*I(d)
+@test compute_gradxy_distance(f_gm[1], f_gm[2], e) == -2.0*I(d)
+
 ## kernels 
 dp = DotProduct()
 rbf_e = RBF(e)
 rbf_fo = RBF(fo)
-
 
 @test typeof(dp) <: Kernel
 @test typeof(rbf_e) <: Kernel
@@ -63,6 +69,13 @@ rbf_fo = RBF(fo)
 @test compute_kernel(f_cm[1], f_cm[2], dp) > 0
 @test compute_kernel(f_cm[1], f_cm[2], rbf_e) > 0
 @test compute_kernel(f_cm[1], f_cm[2], rbf_fo) > 0
+
+@test abs(sum(compute_gradx_kernel(f_gm[1], f_gm[1], rbf_e))) < eps()
+@test abs(sum(compute_gradx_kernel(f_gm[1], f_gm[2], rbf_e))) > 0
+@test abs(sum(compute_grady_kernel(f_gm[1], f_gm[1], rbf_e))) < eps()
+@test abs(sum(compute_grady_kernel(f_gm[1], f_gm[2], rbf_e))) > 0
+@test compute_gradxy_kernel(f_gm[1], f_gm[1], rbf_e) == I(8)
+@test abs(sum(compute_gradxy_kernel(f_gm[1], f_gm[2], rbf_e))) > 0
 
 @test typeof(KernelMatrix(f_gm, dp)) <: Symmetric{Float64,Matrix{Float64}}
 @test typeof(KernelMatrix(f_cm, dp)) <: Symmetric{Float64,Matrix{Float64}}

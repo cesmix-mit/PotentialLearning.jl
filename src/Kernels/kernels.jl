@@ -145,7 +145,7 @@ function compute_gradxy_kernel(
     ∇yd = compute_grady_distance(A, B, knl.d)
     ∇xyd = compute_gradxy_distance(A, B, knl.d)
 
-    return k .* ( -∇xyd/(2*knl.ℓ^2) + ∇xd'*∇yd/(4*knl.ℓ^4) )
+    return k .* ( -∇xyd/(2*knl.ℓ^2) .+ ∇xd'*∇yd/(4*knl.ℓ^4) )
     
 end
 
