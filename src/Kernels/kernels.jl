@@ -1,9 +1,29 @@
 include("features.jl")
 include("distances.jl")
 
-export Distance, Forstner, compute_distance, Euclidean
-export Feature, GlobalMean, CorrelationMatrix, compute_feature, compute_features
-export Kernel, DotProduct, get_parameters, RBF, compute_kernel, KernelMatrix
+export
+    Distance,
+    Forstner,
+    compute_distance,
+    compute_gradx_distance,
+    compute_grady_distance,
+    compute_gradxy_distance,
+    Euclidean,
+    Feature,
+    GlobalMean,
+    CorrelationMatrix,
+    compute_feature,
+    compute_features,
+    Kernel,
+    DotProduct,
+    get_parameters,
+    RBF,
+    compute_kernel,
+    compute_gradx_kernel,
+    compute_grady_kernel,
+    compute_gradxy_kernel,
+    KernelMatrix
+
 ###############
 """
     Kernel
@@ -42,7 +62,7 @@ end
 """ 
     RBF <: Kernel 
         d :: Distance function 
-        α :: Reguarlization parameter 
+        α :: Regularization parameter 
         ℓ :: Length-scale parameter
         β :: Scale parameter
     
@@ -74,7 +94,59 @@ function compute_kernel(
     r::RBF,
 ) where {T<:Union{Vector{<:Real},Symmetric{<:Real,<:Matrix{<:Real}}}}
     d2 = compute_distance(A, B, r.d)
-    r.β * exp(-0.5 * d2 / r.ℓ)
+    r.β * exp(-0.5 * d2 / r.ℓ^2)
+end
+
+"""
+    compute_gradx_kernel(A, B, k)
+
+Compute gradient of the kernel between features A and B using kernel k, with respect to the first argument (A). 
+"""
+function compute_gradx_kernel(
+    A::T,
+    B::T,
+    knl::RBF,
+    ) where {T<:Vector{<:Real}}
+
+    k = compute_kernel(A, B, knl)
+    ∇d = compute_gradx_distance(A, B, knl.d)
+    return -k * ∇d / (2*knl.ℓ^2)
+end
+
+"""
+    compute_grady_kernel(A, B, k)
+
+Compute gradient of the kernel between features A and B using kernel k, with respect to the second argument (B). 
+"""
+function compute_grady_kernel(
+    A::T,
+    B::T,
+    knl::RBF,
+    ) where {T<:Vector{<:Real}}
+
+    k = compute_kernel(A, B, knl)
+    ∇d = compute_grady_distance(A, B, knl.d)
+    return -k * ∇d / (2*knl.ℓ^2)
+end
+
+"""
+    compute_gradxy_kernel(A, B, k)
+
+Compute the second-order cross derivative of the kernel between features A and B using kernel k. 
+"""
+function compute_gradxy_kernel(
+    A::T,
+    B::T,
+    knl::RBF,
+    ) where {T<:Vector{<:Real}}
+
+    k = compute_kernel(A, B, knl)
+    ∇xd = compute_gradx_distance(A, B, knl.d)
+    ∇yd = compute_grady_distance(A, B, knl.d)
+    ∇xyd = compute_gradxy_distance(A, B, knl.d)
+
+    return k .* ( -∇xyd/(2*knl.ℓ^2) + ∇xd'*∇yd/(4*knl.ℓ^4) )
+    
 end
 
 """ 
