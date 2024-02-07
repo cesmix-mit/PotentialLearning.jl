@@ -1,6 +1,8 @@
 using AtomsBase
 using Unitful, UnitfulAtomic
 using LinearAlgebra
+using Distributions
+
 # initialize some fake descriptors
 d = 8
 num_atoms = 20
@@ -29,6 +31,9 @@ f_cm = compute_feature.(ld, (cm,))
 @test typeof(f_cm[1]) <: Symmetric{Float64,Matrix{Float64}}
 @test compute_features(ds, gm) == f_gm
 @test compute_features(ds, cm) == f_cm
+
+mvn = MvNormal(zeros(d), I(d))
+f_mvn = [rand(mvn) for j = 1:100]
 
 ## distances 
 fo = Forstner(1e-16)
@@ -82,3 +87,12 @@ rbf_fo = RBF(fo)
 @test typeof(KernelMatrix(f_gm, rbf_e)) <: Symmetric{Float64,Matrix{Float64}}
 @test typeof(KernelMatrix(f_cm, rbf_e)) <: Symmetric{Float64,Matrix{Float64}}
 @test typeof(KernelMatrix(f_cm, rbf_fo)) <: Symmetric{Float64,Matrix{Float64}}
+
+
+# divergences
+std_gauss_score(x) = -x
+ksd = KernelSteinDiscrepancy(score=std_gauss_score, kernel=rbf_e)
+
+@test typeof(ksd) <: Divergence
+@test compute_divergence(f_mvn, ksd) < compute_divergence(f_gm, ksd)
+
