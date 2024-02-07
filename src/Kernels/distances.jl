@@ -92,7 +92,7 @@ function compute_grady_distance(
     e::Euclidean
     ) where {T<:Vector{<:Real}}
 
-    return - 2 * e.Cinv * (A - B)
+    return -2 * e.Cinv * (A - B)
 end
 
 """
@@ -106,5 +106,5 @@ function compute_gradxy_distance(
     e::Euclidean
     ) where {T<:Vector{<:Real}}
 
-    return - 2 * e.Cinv
+    return -2 * e.Cinv
 end
