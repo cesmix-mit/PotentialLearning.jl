@@ -71,7 +71,7 @@ function compute_kernel(
     r::RBF,
 ) where {T<:Union{Vector{<:Real},Symmetric{<:Real,<:Matrix{<:Real}}}}
     d2 = compute_distance(A, B, r.d)
-    r.β * exp(-0.5 * d2 / (2*r.ℓ^2))
+    r.β * exp(-0.5 * d2 / r.ℓ^2)
 end
 
 """
@@ -87,7 +87,7 @@ function compute_gradx_kernel(
 
     k = compute_kernel(A, B, r)
     ∇d = compute_gradx_distance(A, B, r.d)
-    return -k * ∇d / (2*r.ℓ^2)
+    return -0.5 * k * ∇d / r.ℓ^2
 end
 
 """
@@ -103,7 +103,7 @@ function compute_grady_kernel(
 
     k = compute_kernel(A, B, r)
     ∇d = compute_grady_distance(A, B, r.d)
-    return -k * ∇d / (2*r.ℓ^2)
+    return -0.5 * k * ∇d / r.ℓ^2
 end
 
 """
@@ -122,7 +122,7 @@ function compute_gradxy_kernel(
     ∇yd = compute_grady_distance(A, B, r.d)
     ∇xyd = compute_gradxy_distance(A, B, r.d)
 
-    return k .* ( -∇xyd/(2*r.ℓ^2) .+ ∇xd'*∇yd/(4*r.ℓ^4) )
+    return k .* ( -0.5 * ∇xyd / r.ℓ^2 .+ 0.25 * ∇xd'*∇yd / r.ℓ^4 )
     
 end
 
