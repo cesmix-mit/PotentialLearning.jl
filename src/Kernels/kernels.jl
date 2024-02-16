@@ -48,7 +48,7 @@ end
 
      k(A, B) = β \exp( -\frac{1}{2} d(A,B)/ℓ^2 ) + α δ(A, B) 
 """
-struct RBF <: Kernel
+mutable struct RBF <: Kernel
     d::Distance
     α::Real
     ℓ::Real
