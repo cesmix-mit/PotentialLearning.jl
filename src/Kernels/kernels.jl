@@ -136,7 +136,7 @@ end
 
      k(A, B) = (c^2 + d(A,B)/β^2)^{-1/2}
 """
-struct InverseMultiquadric <: Kernel 
+mutable struct InverseMultiquadric <: Kernel 
     d::Distance
     c2::Real  
     ℓ::Real    
