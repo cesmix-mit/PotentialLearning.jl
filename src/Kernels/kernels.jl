@@ -127,6 +127,83 @@ function compute_gradxy_kernel(
 end
 
 """ 
+    InverseMultiquadric <: Kernel 
+        d :: Distance function 
+        c2 :: Squared constant parameter
+        ℓ :: Length-scale parameter
+    
+    Computes the inverse multiquadric (IMQ) kernel, i.e.,
+
+     k(A, B) = (c^2 + d(A,B)/β^2)^{-1/2}
+"""
+struct InverseMultiquadric <: Kernel 
+    d::Distance
+    c2::Real  
+    ℓ::Real    
+
+    SteinInverseMultiquadricKernel(d, c2, ℓ) = (
+        @assert (0 < c2);
+        @assert (0 < ℓ);
+        new(d, c2, ℓ)
+    )
+end
+# default will be 1.0 for c^2
+InverseMultiquadric(d, ℓ) = InverseMultiquadric(d, 1.0, ℓ)
+
+get_parameters(k::InverseMultiquadric) = (k.c2, k.ℓ)
+
+
+function compute_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+) where {T<:Union{Vector{<:Real},Symmetric{<:Real,<:Matrix{<:Real}}}}
+
+    d2 = compute_distance(A, B, r.d)
+    (r.c2 + d2 / r.ℓ^2)^(-0.5)
+end
+
+function compute_gradx_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+    ) where {T<:Vector{<:Real}}
+
+    d2 = compute_distance(A, B, r.d)
+    ∇d = compute_gradx_distance(A, B, r.d)
+
+    return -0.5 * ∇d / r.ℓ^2 * (r.c2 + d2 / r.ℓ^2)^(-1.5)
+end
+
+function compute_grady_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+    ) where {T<:Vector{<:Real}}
+
+    d2 = compute_distance(A, B, r.d)
+    ∇d = compute_grady_distance(A, B, r.d)
+
+    return -0.5 * ∇d / r.ℓ^2 * (r.c2 + d2 / r.ℓ^2)^(-1.5)
+end
+
+
+function compute_gradxy_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+    ) where {T<:Vector{<:Real}}
+
+    d2 = compute_distance(A, B, r.d)
+    ∇xd = compute_gradx_distance(A, B, r.d)
+    ∇yd = compute_grady_distance(A, B, r.d)
+    ∇xyd = compute_gradxy_distance(A, B, r.d)
+    q = r.c2 + d2 / r.ℓ^2
+
+    return 3*∇xd*∇yd / (4*r.ℓ^4) * q^(-2.5) - ∇xyd / (2*r.ℓ^2) * q^(-1.5)
+end
+
+""" 
     KernelMatrix(F, k::Kernel)
 
 Compute symmetric kernel matrix K where K_{ij} = k(F_i, F_j). 
@@ -210,8 +287,9 @@ export
     compute_features,
     Kernel,
     DotProduct,
-    get_parameters,
     RBF,
+    InverseMultiquadric,
+    get_parameters,
     compute_kernel,
     compute_gradx_kernel,
     compute_grady_kernel,
