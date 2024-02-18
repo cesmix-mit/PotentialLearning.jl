@@ -141,14 +141,14 @@ struct InverseMultiquadric <: Kernel
     c2::Real  
     ℓ::Real    
 
-    SteinInverseMultiquadricKernel(d, c2, ℓ) = (
+    InverseMultiquadric(d, c2, ℓ) = (
         @assert (0 < c2);
         @assert (0 < ℓ);
         new(d, c2, ℓ)
     )
 end
 # default will be 1.0 for c^2
-InverseMultiquadric(d, ℓ) = InverseMultiquadric(d, 1.0, ℓ)
+InverseMultiquadric(d; c2=1.0, ℓ=1.0) = InverseMultiquadric(d, c2, ℓ)
 
 get_parameters(k::InverseMultiquadric) = (k.c2, k.ℓ)
 
