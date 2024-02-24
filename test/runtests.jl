@@ -21,4 +21,7 @@ using Test
     @testset "Learning Tests" begin
         include("learning/linear_tests.jl")
     end
+    @testset "Data Tests" begin 
+        include("data/data_utils_tests.jl")
+    end
 end
