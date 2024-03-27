@@ -1,9 +1,6 @@
 include("features.jl")
 include("distances.jl")
 
-export Distance, Forstner, compute_distance, Euclidean
-export Feature, GlobalMean, CorrelationMatrix, compute_feature, compute_features
-export Kernel, DotProduct, get_parameters, RBF, compute_kernel, KernelMatrix
 ###############
 """
     Kernel
@@ -42,7 +39,7 @@ end
 """ 
     RBF <: Kernel 
         d :: Distance function 
-        α :: Reguarlization parameter 
+        α :: Regularization parameter 
         ℓ :: Length-scale parameter
         β :: Scale parameter
     
@@ -51,7 +48,7 @@ end
 
      k(A, B) = β \exp( -\frac{1}{2} d(A,B)/ℓ^2 ) + α δ(A, B) 
 """
-struct RBF <: Kernel
+mutable struct RBF <: Kernel
     d::Distance
     α::Real
     ℓ::Real
@@ -74,7 +71,136 @@ function compute_kernel(
     r::RBF,
 ) where {T<:Union{Vector{<:Real},Symmetric{<:Real,<:Matrix{<:Real}}}}
     d2 = compute_distance(A, B, r.d)
-    r.β * exp(-0.5 * d2 / r.ℓ)
+    r.β * exp(-0.5 * d2 / r.ℓ^2)
+end
+
+"""
+    compute_gradx_kernel(A, B, k)
+
+Compute gradient of the kernel between features A and B using kernel k, with respect to the first argument (A). 
+"""
+function compute_gradx_kernel(
+    A::T,
+    B::T,
+    r::RBF,
+    ) where {T<:Vector{<:Real}}
+
+    k = compute_kernel(A, B, r)
+    ∇d = compute_gradx_distance(A, B, r.d)
+    return -0.5 * k * ∇d / r.ℓ^2
+end
+
+"""
+    compute_grady_kernel(A, B, k)
+
+Compute gradient of the kernel between features A and B using kernel k, with respect to the second argument (B). 
+"""
+function compute_grady_kernel(
+    A::T,
+    B::T,
+    r::RBF,
+    ) where {T<:Vector{<:Real}}
+
+    k = compute_kernel(A, B, r)
+    ∇d = compute_grady_distance(A, B, r.d)
+    return -0.5 * k * ∇d / r.ℓ^2
+end
+
+"""
+    compute_gradxy_kernel(A, B, k)
+
+Compute the second-order cross derivative of the kernel between features A and B using kernel k. 
+"""
+function compute_gradxy_kernel(
+    A::T,
+    B::T,
+    r::RBF,
+    ) where {T<:Vector{<:Real}}
+
+    k = compute_kernel(A, B, r)
+    ∇xd = compute_gradx_distance(A, B, r.d)
+    ∇yd = compute_grady_distance(A, B, r.d)
+    ∇xyd = compute_gradxy_distance(A, B, r.d)
+
+    return k .* ( -0.5 * ∇xyd / r.ℓ^2 .+ 0.25 * ∇xd'*∇yd / r.ℓ^4 )
+    
+end
+
+""" 
+    InverseMultiquadric <: Kernel 
+        d :: Distance function 
+        c2 :: Squared constant parameter
+        ℓ :: Length-scale parameter
+    
+    Computes the inverse multiquadric (IMQ) kernel, i.e.,
+
+     k(A, B) = (c^2 + d(A,B)/β^2)^{-1/2}
+"""
+mutable struct InverseMultiquadric <: Kernel 
+    d::Distance
+    c2::Real  
+    ℓ::Real    
+
+    InverseMultiquadric(d, c2, ℓ) = (
+        @assert (0 < c2);
+        @assert (0 < ℓ);
+        new(d, c2, ℓ)
+    )
+end
+# default will be 1.0 for c^2
+InverseMultiquadric(d; c2=1.0, ℓ=1.0) = InverseMultiquadric(d, c2, ℓ)
+
+get_parameters(k::InverseMultiquadric) = (k.c2, k.ℓ)
+
+
+function compute_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+) where {T<:Union{Vector{<:Real},Symmetric{<:Real,<:Matrix{<:Real}}}}
+
+    d2 = compute_distance(A, B, r.d)
+    (r.c2 + d2 / r.ℓ^2)^(-0.5)
+end
+
+function compute_gradx_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+    ) where {T<:Vector{<:Real}}
+
+    d2 = compute_distance(A, B, r.d)
+    ∇d = compute_gradx_distance(A, B, r.d)
+
+    return -0.5 * ∇d / r.ℓ^2 * (r.c2 + d2 / r.ℓ^2)^(-1.5)
+end
+
+function compute_grady_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+    ) where {T<:Vector{<:Real}}
+
+    d2 = compute_distance(A, B, r.d)
+    ∇d = compute_grady_distance(A, B, r.d)
+
+    return -0.5 * ∇d / r.ℓ^2 * (r.c2 + d2 / r.ℓ^2)^(-1.5)
+end
+
+
+function compute_gradxy_kernel(
+    A::T,
+    B::T,
+    r::InverseMultiquadric,
+    ) where {T<:Vector{<:Real}}
+
+    d2 = compute_distance(A, B, r.d)
+    ∇xd = compute_gradx_distance(A, B, r.d)
+    ∇yd = compute_grady_distance(A, B, r.d)
+    ∇xyd = compute_gradxy_distance(A, B, r.d)
+    q = r.c2 + d2 / r.ℓ^2
+
+    return 3*∇xd*∇yd / (4*r.ℓ^4) * q^(-2.5) - ∇xyd / (2*r.ℓ^2) * q^(-1.5)
 end
 
 """ 
@@ -141,3 +267,34 @@ function KernelMatrix(
     F2 = compute_feature.(ds2, (f,); dt = dt)
     KernelMatrix(F1, F2, k)
 end
+
+
+
+
+include("divergences.jl")
+export
+    Distance,
+    Forstner,
+    compute_distance,
+    compute_gradx_distance,
+    compute_grady_distance,
+    compute_gradxy_distance,
+    Euclidean,
+    Feature,
+    GlobalMean,
+    CorrelationMatrix,
+    compute_feature,
+    compute_features,
+    Kernel,
+    DotProduct,
+    RBF,
+    InverseMultiquadric,
+    get_parameters,
+    compute_kernel,
+    compute_gradx_kernel,
+    compute_grady_kernel,
+    compute_gradxy_kernel,
+    KernelMatrix,
+    Divergence,
+    KernelSteinDiscrepancy,
+    compute_divergence
