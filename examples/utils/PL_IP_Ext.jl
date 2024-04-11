@@ -1,55 +1,93 @@
 using Flux
+using JuLIP
+using Zygote
 
 # ToDo: compute forces for multielement approach and then integrate in InteratomicPotentials.jl
 
-function force( # see PL/src/Data/utils.jl
+function PotentialLearning.force(
     c::Configuration,
     nnbp::NNBasisPotential
 )
-#    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-#    dnndb = first(gradient(x->sum(nnbp.nn(x)), Bs))        # gradient function of MLP can be predefined
-#    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
-#    n_atoms = size(dbdr, 2)
-#    return [[-sum( dot.(eachcol(dnndb), [dbdr[coor, atom_j]]) )
-#             for coor in 1:3]
-#             for atom_j in 1:n_atoms]
+    s = get_system(c)
+    a = InteratomicPotentials.convert_system_to_atoms(s)
+    n_atoms = length(a)
+    ns = JuLIP.neighbourlist(a, nnbp.basis.rcutoff)
     
-#    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-#    dnndb = first(gradient(x->sum(nnbp.nn(x)), Bs))        # gradient function of MLP can be predefined
-#    sum_dnndb = sum(dnndb, dims = 2)
-#    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
-#    n_atoms = size(dbdr, 2)
-#    return [[-(sum_dnndb ⋅ dbdr[coor, atom_j] / n_atoms) for coor in 1:3]
-#             for atom_j in 1:n_atoms]
-    
-    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-    dnndb = first(Flux.gradient(x->sum(nnbp.nn(x)), Bs))   # gradient function of MLP can be predefined
-    n_atoms = size(dnndb, 2)
-    global dbdr_c
-    return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
-              for coor in 1:3]
-              for atom_j in 1:n_atoms]
+    dNNdDi = Dict()
+    for i = 1:n_atoms
+        as = atomic_symbol(s)[i]
+        #r = desc_range(i, s, basis)
+        ledi = JuLIP.site_energy(basis.rpib, a, i)#[r]
+        dNNdDi[i] = Zygote.gradient(x->sum(nnbp.nns[as](x)), ledi)[1]
+    end
 
-#    Bs = get_values(get_local_descriptors(c))
-#    dnndb = [first(gradient(x->sum(nnbp.nn(x)), B_atom)) for B_atom in Bs]
-#    dbdr = get_values(get_force_descriptors(c))
-#    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
+    fs = []
+    for j in 1:n_atoms
+        lfdj = JuLIP.site_energy_d(basis.rpib, a, j)
+        nj, _ = neigs(ns, j)
+        fs_j = []
+        for α in 1:3
+            f_j_α = 0.0
+            for i in nj
+                dDidrj_α = [lfdj[k][i][α] for k in 1:26]
+                f_j_α += dNNdDi[i] ⋅ dDidrj_α
+            end
+            push!(fs_j, f_j_α)
+        end
+        push!(fs, fs_j)
+    end
+    
+    return fs
 end
 
+#function force( # see PL/src/Data/utils.jl
+#    c::Configuration,
+#    nnbp::NNBasisPotential
+#)
+##    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+##    dnndb = first(gradient(x->sum(nnbp.nn(x)), Bs))        # gradient function of MLP can be predefined
+##    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
+##    n_atoms = size(dbdr, 2)
+##    return [[-sum( dot.(eachcol(dnndb), [dbdr[coor, atom_j]]) )
+##             for coor in 1:3]
+##             for atom_j in 1:n_atoms]
+#    
+##    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+##    dnndb = first(gradient(x->sum(nnbp.nn(x)), Bs))        # gradient function of MLP can be predefined
+##    sum_dnndb = sum(dnndb, dims = 2)
+##    dbdr = reduce(hcat, get_values(get_force_descriptors(c))) # can be precomputed
+##    n_atoms = size(dbdr, 2)
+##    return [[-(sum_dnndb ⋅ dbdr[coor, atom_j] / n_atoms) for coor in 1:3]
+##             for atom_j in 1:n_atoms]
+#    
+#    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+#    dnndb = first(Flux.gradient(x->sum(nnbp.nn(x)), Bs))   # gradient function of MLP can be predefined
+#    n_atoms = size(dnndb, 2)
+#    global dbdr_c
+#    return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
+#              for coor in 1:3]
+#              for atom_j in 1:n_atoms]
 
-function force(
-    c::Configuration,
-    nnbp::NNBasisPotential
-)
-    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
-    dnnsdb = [first(Flux.gradient(x->sum(nn(x)), Bs)) for nn in nnbp.nns] # gradient function of MLP can be predefined
+##    Bs = get_values(get_local_descriptors(c))
+##    dnndb = [first(gradient(x->sum(nnbp.nn(x)), B_atom)) for B_atom in Bs]
+##    dbdr = get_values(get_force_descriptors(c))
+##    return [[-sum(dnndb .⋅ [dbdr[atom][coor]]) for coor in 1:3] for atom in 1:length(dbdr)]
+#end
 
-    n_atoms = size(dnndb, 2)
-    global dbdr_c
-    return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
-              for coor in 1:3]
-              for atom_j in 1:n_atoms]
-end
+
+#function force(
+#    c::Configuration,
+#    nnbp::NNBasisPotential
+#)
+#    Bs = reduce(hcat, get_values(get_local_descriptors(c))) # can be precomputed
+#    dnnsdb = [first(Flux.gradient(x->sum(nn(x)), Bs)) for nn in nnbp.nns] # gradient function of MLP can be predefined
+
+#    n_atoms = size(dnndb, 2)
+#    global dbdr_c
+#    return [[ -sum(dot.(eachcol(dnndb), eachcol(dbdr_c[c][coor, atom_j])))
+#              for coor in 1:3]
+#              for atom_j in 1:n_atoms]
+#end
 
 
 # ToDo: Integrate the code below in PotentialLearning.jl
@@ -76,7 +114,7 @@ function loss(
     w_e::Real = 1.0,
     w_f::Real = 1.0
 )
-    nnbp = NNBasisPotentials(nns, basis)
+    nnbp = NNBasisPotential(nns, basis)
     es, es_pred = get_all_energies(ds), get_all_energies(ds, nnbp)  # get_all_energies(ds) can be precomputed
     fs, fs_pred = get_all_forces(ds), get_all_forces(ds, nnbp)      # get_all_forces(ds) can be precomputed
     return w_e * Flux.mse(es_pred, es) + w_f * Flux.mse(fs_pred, fs)
