@@ -101,10 +101,11 @@ function LinearProblem(
         β = zeros(dim)
         β0 = zeros(1)
 
+        forces = [reduce(vcat, fi) for fi in forces]
         force_descriptors = [reduce(hcat, fi) for fi in force_descriptors]
         p = UnivariateLinearProblem(
             force_descriptors,
-            [reduce(vcat, fi) for fi in forces],
+            forces,
             β,
             β0,
             [1.0],
@@ -128,7 +129,7 @@ function LinearProblem(
 
         p = CovariateLinearProblem(
             energies,
-            [reduce(vcat, fi) for fi in forces],
+            forces,
             descriptors,
             force_descriptors,
             β,
