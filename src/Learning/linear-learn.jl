@@ -169,16 +169,18 @@ end
 """
 function learn!(
     lp::UnivariateLinearProblem,
-    ws::Vector,
-    int::Bool
+    ws::Vector;
+    int::Bool=false;
+    α::Real=1e-8
 )
 
 Fit energies using weighted least squares.
 """
 function learn!(
     lp::UnivariateLinearProblem,
-    ws::Vector,
-    int::Bool
+    ws::Vector;
+    int::Bool=false,
+    α::Real=1e-8
 )
     @views B_train = reduce(hcat, lp.iv_data)'
     @views e_train = lp.dv_data
@@ -194,7 +196,7 @@ function learn!(
 
     # Calculate coefficients β.
     Q = Diagonal(ws[1] * ones(length(e_train)))
-    βs = (A'*Q*A) \ (A'*Q*b)
+    βs = pinv(A'*Q*A, α) * (A'*Q*b)
     
     # Update lp.
     if int
@@ -209,8 +211,9 @@ end
 """
 function learn!(
     lp::CovariateLinearProblem,
-    ws::Vector,
-    int::Bool
+    ws::Vector;
+    int::Bool=false,
+    α::Real=1e-8
 )
 
 Fit energies and forces using weighted least squares.
@@ -218,7 +221,8 @@ Fit energies and forces using weighted least squares.
 function learn!(
     lp::CovariateLinearProblem,
     ws::Vector,
-    int::Bool
+    int::Bool;
+    α::Real=1e-8
 )
     @views B_train = reduce(hcat, lp.B)'
     @views dB_train = reduce(hcat, lp.dB)'
@@ -238,7 +242,8 @@ function learn!(
     # Calculate coefficients βs.
     Q = Diagonal([ws[1] * ones(length(e_train));
                   ws[2] * ones(length(f_train))])
-    βs = (A'*Q*A) \ (A'*Q*b)
+    βs = pinv(A'*Q*A, α) * (A'*Q*b)
+
 
     # Update lp.
     if int
