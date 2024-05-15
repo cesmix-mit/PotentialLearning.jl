@@ -11,7 +11,8 @@ using PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra
 using Random
-using DataFrame
+using DataFrames
+using Plots
 include("../utils/utils.jl")
 
 # Fit ACE and postprocess results. Used in subsampling experiments #############
@@ -100,28 +101,20 @@ end
 
 # Load training and test configuration datasets ################################
 
-ds_path = "../data/HfO2/"
-
-ds_path = string("../data/HfO2_large/train/HfO2_figshare_form_random_train.extxyz")
-conf_train = load_data(ds_path, uparse("eV"), uparse("Å"))
-n_train = length(conf_train)
-
-ds_path = string("../data/HfO2_large/test/HfO2_figshare_form_random_test.extxyz")
-conf_test = load_data(ds_path, uparse("eV"), uparse("Å"))
-n_test = length(conf_test)
-
-n_train, n_test = length(conf_train), length(conf_test)
-
-species = unique(vcat([atomic_symbol.(get_system(c).particles)
-          for c in conf_train]...))
+ds_path = string("../data/HfO2_large/HfO2_figshare_form_sorted.extxyz")
+confs = load_data(ds_path, uparse("eV"), uparse("Å"))
+n = length(confs)
 
 path = "full-vs-split-subsampling/"
 run(`mkdir -p $path`)
 
+species = unique(vcat([atomic_symbol.(get_system(c).particles)
+          for c in confs]...))
+
 # Compute descriptors ##########################################################
 
 # Compute ACE descriptors
-basis = ACE(species           = [:Hf, :O],
+basis = ACE(species           = species,
             body_order        = 3,
             polynomial_degree = 3,
             rcutoff           = 5.0,
@@ -131,92 +124,122 @@ basis = ACE(species           = [:Hf, :O],
 @save_var path basis
 
 # Update training dataset by adding energy and force descriptors
-println("Computing energy descriptors of training dataset...")
-B_time = @elapsed e_descr_train = compute_local_descriptors(conf_train, basis)
-println("Computing force descriptors of training dataset...")
-dB_time = @elapsed f_descr_train = compute_force_descriptors(conf_train, basis)
+println("Computing energy descriptors of dataset...")
+B_time = @elapsed e_descr = compute_local_descriptors(confs, basis)
+println("Computing force descriptors of dataset...")
+dB_time = @elapsed f_descr = compute_force_descriptors(confs, basis)
 GC.gc()
-ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
+ds = DataSet(confs .+ e_descr .+ f_descr)
 
-# Update test dataset by adding energy and force descriptors
-println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test, basis)
-println("Computing force descriptors of test dataset...")
-f_descr_test = compute_force_descriptors(conf_test, basis)
-GC.gc()
-ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
-
+# Create metric dataframe
+metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
+                :e_train_mae, :e_train_rmse, :e_train_rsq,
+                :f_train_mae, :f_train_rmse, :f_train_rsq, :f_train_mean_cos,
+                :e_test_mae,  :e_test_rmse,  :e_test_rsq, 
+                :f_test_mae,  :f_test_rmse,  :f_test_rsq,  :f_test_mean_cos]
+metrics = DataFrame([Any[] for _ in 1:length(metric_names)], metric_names)
 
 # Subsampling experiments: subsample full dataset vs subsample dataset by chunks 
-
-batch_size_prop = 0.1 # subsample 10% of the dataset
-n_chunks = 4
-n_experiments = 15
-
-metrics_full = []
-metrics_split = []
+n_experiments = 1 # 100
 for j in 1:n_experiments
-    global metrics_full, metrics_split
+    global metrics
     
-    # Randomize dataset
-    train_ind = randperm(length(ds_train[1:end-1])) # removing off-by-one issue (TODO: improve this)
-    ds_train_rnd = @views ds_train[train_ind]
+    # Define randomized training and test dataset
+    n_train = floor(Int, 0.8 * n)
+    n_test =  n - n_train
+    rnd_inds = randperm(n)
+    rnd_inds_train = rnd_inds[1:n_train]
+    rnd_inds_test = rnd_inds[n_train+1:end]
+    ds_train_rnd = @views ds[rnd_inds_train]
+    ds_test_rnd  = @views ds[rnd_inds_test]
 
-    # Experiment 1: subsample full dataset #####################################
-    path_full = "$path/full-trainig-dataset/HfO2-ACE-$j/"
-    run(`mkdir -p $path_full`)
-    bs = floor(Int, n_train * batch_size_prop)
-    dataset_selector = kDPP(  ds_train_rnd,
-                              GlobalMean(),
-                              DotProduct();
-                              batch_size = bs)
-    inds_full = get_random_subset(dataset_selector)
-    metrics_full_j = fit(path_full, (@views ds_train_rnd[inds_full]), ds_test, basis)
-    push!(metrics_full, metrics_full_j)
+    # Subsampling experiments:  different sample sizes
+    for batch_size_prop in [0.05, 0.15, 0.25, 0.5, 1.0]
     
-    # Experiment 2: subsample dataset by chunks and then merge #################
-    path_split = "$path/split-trainig-dataset/HfO2-ACE-$j/"
-    run(`mkdir -p $path_split`)
-    inds_split = Int[]
-    n_chunk = n_train ÷ n_chunks
-    bs = floor(Int, n_chunk * batch_size_prop)
-    for i in 1:n_chunks
-        a, b = 1 + (i-1) * n_chunk, i * n_chunk
-        dataset_selector = kDPP(  ds_train_rnd[a:b],
-                                  GlobalMean(),
-                                  DotProduct();
-                                  batch_size = bs)
-        inds_split_i = get_random_subset(dataset_selector)
-        append!(inds_split, inds_split_i .+ (a .- 1))
+            # Experiment j - SRS ###############################################
+            println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
+            exp_path = "$path/$j-HfO2-ACE-SRS-bsp$batch_size_prop/"
+            run(`mkdir -p $exp_path`)
+            batch_size = floor(Int, n_train * batch_size_prop)
+            sampling_time = @elapsed begin
+                inds = randperm(n_train)[1:batch_size]
+            end
+            metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+            metrics_j = merge(OrderedDict("exp_number" => j,
+                                          "method" => "SRS",
+                                          "batch_size_prop" => batch_size_prop,
+                                          "batch_size" => batch_size,
+                                          "time" => sampling_time),
+                              merge(metrics_j...))
+            push!(metrics, metrics_j)
+            @save_dataframe(path, metrics)
+
+            # Experiment j - DPP ###############################################
+            batch_size = floor(Int, n_train * batch_size_prop)
+            println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
+            exp_path = "$path/$j-HfO2-ACE-DPP-bsp$batch_size_prop/"
+            run(`mkdir -p $exp_path`)
+            sampling_time = @elapsed begin
+                dataset_selector = kDPP(  ds_train_rnd,
+                                          GlobalMean(),
+                                          DotProduct();
+                                          batch_size = batch_size)
+                inds = get_random_subset(dataset_selector)
+            end
+            metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+            metrics_j = merge(OrderedDict("exp_number" => j,
+                                          "method" => "DPP",
+                                          "batch_size_prop" => batch_size_prop,
+                                          "batch_size" => batch_size,
+                                          "time" => sampling_time),
+                              merge(metrics_j...))
+            push!(metrics, metrics_j)
+            @save_dataframe(path, metrics)
+            
+            # Experiment j - DPP′ using n_chunks ##############################
+            for n_chunks in [2, 4, 8]
+                println("Experiment:$j, method:DPP′(n=$n_chunks), batch_size_prop:$batch_size_prop")
+                exp_path = "$path/$j-HfO2-ACE-DPP′-bsp$batch_size_prop-n$n_chunks/"
+                run(`mkdir -p $exp_path`)
+                inds = Int[]
+                n_chunk = n_train ÷ n_chunks
+                batch_size_chunk = floor(Int, n_chunk * batch_size_prop)
+                
+                #sampling_time = @elapsed @threads for i in 1:n_threads
+                sampling_time = @elapsed for i in 1:n_chunks
+                    a, b = 1 + (i-1) * n_chunk, i * n_chunk
+                    dataset_selector = kDPP(  ds_train_rnd[a:b],
+                                              GlobalMean(),
+                                              DotProduct();
+                                              batch_size = batch_size_chunk)
+                    inds_i = get_random_subset(dataset_selector)
+                    append!(inds, inds_i .+ (a .- 1))
+                end
+                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+                metrics_j = merge(OrderedDict("exp_number" => j,
+                                              "method" => "DPP′(n:$n_chunks)",
+                                              "batch_size_prop" => batch_size_prop,
+                                              "batch_size" => batch_size,
+                                              "time" => sampling_time),
+                                  merge(metrics_j...))
+                push!(metrics, metrics_j)
+                @save_dataframe(path, metrics)
+            end
+            GC.gc()
     end
-    metrics_split_j = fit(path_split, (@views ds_train_rnd[inds_split]), ds_test, basis)
-    push!(metrics_split, metrics_split_j)
 end
 
 # Postprocess ##################################################################
-metrics = DataFrame( "exp_number" => Int64[],
-                     "exp_type"   => String[],
-                     "e_train_mae" => Float64[],
-                     "e_train_rmse" => Float64[],
-                     "e_train_rsq" => Float64[],
-                     "f_train_mae" => Float64[],
-                     "f_train_rmse" => Float64[],
-                     "f_train_rsq" => Float64[],
-                     "f_train_mean_cos" => Float64[],
-                     "e_test_mae" => Float64[],
-                     "e_test_rmse" => Float64[],
-                     "e_test_rsq" => Float64[],
-                     "f_test_mae" => Float64[],
-                     "f_test_rmse" => Float64[],
-                     "f_test_rsq" => Float64[],
-                     "f_test_mean_cos" => Float64[])
-for j in 1:n_experiments
-    d1 = merge(OrderedDict("exp_number" => j, "exp_type" => "full"),
-               merge(metrics_full[j]...))
-    d2 = merge(OrderedDict("exp_number" => j, "exp_type" => "split"),
-               merge(metrics_split[j]...))
-    push!(metrics, d1)
-    push!(metrics, d2)
+
+for e in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae]
+    scatter()
+    for m in unique(metrics[:, :method])
+        batch_size = metrics[metrics.method .== m, :][:, :batch_size]
+        e_train_mae = metrics[metrics.method .== m, :][:, e]
+        scatter!(batch_size, e_train_mae, label = m,
+                 xlabel = "batch_size",
+                 ylabel = "$e")
+    end
+    savefig("$e.png")
 end
-@save_dataframe(path, metrics)
 
