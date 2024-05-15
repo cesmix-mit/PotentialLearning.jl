@@ -102,6 +102,7 @@ end
 # Load training and test configuration datasets ################################
 
 ds_path = string("../data/HfO2_large/HfO2_figshare_form_sorted.extxyz")
+#ds_path = string("../data/Hf128_MC_rattled_random_form_sorted.extxyz")
 confs = load_data(ds_path, uparse("eV"), uparse("Å"))
 n = length(confs)
 
@@ -154,7 +155,7 @@ for j in 1:n_experiments
     ds_test_rnd  = @views ds[rnd_inds_test]
 
     # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.05, 0.15, 0.25, 0.5, 1.0]
+    for batch_size_prop in [0.05, 0.25, 0.5, 0.75, 0.95]
     
             # Experiment j - SRS ###############################################
             println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
@@ -175,10 +176,10 @@ for j in 1:n_experiments
             @save_dataframe(path, metrics)
 
             # Experiment j - DPP ###############################################
-            batch_size = floor(Int, n_train * batch_size_prop)
             println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
             exp_path = "$path/$j-HfO2-ACE-DPP-bsp$batch_size_prop/"
             run(`mkdir -p $exp_path`)
+            batch_size = floor(Int, n_train * batch_size_prop)
             sampling_time = @elapsed begin
                 dataset_selector = kDPP(  ds_train_rnd,
                                           GlobalMean(),
@@ -231,15 +232,15 @@ end
 
 # Postprocess ##################################################################
 
-for e in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae]
+for err in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae, :time]
     scatter()
     for m in unique(metrics[:, :method])
-        batch_size = metrics[metrics.method .== m, :][:, :batch_size]
-        e_train_mae = metrics[metrics.method .== m, :][:, e]
-        scatter!(batch_size, e_train_mae, label = m,
-                 xlabel = "batch_size",
-                 ylabel = "$e")
+        batch_sizes = metrics[metrics.method .== m, :][:, :batch_size]
+        errors = metrics[metrics.method .== m, :][:, err]
+        scatter!(batch_sizes, errors, label = m,
+                 xlabel = "Batch size",
+                 ylabel = "$erros")
     end
-    savefig("$e.png")
+    savefig("$path/$err.png")
 end
 
