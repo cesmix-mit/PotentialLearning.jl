@@ -50,6 +50,11 @@ function Euclidean(
     Euclidean(Cinv, Csqrt)
 end
 
+"""
+    compute_distance(A, B, d)
+
+Compute the distance between features A and B using distance metric d. 
+"""
 function compute_distance(B1::Vector{T}, B2::Vector{T}, e::Euclidean) where {T<:Real}
     (B1 - B2)' * e.Cinv * (B1 - B2)
 end
@@ -60,4 +65,46 @@ function compute_distance(
     e::Euclidean,
 ) where {T<:Real}
     tr(e.Csqrt * (C1 - C2)' * e.Cinv * (C1 - C2) * e.Csqrt)
+end
+
+"""
+    compute_gradx_distance(A, B, d)
+
+Compute gradient of the distance between features A and B using distance metric d, with respect to the first argument (A). 
+"""
+function compute_gradx_distance(
+    A::T,
+    B::T,
+    e::Euclidean
+    ) where {T<:Vector{<:Real}}
+
+    return 2 * e.Cinv * (A - B)
+end
+
+"""
+    compute_grady_distance(A, B, d)
+
+Compute gradient of the distance between features A and B using distance metric d, with respect to the second argument (B). 
+"""
+function compute_grady_distance(
+    A::T,
+    B::T,
+    e::Euclidean
+    ) where {T<:Vector{<:Real}}
+
+    return -2 * e.Cinv * (A - B)
+end
+
+"""
+    compute_gradxy_distance(A, B, d)
+
+Compute second-order cross derivative of the distance between features A and B using distance metric d. 
+"""
+function compute_gradxy_distance(
+    A::T,
+    B::T,
+    e::Euclidean
+    ) where {T<:Vector{<:Real}}
+
+    return -2 * e.Cinv
 end
