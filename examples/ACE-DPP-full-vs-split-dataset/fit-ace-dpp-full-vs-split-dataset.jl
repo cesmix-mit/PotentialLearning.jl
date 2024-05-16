@@ -101,10 +101,41 @@ end
 
 # Load training and test configuration datasets ################################
 
-ds_path = string("../data/HfO2_large/HfO2_figshare_form_sorted.extxyz")
-#ds_path = string("../data/Hf128_MC_rattled_random_form_sorted.extxyz")
-confs = load_data(ds_path, uparse("eV"), uparse("Å"))
+paths = [
+         "../data/Hf/Hf2_gas_form_sorted.extxyz",
+         "../data/Hf/Hf2_mp103_EOS_1D_form_sorted.extxyz",
+         "../data/Hf/Hf2_mp103_EOS_3D_form_sorted.extxyz",
+#         "../data/Hf/Hf2_mp103_EOS_6D_form_sorted.extxyz",
+         "../data/Hf/Hf128_MC_rattled_mp100_form_sorted.extxyz",
+#         "../data/Hf/Hf128_MC_rattled_mp103_form_sorted.extxyz",
+#         "../data/Hf/Hf128_MC_rattled_random_form_sorted.extxyz",
+#         "../data/Hf/Hf_mp100_EOS_1D_form_sorted.extxyz",
+#         "../data/Hf/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
+         ]
+
+#paths = [
+#         "../../../POD/training_data/HfO2_mp550893_EOS_1D_form_sorted.extxyz",
+#         "../../../POD/training_data/HfO2_MC_rattled_random_form_sorted_selected.extxyz",
+#         "../../../POD/training_data/HfO2_mp352_EOS_1D_form_sorted.extxyz",
+##         "../../../POD/training_data/Hf_MC_rattled_mp100_form_sorted.extxyz",
+##         "../../../POD/training_data/Hf128_MC_rattled_random_form_sorted.extxyz",
+##         "../../../POD/training_data/Hf128_MC_rattled_mp100_form_sorted.extxyz",
+##         "../../../POD/training_data/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz",
+##         "../../../POD/training_data/Hf_MC_rattled_mp103_form_sorted.extxyz",
+##         "../../../POD/training_data/Hf128_MC_rattled_mp103_form_sorted.extxyz",
+##        "../../../POD/training_data/Hf2_mp103_EOS_1D_form_sorted.extxyz"
+#         ]
+confs = []
+for ds_path in paths
+    push!(confs, load_data(ds_path, uparse("eV"), uparse("Å"))...)
+end
+confs = DataSet(confs)
 n = length(confs)
+GC.gc()
+
+#ds_path = string("../data/HfO2_large/HfO2_figshare_form_sorted.extxyz")
+#confs = load_data(ds_path, uparse("eV"), uparse("Å"))
+#n = length(confs)
 
 path = "full-vs-split-subsampling/"
 run(`mkdir -p $path`)
@@ -116,9 +147,9 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 
 # Compute ACE descriptors
 basis = ACE(species           = species,
-            body_order        = 3,
-            polynomial_degree = 3,
-            rcutoff           = 5.0,
+            body_order        = 4,
+            polynomial_degree = 5,
+            rcutoff           = 10.0,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
@@ -141,7 +172,7 @@ metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
 metrics = DataFrame([Any[] for _ in 1:length(metric_names)], metric_names)
 
 # Subsampling experiments: subsample full dataset vs subsample dataset by chunks 
-n_experiments = 1 # 100
+n_experiments = 30 # 100
 for j in 1:n_experiments
     global metrics
     
@@ -155,11 +186,11 @@ for j in 1:n_experiments
     ds_test_rnd  = @views ds[rnd_inds_test]
 
     # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.05, 0.25, 0.5, 0.75, 0.95]
+    for batch_size_prop in [0.05, 0.10, 0.20, 0.30] #[0.05, 0.25, 0.5, 0.75, 0.95]
     
             # Experiment j - SRS ###############################################
             println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
-            exp_path = "$path/$j-HfO2-ACE-SRS-bsp$batch_size_prop/"
+            exp_path = "$path/$j-SRS-bsp$batch_size_prop/"
             run(`mkdir -p $exp_path`)
             batch_size = floor(Int, n_train * batch_size_prop)
             sampling_time = @elapsed begin
@@ -177,7 +208,7 @@ for j in 1:n_experiments
 
             # Experiment j - DPP ###############################################
             println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
-            exp_path = "$path/$j-HfO2-ACE-DPP-bsp$batch_size_prop/"
+            exp_path = "$path/$j-DPP-bsp$batch_size_prop/"
             run(`mkdir -p $exp_path`)
             batch_size = floor(Int, n_train * batch_size_prop)
             sampling_time = @elapsed begin
@@ -200,7 +231,7 @@ for j in 1:n_experiments
             # Experiment j - DPP′ using n_chunks ##############################
             for n_chunks in [2, 4, 8]
                 println("Experiment:$j, method:DPP′(n=$n_chunks), batch_size_prop:$batch_size_prop")
-                exp_path = "$path/$j-HfO2-ACE-DPP′-bsp$batch_size_prop-n$n_chunks/"
+                exp_path = "$path/$j-DPP′-bsp$batch_size_prop-n$n_chunks/"
                 run(`mkdir -p $exp_path`)
                 inds = Int[]
                 n_chunk = n_train ÷ n_chunks
@@ -232,15 +263,15 @@ end
 
 # Postprocess ##################################################################
 
-for err in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae, :time]
+for metric in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae, :time]
     scatter()
-    for m in unique(metrics[:, :method])
-        batch_sizes = metrics[metrics.method .== m, :][:, :batch_size]
-        errors = metrics[metrics.method .== m, :][:, err]
-        scatter!(batch_sizes, errors, label = m,
+    for method in unique(metrics[:, :method])
+        batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
+        metric_vals = metrics[metrics.method .== method, :][:, metric]
+        scatter!(batch_size_vals, metric_vals, label = method,
                  xlabel = "Batch size",
-                 ylabel = "$erros")
+                 ylabel = "$metric")
     end
-    savefig("$path/$err.png")
+    savefig("$path/$metric.png")
 end
 
