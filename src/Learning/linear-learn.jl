@@ -178,8 +178,8 @@ Fit energies using weighted least squares.
 """
 function learn!(
     lp::UnivariateLinearProblem,
-    ws::Vector;
-    int::Bool=false,
+    ws::Vector,
+    int::Bool=false;
     α::Real=1e-8
 )
     @views B_train = reduce(hcat, lp.iv_data)'
