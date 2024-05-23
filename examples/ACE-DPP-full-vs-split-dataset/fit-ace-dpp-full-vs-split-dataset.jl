@@ -102,29 +102,17 @@ end
 # Load training and test configuration datasets ################################
 
 paths = [
-         "../data/Hf/Hf2_gas_form_sorted.extxyz",
-         "../data/Hf/Hf2_mp103_EOS_1D_form_sorted.extxyz",
-         "../data/Hf/Hf2_mp103_EOS_3D_form_sorted.extxyz",
-#         "../data/Hf/Hf2_mp103_EOS_6D_form_sorted.extxyz",
-         "../data/Hf/Hf128_MC_rattled_mp100_form_sorted.extxyz",
-#         "../data/Hf/Hf128_MC_rattled_mp103_form_sorted.extxyz",
-#         "../data/Hf/Hf128_MC_rattled_random_form_sorted.extxyz",
-#         "../data/Hf/Hf_mp100_EOS_1D_form_sorted.extxyz",
+#         "../data/Hf/Hf2_gas_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
+#         "../data/Hf/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200, :)
+#         "../data/Hf/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377, :(
+         "../data/Hf/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k, :-D or out of memory
+#         "../data/Hf/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306, :(
+#         "../data/Hf/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
+#         "../data/Hf/Hf128_MC_rattled_random_form_sorted.extxyz", # 498, :(
+#         "../data/Hf/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201, ??
 #         "../data/Hf/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
          ]
 
-#paths = [
-#         "../../../POD/training_data/HfO2_mp550893_EOS_1D_form_sorted.extxyz",
-#         "../../../POD/training_data/HfO2_MC_rattled_random_form_sorted_selected.extxyz",
-#         "../../../POD/training_data/HfO2_mp352_EOS_1D_form_sorted.extxyz",
-##         "../../../POD/training_data/Hf_MC_rattled_mp100_form_sorted.extxyz",
-##         "../../../POD/training_data/Hf128_MC_rattled_random_form_sorted.extxyz",
-##         "../../../POD/training_data/Hf128_MC_rattled_mp100_form_sorted.extxyz",
-##         "../../../POD/training_data/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz",
-##         "../../../POD/training_data/Hf_MC_rattled_mp103_form_sorted.extxyz",
-##         "../../../POD/training_data/Hf128_MC_rattled_mp103_form_sorted.extxyz",
-##        "../../../POD/training_data/Hf2_mp103_EOS_1D_form_sorted.extxyz"
-#         ]
 confs = []
 for ds_path in paths
     push!(confs, load_data(ds_path, uparse("eV"), uparse("Å"))...)
@@ -177,16 +165,17 @@ for j in 1:n_experiments
     global metrics
     
     # Define randomized training and test dataset
-    n_train = floor(Int, 0.8 * n)
-    n_test =  n - n_train
+    n_train = 2400 #floor(Int, 0.8 * n)
+    n_test = 600 #n - n_train
     rnd_inds = randperm(n)
     rnd_inds_train = rnd_inds[1:n_train]
-    rnd_inds_test = rnd_inds[n_train+1:end]
+    rnd_inds_test = rnd_inds[n_train+1:n_train+n_test] # rnd_inds[n_train+1:end]
     ds_train_rnd = @views ds[rnd_inds_train]
     ds_test_rnd  = @views ds[rnd_inds_test]
 
     # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.05, 0.10, 0.20, 0.30] #[0.05, 0.25, 0.5, 0.75, 0.95]
+    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32] #[0.05, 0.10, 0.25]
+            #[0.01, 0.02, 0.04, 0.08, 0.16, 0.32] #[0.05, 0.25, 0.5, 0.75, 0.95] #[0.05, 0.10, 0.20, 0.30] #[0.05, 0.25, 0.5, 0.75, 0.95]
     
             # Experiment j - SRS ###############################################
             println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
@@ -236,6 +225,9 @@ for j in 1:n_experiments
                 inds = Int[]
                 n_chunk = n_train ÷ n_chunks
                 batch_size_chunk = floor(Int, n_chunk * batch_size_prop)
+                if batch_size_chunk == 0 
+                    batch_size_chunk = 1
+                end
                 
                 #sampling_time = @elapsed @threads for i in 1:n_threads
                 sampling_time = @elapsed for i in 1:n_chunks
@@ -265,13 +257,27 @@ end
 
 for metric in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae, :time]
     scatter()
-    for method in unique(metrics[:, :method])
+    for method in reverse(unique(metrics[:, :method])[1:end])
         batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
         metric_vals = metrics[metrics.method .== method, :][:, metric]
         scatter!(batch_size_vals, metric_vals, label = method,
-                 xlabel = "Batch size",
+                 alpha = 0.5, dpi=300, markerstrokewidth=0, markersize=5, xaxis=:log2,
+                 xlabel = "Sample size",
                  ylabel = "$metric")
     end
-    savefig("$path/$metric.png")
+    savefig("$path/$metric-srs.png")
 end
+
+scatter()
+for method in reverse(unique(metrics[:, :method])[2:end])
+    batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
+    speedup_vals = metrics[metrics.method .== "DPP", :][:, :time] ./
+                  metrics[metrics.method .== method, :][:, :time]
+    scatter!(batch_size_vals, speedup_vals, label = "DPP time / $method time",
+             alpha = 0.5, dpi=300, markerstrokewidth=0, markersize=5, xaxis=:log2,
+             xlabel = "Sample size",
+             ylabel = "Speedup")
+end
+savefig("$path/speedup-srs.png")
+
 
