@@ -43,7 +43,7 @@ makedocs(
       highlightsig = true,
       sitename = "PotentialLearning.jl",
       expandfirst = [],
-      draft = false,    
+      draft = false,
       pages = ["Home" => "index.md",
                "How to run the examples" => "how-to-run-the-examples.md",
                "Examples" => examples,
