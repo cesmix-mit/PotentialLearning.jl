@@ -56,7 +56,7 @@ function learn!(
     x0 = [log(lp.σe[1]), log(lp.σf[1]), lp.β...]
     p = [AtAe, Atbe, AtAf, Atbf, α]
     prob = Optimization.OptimizationProblem(g, x0, p)
-    sol = Optimization.solve(prob, Optim.BFGS())
+    sol = Optimization.solve(prob, OptimizationOptimisers.Adam(), maxiters = 1000)
     lp.σe .= exp(sol.u[1])
     lp.σf .= exp(sol.u[2])
     lp.β  .= sol.u[3:end]

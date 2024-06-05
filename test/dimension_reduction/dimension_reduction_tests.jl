@@ -26,13 +26,13 @@ pca = PCA(num_dim)
 @test typeof(as) <: DimensionReducer
 @test typeof(pca) <: DimensionReducer
 
-λ_as, W_as = fit(ds, as)
+λ_as, W_as = PotentialLearning.fit(ds, as)
 @test typeof(λ_as) <: Vector{Float64}
 @test typeof(W_as) <: Matrix{Float64}
 @test size(W_as, 1) == d 
 @test size(W_as, 2) == num_dim
 
-λ_pca, W_pca = fit(ds, pca)
+λ_pca, W_pca = PotentialLearning.fit(ds, pca)
 @test typeof(λ_pca) <: Vector{Float64}
 @test typeof(W_pca) <: Matrix{Float64}
 @test size(W_pca, 1) == d

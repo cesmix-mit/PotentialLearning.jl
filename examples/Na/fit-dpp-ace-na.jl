@@ -1,12 +1,8 @@
 push!(Base.LOAD_PATH, "../../")
 
-using AtomsBase
-using InteratomicPotentials
-using PotentialLearning
 using Unitful, UnitfulAtomic
-using LinearAlgebra
-using CairoMakie
-#using JLD
+using AtomsBase, InteratomicPotentials, PotentialLearning
+using LinearAlgebra, CairoMakie
 
 # Load dataset
 confs, thermo = load_data("data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))

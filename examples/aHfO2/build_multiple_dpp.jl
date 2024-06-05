@@ -1,12 +1,10 @@
 push!(Base.LOAD_PATH, "../../")
 
-using LinearAlgebra, Random, Statistics, StatsBase, Distributions
-using AtomsBase, Unitful, UnitfulAtomic
-using InteratomicPotentials, InteratomicBasisPotentials
-using CairoMakie
-using JLD
-using Determinantal
-using PotentialLearning
+using LinearAlgebra, Random
+using Statistics, StatsBase, Distributions, Determinantal
+using Unitful, UnitfulAtomic
+using AtomsBase, InteratomicPotentials, PotentialLearning
+using JLD, CairoMakie
 
 #################### Importing Data ###################
 # Import Raw Data

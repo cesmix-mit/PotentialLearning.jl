@@ -7,7 +7,7 @@ $ cd PotentialLearning.jl/examples/Na
 
 Open Julia REPL, activate ```Project.toml``` file in folder ```examples```, and chose the number of threads. E.g.
 ```bash
-$ julia --project=.. --threads=4
+$ julia --project=. --threads=4
 ```
 
 Type ```]``` in Julia REPL, and then run ```instantiate```.

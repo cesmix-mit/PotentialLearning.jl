@@ -9,8 +9,6 @@ using OrderedCollections
 using Flux
 using Zygote
 using Optimization
-using Optim
-using OptimizationOptimJL
 using OptimizationOptimisers
 using Printf
 
