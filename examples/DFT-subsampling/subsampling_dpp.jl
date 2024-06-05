@@ -1,15 +1,11 @@
 push!(Base.LOAD_PATH, "../../")
 
-using PotentialLearning
-using LinearAlgebra, Random, Statistics, StatsBase, Distributions
-using AtomsBase, Unitful, UnitfulAtomic
-using InteratomicPotentials
-using Determinantal
+using LinearAlgebra, Random, InvertedIndices
+using Statistics, StatsBase, Distributions, Determinantal
+using Unitful, UnitfulAtomic
+using AtomsBase, InteratomicPotentials, PotentialLearning
+using CSV, JLD, DataFrames
 using CairoMakie
-using InvertedIndices
-using CSV
-using JLD
-using DataFrames
 
 include("subsampling_utils.jl")
 
@@ -60,7 +56,7 @@ ds = DataSet(confs .+ e_descr .+ f_descr)
 ndata = length(ds)
 
 # Compute cross validation error from training ---------------------------------
-batch_size = [80, 40, 20]
+batch_size = [80, 40]
 sel_ind = Dict{Int64, Vector}()
 cond_num = Dict{Int64, Vector}()
 

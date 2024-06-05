@@ -1,8 +1,7 @@
 push!(Base.LOAD_PATH, "../../")
-using AtomsBase
+
 using Unitful, UnitfulAtomic
-using InteratomicPotentials
-using PotentialLearning
+using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, CairoMakie
 
 # Load dataset: Lennard-Jones + Argon
