@@ -21,15 +21,20 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/generated")
 
 examples = [
-    "Subsampling, compute descriptors, and fit ACE" => "Na/fit-dpp-ace-na"
+    "Compute ACE descriptors, subsample, and fit ACE" => "Na/fit-dpp-ace-na.jl"
 ]
 
-for (_, name) in examples
-    example_filepath = joinpath(EXAMPLES_DIR, string(name, ".jl"))
-    Literate.markdown(example_filepath, OUTPUT_DIR, documenter=true)
+for (_, example_path) in examples
+    s = split(example_path, "/")
+    sub_path, file_name = string(s[1:end-1]...), s[end]
+    example_filepath = joinpath(EXAMPLES_DIR, example_path)
+    Literate.markdown(example_filepath,
+                      joinpath(OUTPUT_DIR, sub_path),
+                      documenter = true)
 end
 
-examples = [title=>joinpath("generated", string(name, ".md")) for (title, name) in examples]
+examples = [title => joinpath("generated", replace(example_path, ".jl" => ".md"))
+            for (title, example_path) in examples]
 
 
 makedocs(
@@ -43,7 +48,7 @@ makedocs(
       highlightsig = true,
       sitename = "PotentialLearning.jl",
       expandfirst = [],
-      draft = false,    
+      draft = false,
       pages = ["Home" => "index.md",
                "How to run the examples" => "how-to-run-the-examples.md",
                "Examples" => examples,

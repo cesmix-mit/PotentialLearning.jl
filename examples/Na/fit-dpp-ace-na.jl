@@ -1,11 +1,12 @@
-push!(Base.LOAD_PATH, "../../")
+#push!(Base.LOAD_PATH, "../../")
 
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, CairoMakie
 
 # Load dataset
-confs, thermo = load_data("data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/Na/")
+confs, thermo = load_data("$path/data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
 confs, thermo = confs[220:end], thermo[220:end]
 
 # Split dataset
@@ -61,7 +62,7 @@ scatter!(ax1, e_test, e_err_test, label = "Test", markersize = 5.0)
 scatter!(ax1, e_train[dpp_inds2], e_err_train[dpp_inds2], markersize = 5.0,
          color = :darkred, label = "DPP Samples")
 axislegend(ax1)
-save("figures/energy_error_training_test_scatter.pdf", fig)
+save("$path/figures/energy_error_training_test_scatter.pdf", fig)
 display(fig)
 
 
