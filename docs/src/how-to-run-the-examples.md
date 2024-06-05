@@ -1,7 +1,6 @@
 # How to run the examples
 
 ## Add registries
-
 Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the following registries:
 ```julia
     pkg> registry add https://github.com/JuliaRegistries/General
@@ -10,32 +9,27 @@ Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the follo
     pkg> registry add https://github.com/ACEsuit/ACEregistry
 ```
 
-## Install the dependencies of the `examples` folder project
-
+## Clone repository and access an example folder
 Clone `PotentialLearning.jl` repository in your working directory.
 ```shell
     $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git
 ```
-Open a Julia REPL activating the `examples`  folder project.
+Access to any folder within `PotentialLearning.jl/examples`. E.g.
 ```shell
-    $ julia --project=PotentialLearning.jl/examples
+    $ cd PotentialLearning.jl/examples/Na
 ```
- Type `]` to enter the Pkg REPL and instantiate.
+
+## Run example
+Open a Julia REPL, activate the `examples` folder project, and define the number of threads.
+```julia
+    $ julia --project=./ --threads=4
+```
+Type `]` to enter the Pkg REPL and instantiate.
 ```julia
     pkg> instantiate
 ```
-
-## Run an example
-
-Access to any folder within `PotentialLearning.jl/examples`. E.g.
-```shell
-    $ cd PotentialLearning.jl/examples/ACE
-```
-Open a Julia REPL, activate the `examples` folder project, and define the number of threads.
-```julia
-    $ julia --project=../ --threads=4
-```
 Finally, include the example file.
 ```julia
-    julia> include("fit-ace.jl")
+    julia> include("fit-dpp-ace-na.jl")
 ```
+
