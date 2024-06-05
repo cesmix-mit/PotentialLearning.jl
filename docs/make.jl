@@ -21,7 +21,7 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/generated")
 
 examples = [
-    "Compute ACE descriptors, subsample, and fit ACE" => "Na/fit-dpp-ace-na.jl"
+    "Compute ACE descriptors, subsample, and fit ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl"
 ]
 
 for (_, example_path) in examples
