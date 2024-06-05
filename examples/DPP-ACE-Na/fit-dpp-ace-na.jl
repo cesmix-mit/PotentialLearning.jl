@@ -1,12 +1,12 @@
-#push!(Base.LOAD_PATH, "../../")
+push!(Base.LOAD_PATH, "../../")
 
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, CairoMakie
 
 # Load dataset
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/Na/")
-confs, thermo = load_data("$path/data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Na")
+confs, thermo = load_data("$path/../data/Na/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
 confs, thermo = confs[220:end], thermo[220:end]
 
 # Split dataset

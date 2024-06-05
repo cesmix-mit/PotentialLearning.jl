@@ -2,7 +2,7 @@
 
 Change the directory to the desired example folder. E.g.
 ```bash
-$ cd PotentialLearning.jl/examples/Na
+$ cd PotentialLearning.jl/examples/DPP-ACE-Na
 ```
 
 Open Julia REPL, activate ```Project.toml``` file in folder ```examples```, and chose the number of threads. E.g.
