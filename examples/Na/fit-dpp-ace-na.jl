@@ -5,7 +5,8 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, CairoMakie
 
 # Load dataset
-confs, thermo = load_data("data/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
+data_path = joinpath(dirname(pathof(PotentialLearning)), "../examples/Na/data")
+confs, thermo = load_data("$data_path/liquify_sodium.yaml", YAML(:Na, u"eV", u"Å"))
 confs, thermo = confs[220:end], thermo[220:end]
 
 # Split dataset
