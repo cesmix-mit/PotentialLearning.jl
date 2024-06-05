@@ -1,4 +1,4 @@
-push!(Base.LOAD_PATH, "../../")
+#push!(Base.LOAD_PATH, "../../")
 
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
