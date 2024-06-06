@@ -14,7 +14,6 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: "1.10"
-        shell: bash
       - name: add CESMIX registry
         run: |
           julia -e '
