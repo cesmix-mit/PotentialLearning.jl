@@ -12,8 +12,9 @@ include("subsampling_utils.jl")
 # Load dataset -----------------------------------------------------------------
 elname = "Si"
 elspec = [:Si]
-inpath = "../Si-3Body-LAMMPS/"
-outpath = "./output/$elname/"
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Si")
+inpath = "$path/../data/Si-3Body-LAMMPS/"
+outpath = "$path/output/$elname/"
 
 # Read all data
 file_arr = readext(inpath, "xyz")

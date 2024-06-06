@@ -5,7 +5,8 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, CairoMakie
 
 # Load dataset: Lennard-Jones + Argon
-ds, thermo = load_data("data/lj-ar.yaml", YAML(:Ar, u"eV", u"Å"))
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/Plot-LJ-Ar")
+ds, thermo = load_data("$path/../data/LJ-AR/lj-ar.yaml", YAML(:Ar, u"eV", u"Å"))
 
 # Filter first configuration (zero energy)
 ds = ds[2:end]
@@ -28,5 +29,5 @@ for i = 1:n_atoms
     lines!(ax1, time_range, map(x->x[i], dists_origin))
 end
 lines!(ax2, time_range, energies)
-save("figures/dist2origin-ljenergy-time.pdf", fig)
+save("$path/figures/dist2origin-ljenergy-time.pdf", fig)
 

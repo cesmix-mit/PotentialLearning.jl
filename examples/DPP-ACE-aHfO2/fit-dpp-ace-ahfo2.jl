@@ -7,9 +7,12 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using JLD, CairoMakie
 
 #################### Importing Data ###################
+
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-aHfO2")
+
 # Import Raw Data
 energies, descriptors = JLD.load(
-    "examples/aHfO2/data/aHfO2_diverse_descriptors_3600.jld",
+    "$path/../data/aHfO2/aHfO2_diverse_descriptors_3600.jld",
     "energies",
     "descriptors",
 )
