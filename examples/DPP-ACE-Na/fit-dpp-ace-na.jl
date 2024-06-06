@@ -62,7 +62,7 @@ scatter!(ax1, e_test, e_err_test, label = "Test", markersize = 5.0)
 scatter!(ax1, e_train[dpp_inds2], e_err_train[dpp_inds2], markersize = 5.0,
          color = :darkred, label = "DPP Samples")
 axislegend(ax1)
-save("$path/figures/energy_error_training_test_scatter.pdf", fig)
+#save("$path/figures/energy_error_training_test_scatter.pdf", fig)
 display(fig)
 
 
