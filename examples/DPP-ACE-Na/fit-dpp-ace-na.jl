@@ -1,8 +1,6 @@
-push!(Base.LOAD_PATH, "../../")
-
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
-using LinearAlgebra, CairoMakie
+using LinearAlgebra, Plots
 
 # Load dataset
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Na")
@@ -53,16 +51,15 @@ println("MAE: $e_mae, RMSE: $e_rmse, RSQ: $e_rsq")
 # Plot energy error scatter
 e_err_train, e_err_test = (e_train_pred - e_train), (e_test_pred - e_test)
 dpp_inds2 = get_random_subset(dpp; batch_size = 20)
-size_inches = (12, 8)
-size_pt = 72 .* size_inches
-fig = Figure(resolution = size_pt, fontsize = 16)
-ax1 = Axis(fig[1, 1], xlabel = "Energy (eV/atom)", ylabel = "Error (eV/atom)")
-scatter!(ax1, e_train, e_err_train, label = "Training", markersize = 5.0)
-scatter!(ax1, e_test, e_err_test, label = "Test", markersize = 5.0)
-scatter!(ax1, e_train[dpp_inds2], e_err_train[dpp_inds2], markersize = 5.0,
-         color = :darkred, label = "DPP Samples")
-axislegend(ax1)
-#save("$path/figures/energy_error_training_test_scatter.pdf", fig)
-display(fig)
+scatter( e_train, e_err_train, label = "Training", color = :blue,
+         markersize = 1.5, markerstrokewidth=0)
+scatter!(e_test, e_err_test, label = "Test", color = :yellow,
+         markersize = 1.5, markerstrokewidth=0)
+scatter!(e_train[dpp_inds2], e_err_train[dpp_inds2],
+         color = :green, label = "DPP Samples",
+         markersize = 2.5, markerstrokewidth=0)
+scatter!(xlabel = "Energy (eV/atom)", ylabel = "Error (eV/atom)", 
+         dpi = 1000, fontsize = 16,)
+#savefig("$path/figures/energy_error_training_test_scatter.pdf")
 
 
