@@ -1,16 +1,16 @@
 # [WIP] PotentialLearning.jl
 
-PotentialLerning.jl: **Develop Optimization Workflows for Fast and Accurate Interatomic Potentials**. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
+PotentialLerning.jl: **Developing optimization workflows for fast and accurate interatomic potentials**. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
 
 ## Goals
 
-**Optimize your atomistic data: intelligent subsampling of large atomistic data to reduce DFT computations**
+**Optimize your atomistic data: intelligent subsampling of large datasets to reduce DFT computations**
 - Intelligent subsampling of atomistic configurations using algorithms based on [DPP](https://github.com/dahtah/Determinantal.jl), [DBSCAN](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit), [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl), etc.
 - Highly scalable parallel subsampling via hierarchical subsampling and distributed parallelism ([Dagger.jl](https://github.com/JuliaParallel/Dagger.jl)).
 - Optimal subsampler choosing via [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl).
 
 **Optimize your interatomic potential model: hyperparameters, coefficients, model compression, and model selection.**
-- Parallel optimization of hyperparameters, coefficients, and model selection via [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl). Multi-objective optimization (Pareto fronts): force execution time vs fitting accuracy (e.g. MAE of energies and forces).
+- Parallel optimization of hyperparameters, coefficients, and model selection via [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl); multi-objective optimization (Pareto fronts): force execution time vs fitting accuracy (e.g. MAE of energies and forces).
 - Model compression via feature selection (e.g. [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl)) and dimensionality reduction (e.g [PCA](https://juliastats.org/MultivariateStats.jl/dev/pca/), Active Subspaces) of atomistic descriptors.
 - Fitting of linear potentials and inference of parameter uncertainties. Training of neural versions of [Julia-ACE](https://github.com/ACEsuit/ACE1.jl) and [LAMMPS-POD](https://docs.lammps.org/pair_pod.html).
 

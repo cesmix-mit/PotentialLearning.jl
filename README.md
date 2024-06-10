@@ -1,6 +1,6 @@
 ## [WIP] PotentialLearning.jl
 
-An open source Julia library for active learning of interatomic potentials in atomistic simulations of materials. It incorporates elements of bayesian inference, machine learning, differentiable programming,  software composability, and high-performance computing. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
+Developing Optimization Workflows for Fast and Accurate Interatomic Potentials. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
 
 <!--<a href="https://cesmix-mit.github.io/PotentialLearning.jl/stable">
 <img alt="Stable documentation" src="https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square">
