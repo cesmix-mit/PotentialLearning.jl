@@ -56,10 +56,8 @@ scatter( e_train, e_err_train, label = "Training", color = :blue,
 scatter!(e_test, e_err_test, label = "Test", color = :yellow,
          markersize = 1.5, markerstrokewidth=0)
 scatter!(e_train[dpp_inds2], e_err_train[dpp_inds2],
-         color = :green, label = "DPP Samples",
+         color = :darkred, label = "DPP Samples",
          markersize = 2.5, markerstrokewidth=0)
 scatter!(xlabel = "Energy (eV/atom)", ylabel = "Error (eV/atom)", 
-         dpi = 1000, fontsize = 16,)
-#savefig("$path/figures/energy_error_training_test_scatter.pdf")
-
+         dpi = 1000, fontsize = 16)
 

@@ -1,11 +1,9 @@
-push!(Base.LOAD_PATH, "../../")
-
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
-using LinearAlgebra, CairoMakie
+using LinearAlgebra, Plots
 
 # Load dataset: Lennard-Jones + Argon
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/Plot-LJ-Ar")
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/LJ-Ar")
 ds, thermo = load_data("$path/../data/LJ-AR/lj-ar.yaml", YAML(:Ar, u"eV", u"Å"))
 
 # Filter first configuration (zero energy)
@@ -19,15 +17,18 @@ dists_origin = map(x->ustrip.(norm.(x)), positions)
 energies = get_values.(get_energy.(ds))
 time_range = 0.5:0.5:5000
 
-# Plot distance from origin vs time, and LJ energies vs time
-size_inches = (12, 10)
-size_pt = 72 .* size_inches
-fig = Figure(resolution = size_pt, fontsize = 16)
-ax1 = Axis(fig[1,1], xlabel = "τ | ps", ylabel = "Distance from origin | Å")
-ax2 = Axis(fig[2,1], xlabel = "τ | ps", ylabel = "Lennard Jones energy | eV")
+# Plot distance from origin vs time
+p = plot(xlabel = "τ | ps",
+         ylabel = "Distance from origin | Å", 
+         dpi = 300, fontsize = 12)
 for i = 1:n_atoms
-    lines!(ax1, time_range, map(x->x[i], dists_origin))
+    plot!(time_range, map(x->x[i], dists_origin), label="")
 end
-lines!(ax2, time_range, energies)
-save("$path/figures/dist2origin-ljenergy-time.pdf", fig)
+p
+
+# Plot LJ energies vs time
+plot(time_range, energies,
+     xlabel = "τ | ps",
+     ylabel = "Lennard Jones energy | eV",
+     dpi = 300, fontsize = 12)
 

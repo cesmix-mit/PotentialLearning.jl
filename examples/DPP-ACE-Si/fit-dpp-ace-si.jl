@@ -1,5 +1,3 @@
-push!(Base.LOAD_PATH, "../../")
-
 using LinearAlgebra, Random, InvertedIndices
 using Statistics, StatsBase, Distributions, Determinantal
 using Unitful, UnitfulAtomic
@@ -48,8 +46,8 @@ ace = ACE(species = elspec,             # species
 
 # Update dataset by adding energy (local) descriptors --------------------------
 println("Computing local descriptors")
-@time e_descr = compute_local_descriptors(confs, ace)
-@time f_descr = compute_force_descriptors(confs, ace)
+e_descr = compute_local_descriptors(confs, ace)
+f_descr = compute_force_descriptors(confs, ace)
 JLD.save(outpath*"$(elname)_energy_descriptors.jld", "e_descr", e_descr)
 JLD.save(outpath*"$(elname)_force_descriptors.jld", "f_descr", f_descr)
 
