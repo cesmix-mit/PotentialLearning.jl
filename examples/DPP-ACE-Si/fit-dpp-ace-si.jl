@@ -3,14 +3,14 @@ using Statistics, StatsBase, Distributions, Determinantal
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using CSV, JLD, DataFrames
-using CairoMakie
 
-include("subsampling_utils.jl")
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Si")
 
-# Load dataset -----------------------------------------------------------------
+include("$path/subsampling_utils.jl")
+
+# Load dataset
 elname = "Si"
 elspec = [:Si]
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Si")
 inpath = "$path/../data/Si-3Body-LAMMPS/"
 outpath = "$path/output/$elname/"
 
@@ -29,11 +29,7 @@ for k = 1:nfile
     n += length(confs_arr[k])
 end
 
-# Read single file
-# datafile = "Hf_mp100_EOS_1D_form_sorted.xyz"
-# confs = load_data(inpath*datafile, ExtXYZ(u"eV", u"Å"))
-
-# Define ACE basis -------------------------------------------------------------
+# Define ACE basis
 nbody = 4
 deg = 5
 ace = ACE(species = elspec,             # species
@@ -44,7 +40,7 @@ ace = ACE(species = elspec,             # species
           r0 = 1.0,                     # minimum distance between atoms
           rcutoff = 10.0)
 
-# Update dataset by adding energy (local) descriptors --------------------------
+# Update dataset by adding energy and force descriptors
 println("Computing local descriptors")
 e_descr = compute_local_descriptors(confs, ace)
 f_descr = compute_force_descriptors(confs, ace)
@@ -54,7 +50,7 @@ JLD.save(outpath*"$(elname)_force_descriptors.jld", "f_descr", f_descr)
 ds = DataSet(confs .+ e_descr .+ f_descr)
 ndata = length(ds)
 
-# Compute cross validation error from training ---------------------------------
+# Compute cross validation error from training
 batch_size = [80, 40]
 sel_ind = Dict{Int64, Vector}()
 cond_num = Dict{Int64, Vector}()
@@ -62,6 +58,7 @@ cond_num = Dict{Int64, Vector}()
 for bs in batch_size
     println("=============== Starting batch size $bs ===============")
     sel_ind[bs], cond_num[bs] = cross_validation_training(ds; ndiv=5, dpp_batch=bs)
+    println("condnum: $(cond_num[bs])")
 end
 
 JLD.save(outpath*"$(elname)_ACE-$(nbody)-$(deg)_DPP_indices_and_condnum.jld",
