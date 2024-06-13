@@ -1,5 +1,5 @@
 abstract type DimensionReducer end
-export DimensionReducer, PCA, ActiveSubspace, fit, fit_transform, select_eigendirections
+export DimensionReducer, PCA, ActiveSubspace, fit, fit_transform, select_eigendirections, CUR, LinearTimeCUR, DEIMCUR, LSCUR
 """
     fit(ds::DataSet, dr::DimensionReducer)
 
@@ -28,6 +28,7 @@ end
 
 include("pca.jl")
 include("as.jl")
+include("cur.jl")
 """
     fit_transform(ds::DataSet, dr::DimensionReducer)
 
