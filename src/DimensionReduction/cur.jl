@@ -20,7 +20,7 @@ function CUR(rows::Vector{Int64}, cols::Vector{Int64})
     CUR(rows, cols)
 end
 
-function LinearTimeCUR(cur::CUR, A::Matrix{T}, k::Int64) where {T<:Number}
+function LinearTimeCUR(A::Matrix{T}, k::Int64) where {T<:Number}
     m, n = size(A)
     C = zeros(T, m, k)
     R = zeros(T, k, n)
@@ -42,12 +42,11 @@ function LinearTimeCUR(cur::CUR, A::Matrix{T}, k::Int64) where {T<:Number}
         rows[i] = sample(1:m, ProbabilityWeights(row_p))
         R[i, :] =   A[rows[i], :] ./ sqrt(k*row_p[rows[i]])
     end
-    cur.rows = rows
-    cur.cols = cols
+
     return rows, cols
 end
 
-function DEIMCUR(cur::CUR, A::Matrix{T}, k::Int64) where {T<:Number}
+function DEIMCUR(A::Matrix{T}, k::Int64) where {T<:Number}
 
     m, n = size(A)
     C = zeros(T, m, k)
@@ -72,8 +71,6 @@ function DEIMCUR(cur::CUR, A::Matrix{T}, k::Int64) where {T<:Number}
         @time mul!(V[:, i+1:k], V[:, 1:i], V_p * V[cols[i],i+1:k]')
     end
 
-    cur.rows = rows
-    cur.cols = cols
     return rows, cols  
 end
 
@@ -103,7 +100,7 @@ function LSCUR_ColSelect(::Type{T}, A::Matrix{T}, k::Int64) where {T<:Number}
     return F, idx
 end
 
-function LSCUR(cur::CUR, A::Matrix{T}, k::Int64) where {T<:Number}
+function LSCUR(A::Matrix{T}, k::Int64) where {T<:Number}
 
     m, n = size(A)
     C = zeros(T, m, k)
@@ -113,7 +110,5 @@ function LSCUR(cur::CUR, A::Matrix{T}, k::Int64) where {T<:Number}
 
     R, rows = LSCUR_ColSelect(T, Matrix(transpose(A)), k)
 
-    cur.rows = rows
-    cur.cols = cols
     return rows, cols   
 end
