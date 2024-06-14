@@ -1,6 +1,7 @@
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra, Random
+using DisplayAs
 
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/ACE-aHfO2")
 
@@ -110,13 +111,13 @@ test_metrics
 e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig path e_plot
-e_plot
+DisplayAs.PNG(e_plot)
 
 # Plot and save force results
 f_plot = plot_forces(f_train, f_train_pred,
                      f_test, f_test_pred)
 @save_fig path f_plot
-f_plot
+DisplayAs.PNG(f_plot)
 
 # Plot and save training force cosine
 e_train_plot = plot_energy(e_train, e_train_pred)
@@ -125,7 +126,7 @@ f_train_cos  = plot_cos(f_train, f_train_pred)
 @save_fig path e_train_plot
 @save_fig path f_train_plot
 @save_fig path f_train_cos
-f_train_cos
+DisplayAs.PNG(f_train_cos)
 
 # Plot and save test force cosine
 e_test_plot = plot_energy(e_test, e_test_pred)
@@ -134,5 +135,5 @@ f_test_cos  = plot_cos(f_test, f_test_pred)
 @save_fig path e_test_plot
 @save_fig path f_test_plot
 @save_fig path f_test_cos
-f_test_cos
+DisplayAs.PNG(f_test_cos)
 

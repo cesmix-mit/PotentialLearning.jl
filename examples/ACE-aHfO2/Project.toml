@@ -1,6 +1,7 @@
 [deps]
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DisplayAs = "0b91fe84-8a4c-11e9-3e1d-67c38462b6d6"
 InteratomicPotentials = "a9efe35a-c65d-452d-b8a8-82646cd5cb04"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

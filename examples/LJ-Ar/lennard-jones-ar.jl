@@ -1,6 +1,6 @@
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
-using LinearAlgebra, Plots
+using LinearAlgebra, Plots, DisplayAs
 
 # Load dataset: Lennard-Jones + Argon
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/LJ-Ar")
@@ -24,11 +24,11 @@ p = plot(xlabel = "τ | ps",
 for i = 1:n_atoms
     plot!(time_range, map(x->x[i], dists_origin), label="")
 end
-p
+DisplayAs.PNG(p)
 
 # Plot LJ energies vs time
-plot(time_range, energies,
-     xlabel = "τ | ps",
-     ylabel = "Lennard Jones energy | eV",
-     dpi = 300, fontsize = 12)
-
+p = plot(time_range, energies,
+         xlabel = "τ | ps",
+         ylabel = "Lennard Jones energy | eV",
+         dpi = 300, fontsize = 12)
+DisplayAs.PNG(p)

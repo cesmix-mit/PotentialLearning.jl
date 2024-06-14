@@ -51,7 +51,7 @@ println("MAE: $e_mae, RMSE: $e_rmse, RSQ: $e_rsq")
 # Plot energy error scatter
 e_err_train, e_err_test = (e_train_pred - e_train), (e_test_pred - e_test)
 dpp_inds2 = get_random_subset(dpp; batch_size = 20)
-scatter( e_train, e_err_train, label = "Training", color = :blue,
+p = scatter( e_train, e_err_train, label = "Training", color = :blue,
          markersize = 1.5, markerstrokewidth=0)
 scatter!(e_test, e_err_test, label = "Test", color = :yellow,
          markersize = 1.5, markerstrokewidth=0)
