@@ -41,9 +41,11 @@ basis = ACE(species           = [:Hf, :O],
 
 # Compute ACE descriptors for energy and forces based on the atomistic training configurations.
 println("Computing energy descriptors of training dataset...")
-e_descr_train = compute_local_descriptors(conf_train, basis; pbar=false)
+e_descr_train = compute_local_descriptors(conf_train, basis;
+                                          pbar=false)
 println("Computing force descriptors of training dataset...")
-f_descr_train = compute_force_descriptors(conf_train, basis; pbar=false)
+f_descr_train = compute_force_descriptors(conf_train, basis;
+                                          pbar=false)
 
 # Update training dataset by adding energy and force descriptors.
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
@@ -61,9 +63,11 @@ lb.β, lb.β0
 
 # Compute ACE descriptors for energy and forces based on the atomistic test configurations.
 println("Computing energy descriptors of test dataset...")
-e_descr_test = compute_local_descriptors(conf_test, basis; pbar = false)
+e_descr_test = compute_local_descriptors(conf_test, basis;
+                                         pbar = false)
 println("Computing force descriptors of test dataset...")
-f_descr_test = compute_force_descriptors(conf_test, basis; pbar = false)
+f_descr_test = compute_force_descriptors(conf_test, basis;
+                                         pbar = false)
 
 # Update test dataset by adding energy and force descriptors.
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
