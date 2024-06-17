@@ -1,4 +1,4 @@
-# # Fit a-HfO2 dataset with ACE
+# # Subsample a-HfO2 dataset and fit with ACE
 
 # ## Load packages, define paths, and create experiment folder.
 
@@ -8,7 +8,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
 
 # Define paths.
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/ACE-aHfO2")
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-aHfO2-1")
 ds_path =  "$path/../data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
 res_path = "$path/results/"
 
@@ -24,8 +24,37 @@ run(`mkdir -p $res_path`)
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
 # Split atomistic dataset into training and test
-n_train, n_test = 50, 50 # only 50 samples per dataset are used in this example.
+n_train, n_test = 100, 50 # Few samples per dataset are used in this example.
 conf_train, conf_test = split(ds, n_train, n_test)
+
+
+# ## Subsampling
+
+# Compute ACE descriptors for energies as subsampling input.
+basis = ACE(species           = [:Hf, :O],
+            body_order        = 2,
+            polynomial_degree = 3,
+            rcutoff           = 5.0,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0)
+e_descr = compute_local_descriptors(conf_train,
+                                    basis,
+                                    pbar = false)
+
+# Update subsampling dataset
+conf_train_kDPP = DataSet(conf_train .+ e_descr)
+
+# Create DPP subselector
+dataset_selector = kDPP(  conf_train_kDPP,
+                          GlobalMean(),
+                          DotProduct();
+                          batch_size = 50)
+
+# Subsample trainig dataset
+inds = get_random_subset(dataset_selector)
+conf_train = @views conf_train[inds]
+
 
 # ## Create ACE basis, compute descriptors and add them to the dataset.
 
