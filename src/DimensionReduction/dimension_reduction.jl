@@ -1,5 +1,6 @@
 abstract type DimensionReducer end
-export DimensionReducer, PCA, ActiveSubspace, fit, fit_transform, select_eigendirections
+export DimensionReducer, PCA, PCAState, ActiveSubspace
+export fit, fit_transform, fit!, transform!, select_eigendirections
 """
     fit(ds::DataSet, dr::DimensionReducer)
 
@@ -27,6 +28,7 @@ function select_eigendirections(d::Vector{T}, tol::Int) where {T<:Vector{<:Real}
 end
 
 include("pca.jl")
+include("pca_state.jl")
 include("as.jl")
 """
     fit_transform(ds::DataSet, dr::DimensionReducer)

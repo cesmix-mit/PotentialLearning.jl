@@ -14,7 +14,7 @@ res_path = "$path/results/"
 
 # Load utility functions.
 include("$path/../utils/utils.jl")
-include("$path/pca.jl")
+#include("$path/pca.jl")
 
 # Create experiment folder.
 run(`mkdir -p $res_path`)
