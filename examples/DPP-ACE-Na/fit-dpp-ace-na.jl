@@ -1,6 +1,6 @@
 # # Subsample Na dataset with DPP and fit energies with ACE
 
-# ## Load packages and define paths.
+# ## a. Load packages and define paths.
 
 # Load packages.
 using Unitful, UnitfulAtomic
@@ -11,7 +11,7 @@ using LinearAlgebra, Plots
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Na")
 ds_path = "$path/../data/Na/liquify_sodium.yaml";
 
-# ## a. Load atomistic dataset and split it into training and test.
+# ## b. Load atomistic dataset and split it into training and test.
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.).
 confs, thermo = load_data(ds_path, YAML(:Na, u"eV", u"Å"))
@@ -20,7 +20,7 @@ confs, thermo = confs[220:end], thermo[220:end]
 # Split atomistic dataset into training and test.
 conf_train, conf_test = confs[1:1000], confs[1001:end]
 
-# ## b. Create ACE basis, compute energy descriptors and add them to the dataset.
+# ## c. Create ACE basis, compute energy descriptors and add them to the dataset.
 
 # Create ACE basis.
 ace = ACE(species = [:Na],         # species
@@ -38,7 +38,7 @@ e_descr_train = compute_local_descriptors(conf_train, ace) # JLD.load("data/sodi
 # Update training dataset by adding energy and force descriptors.
 ds_train = DataSet(conf_train .+ e_descr_train)
 
-# ## c. Subsampling via DPP.
+# ## d. Subsampling via DPP.
 
 # Create DPP subselector.
 dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
@@ -51,7 +51,7 @@ lb = LBasisPotential(ace)
 α = 1e-8
 Σ = learn!(lb, ds_train[dpp_inds], α)
 
-# ## d. Post-process output: calculate metrics, create plots, and save results.
+# ## e. Post-process output: calculate metrics, create plots, and save results.
 
 # Update test dataset by adding energy descriptors.
 println("Computing local descriptors of test dataset")
