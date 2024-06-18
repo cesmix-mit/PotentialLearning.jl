@@ -2,14 +2,14 @@
 
 # ## Load packages and define paths.
 
-# Load packages
+# Load packages.
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, Plots
 
 # Define paths.
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Na")
-ds_path = "$path/../data/Na/liquify_sodium.yaml"
+ds_path = "$path/../data/Na/liquify_sodium.yaml";
 
 # ## Load atomistic dataset and split it into training and test.
 

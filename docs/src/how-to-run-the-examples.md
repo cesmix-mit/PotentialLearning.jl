@@ -16,7 +16,7 @@ Clone `PotentialLearning.jl` repository in your working directory.
 ```
 Access to any folder within `PotentialLearning.jl/examples`. E.g.
 ```shell
-    $ cd PotentialLearning.jl/examples/Na
+    $ cd PotentialLearning.jl/examples/DPP-ACE-aHfO2-1
 ```
 
 ## Run example
@@ -30,6 +30,6 @@ Type `]` to enter the Pkg REPL and instantiate.
 ```
 Finally, include the example file.
 ```julia
-    julia> include("fit-dpp-ace-na.jl")
+    julia> include("fit-dpp-ace-ahfo2.jl")
 ```
 

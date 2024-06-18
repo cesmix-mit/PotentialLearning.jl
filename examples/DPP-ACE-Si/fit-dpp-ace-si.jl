@@ -2,14 +2,14 @@
 
 # ## Load packages, define paths, and create experiment folder.
 
-# Load packages
+# Load packages.
 using LinearAlgebra, Random, InvertedIndices
 using Statistics, StatsBase, Distributions, Determinantal
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using CSV, JLD, DataFrames
 
-# Define atomic type information
+# Define atomic type information.
 elname, elspec = "Si", [:Si] 
 
 # Define paths.
@@ -20,7 +20,7 @@ outpath = "$path/output/$elname/"
 # Load utility functions.
 include("$path/subsampling_utils.jl")
 
-# ## Load atomistic datasets
+# ## Load atomistic datasets.
 
 # Load all atomistic datasets: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
 file_arr = readext(inpath, "xyz")
@@ -28,7 +28,7 @@ nfile = length(file_arr)
 confs_arr = [load_data(inpath*file, ExtXYZ(u"eV", u"Å")) for file in file_arr]
 confs = concat_dataset(confs_arr)
 
-# Id of configurations per file
+# Id of configurations per file.
 n = 0
 confs_id = Vector{Vector{Int64}}(undef, nfile)
 for k = 1:nfile
@@ -37,9 +37,9 @@ for k = 1:nfile
     n += length(confs_arr[k])
 end
 
-# ## Subsampling by DPP
+# ## Subsampling by DPP.
 
-# Create ACE basis
+# Create ACE basis.
 nbody = 4
 deg = 5
 ace = ACE(species = elspec,             # species
@@ -61,7 +61,7 @@ JLD.save(outpath*"$(elname)_force_descriptors.jld", "f_descr", f_descr)
 ds = DataSet(confs .+ e_descr .+ f_descr)
 ndata = length(ds)
 
-# ## Compute cross validation error from training dataset
+# ## Compute cross validation error from training dataset.
 batch_size = [80, 40]
 sel_ind = Dict{Int64, Vector}()
 cond_num = Dict{Int64, Vector}()

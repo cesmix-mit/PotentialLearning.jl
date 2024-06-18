@@ -2,7 +2,7 @@
 
 # ## Load packages, define paths, and create experiment folder.
 
-# Load packages
+# Load packages.
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
@@ -10,22 +10,22 @@ using LinearAlgebra, Random, DisplayAs
 # Define paths.
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/ACE-aHfO2")
 ds_path =  "$path/../data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
-res_path = "$path/results/"
+res_path = "$path/results/";
 
 # Load utility functions.
 include("$path/../utils/utils.jl")
 
 # Create experiment folder.
-run(`mkdir -p $res_path`)
+run(`mkdir -p $res_path`);
 
 # ## Load atomistic dataset and split it into training and test.
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
-ds = load_data(ds_path, uparse("eV"), uparse("Å"))
+ds = load_data(ds_path, uparse("eV"), uparse("Å"))[1:1000] # Only the first 1K samples are used in this example.
 
 # Split atomistic dataset into training and test
-n_train, n_test = 50, 50 # only 50 samples per dataset are used in this example.
-conf_train, conf_test = split(ds[1:1000], n_train, n_test)
+n_train, n_test = 50, 50 # Only 50 samples per dataset are used in this example.
+conf_train, conf_test = split(ds, n_train, n_test)
 
 # ## Create ACE basis, compute descriptors and add them to the dataset.
 
@@ -37,7 +37,7 @@ basis = ACE(species           = [:Hf, :O],
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
-@save_var res_path basis
+@save_var res_path basis;
 
 # Compute ACE descriptors for energy and forces based on the atomistic training configurations.
 println("Computing energy descriptors of training dataset...")
@@ -67,7 +67,7 @@ e_descr_test = compute_local_descriptors(conf_test, basis;
                                          pbar = false)
 println("Computing force descriptors of test dataset...")
 f_descr_test = compute_force_descriptors(conf_test, basis;
-                                         pbar = false)
+                                         pbar = false);
 
 # Update test dataset by adding energy and force descriptors.
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
@@ -92,9 +92,9 @@ f_test, f_test_pred = get_all_forces(ds_test),
 @save_var res_path e_test
 @save_var res_path e_test_pred
 @save_var res_path f_test
-@save_var res_path f_test_pred
+@save_var res_path f_test_pred;
 
-# Compute training metrics
+# Compute training metrics.
 e_train_metrics = get_metrics(e_train, e_train_pred,
                               metrics = [mae, rmse, rsq],
                               label = "e_train")
@@ -105,7 +105,7 @@ train_metrics = merge(e_train_metrics, f_train_metrics)
 @save_dict res_path train_metrics
 train_metrics
 
-# Compute test metrics
+# Compute test metrics.
 e_test_metrics = get_metrics(e_test, e_test_pred,
                              metrics = [mae, rmse, rsq],
                              label = "e_test")
@@ -116,19 +116,19 @@ test_metrics = merge(e_test_metrics, f_test_metrics)
 @save_dict res_path test_metrics
 test_metrics
 
-# Plot and save energy results
+# Plot and save energy results.
 e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig res_path e_plot
 DisplayAs.PNG(e_plot)
 
-# Plot and save force results
+# Plot and save force results.
 f_plot = plot_forces(f_train, f_train_pred,
                      f_test, f_test_pred)
 @save_fig res_path f_plot
 DisplayAs.PNG(f_plot)
 
-# Plot and save training force cosine
+# Plot and save training force cosine.
 e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)
 f_train_cos  = plot_cos(f_train, f_train_pred)
@@ -137,7 +137,7 @@ f_train_cos  = plot_cos(f_train, f_train_pred)
 @save_fig res_path f_train_cos
 DisplayAs.PNG(f_train_cos)
 
-# Plot and save test force cosine
+# Plot and save test force cosine.
 e_test_plot = plot_energy(e_test, e_test_pred)
 f_test_plot = plot_forces(f_test, f_test_pred)
 f_test_cos  = plot_cos(f_test, f_test_pred)

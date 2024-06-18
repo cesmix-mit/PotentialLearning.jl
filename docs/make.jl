@@ -1,4 +1,4 @@
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add PotentialLearning to environment stack
+#pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add PotentialLearning to environment stack
 
 using PotentialLearning
 using Documenter
@@ -32,11 +32,12 @@ function create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
     end
     examples = [title => joinpath("generated", replace(example_path, ".jl" => ".md"))
                 for (title, example_path) in examples]
+    return examples
 end
 
 # Basic examples
 examples = [
-    "Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-aHfO2.jl",
+    "Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-ahfo2.jl",
     "Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
 ]
 basic_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)

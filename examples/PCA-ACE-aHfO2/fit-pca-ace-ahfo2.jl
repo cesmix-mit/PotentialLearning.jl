@@ -2,7 +2,7 @@
 
 # ## Load packages, define paths, and create experiment folder.
 
-# Load packages
+# Load packages.
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
@@ -10,26 +10,26 @@ using LinearAlgebra, Random, DisplayAs
 # Define paths.
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/PCA-ACE-aHfO2")
 ds_path =  "$path/../data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
-res_path = "$path/results/"
+res_path = "$path/results/";
 
 # Load utility functions.
 include("$path/../utils/utils.jl")
 
 # Create experiment folder.
-run(`mkdir -p $res_path`)
+run(`mkdir -p $res_path`);
 
 # ## Load atomistic dataset and split it into training and test.
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
-ds = load_data(ds_path, uparse("eV"), uparse("Å"))
+ds = load_data(ds_path, uparse("eV"), uparse("Å"))[1:1000] # Only first 1K samples are used in this example.
 
-# Split atomistic dataset into training and test
-n_train, n_test = 50, 50 # only 50 samples per dataset are used in this example.
-conf_train, conf_test = split(ds[1:1000], n_train, n_test)
+# Split atomistic dataset into training and test.
+n_train, n_test = 50, 50 # Only 50 samples per dataset are used in this example.
+conf_train, conf_test = split(ds, n_train, n_test)
 
 # ## Create ACE basis, compute descriptors and add them to the dataset.
 
-# Create ACE basis
+# Create ACE basis.
 basis = ACE(species           = [:Hf, :O],
             body_order        = 3,
             polynomial_degree = 4,
@@ -37,7 +37,7 @@ basis = ACE(species           = [:Hf, :O],
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
-@save_var res_path basis
+@save_var res_path basis;
 
 # Compute ACE descriptors for energy and forces based on the atomistic training configurations.
 println("Computing energy descriptors of training dataset...")
@@ -101,7 +101,7 @@ f_test, f_test_pred = get_all_forces(ds_test),
 @save_var res_path e_test
 @save_var res_path e_test_pred
 @save_var res_path f_test
-@save_var res_path f_test_pred
+@save_var res_path f_test_pred;
 
 # Compute training metrics.
 e_train_metrics = get_metrics(e_train, e_train_pred,
