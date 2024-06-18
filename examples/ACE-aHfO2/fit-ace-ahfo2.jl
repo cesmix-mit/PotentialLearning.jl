@@ -1,6 +1,6 @@
 # # Fit a-HfO2 dataset with ACE
 
-# ## Load packages, define paths, and create experiment folder.
+# ## a. Load packages, define paths, and create experiment folder.
 
 # Load packages.
 using AtomsBase, InteratomicPotentials, PotentialLearning
@@ -18,7 +18,7 @@ include("$path/../utils/utils.jl")
 # Create experiment folder.
 run(`mkdir -p $res_path`);
 
-# ## Load atomistic dataset and split it into training and test.
+# ## b. Load atomistic dataset and split it into training and test.
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))[1:1000] # Only the first 1K samples are used in this example.
@@ -27,7 +27,7 @@ ds = load_data(ds_path, uparse("eV"), uparse("Å"))[1:1000] # Only the first 1K
 n_train, n_test = 50, 50 # Only 50 samples per dataset are used in this example.
 conf_train, conf_test = split(ds, n_train, n_test)
 
-# ## Create ACE basis, compute descriptors and add them to the dataset.
+# ## c. Create ACE basis, compute descriptors and add them to the dataset.
 
 # Create ACE basis
 basis = ACE(species           = [:Hf, :O],
@@ -50,7 +50,7 @@ f_descr_train = compute_force_descriptors(conf_train, basis;
 # Update training dataset by adding energy and force descriptors.
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 
-# ## Learn ACE coefficients based on ACE descriptors and DFT data.
+# ## d. Learn ACE coefficients based on ACE descriptors and DFT data.
 println("Learning energies and forces...")
 lb = LBasisPotential(basis)
 ws, int = [1.0, 1.0], false
@@ -59,7 +59,7 @@ learn!(lb, ds_train, ws, int)
 @save_var res_path lb.β0
 lb.β, lb.β0
 
-# ## Post-process output: calculate metrics, create plots, and save results.
+# ## e. Post-process output: calculate metrics, create plots, and save results.
 
 # Compute ACE descriptors for energy and forces based on the atomistic test configurations.
 println("Computing energy descriptors of test dataset...")

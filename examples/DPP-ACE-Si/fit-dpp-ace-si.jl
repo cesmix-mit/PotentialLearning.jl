@@ -1,6 +1,6 @@
 # # Subsample Si dataset and fit with ACE
 
-# ## Load packages, define paths, and create experiment folder.
+# ## a. Load packages, define paths, and create experiment folder.
 
 # Load packages.
 using LinearAlgebra, Random, InvertedIndices
@@ -20,7 +20,7 @@ outpath = "$path/output/$elname/"
 # Load utility functions.
 include("$path/subsampling_utils.jl")
 
-# ## Load atomistic datasets.
+# ## b. Load atomistic datasets.
 
 # Load all atomistic datasets: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
 file_arr = readext(inpath, "xyz")
@@ -37,7 +37,7 @@ for k = 1:nfile
     n += length(confs_arr[k])
 end
 
-# ## Subsampling by DPP.
+# ## c. Subsampling by DPP.
 
 # Create ACE basis.
 nbody = 4
@@ -61,7 +61,7 @@ JLD.save(outpath*"$(elname)_force_descriptors.jld", "f_descr", f_descr)
 ds = DataSet(confs .+ e_descr .+ f_descr)
 ndata = length(ds)
 
-# ## Compute cross validation error from training dataset.
+# ## d. Compute cross validation error from training dataset.
 batch_size = [80, 40]
 sel_ind = Dict{Int64, Vector}()
 cond_num = Dict{Int64, Vector}()

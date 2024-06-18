@@ -1,5 +1,3 @@
-#pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add PotentialLearning to environment stack
-
 using PotentialLearning
 using Documenter
 using DocumenterCitations
@@ -37,22 +35,22 @@ end
 
 # Basic examples
 examples = [
-    "Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-ahfo2.jl",
-    "Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
+    "1 - Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-ahfo2.jl",
+    "2 - Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
 ]
 basic_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
 # Subsampling examples
 examples = [
-    "Subsample a-HfO2 dataset with DPP and fit with ACE" => "DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl",
-    "Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
-    "Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
+    "1 - Subsample a-HfO2 dataset with DPP and fit with ACE" => "DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl",
+    "2 - Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
+    "3 - Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
 ]
 ss_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
 # Dimension reduction examples
 examples = [
-    "Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
+    "1 - Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
 ]
 dr_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
@@ -73,8 +71,8 @@ makedocs(
       pages = ["Home" => "index.md",
                "How to run the examples" => "how-to-run-the-examples.md",
                "Basic examples" => basic_examples,
-               "Subsampling examples" => ss_examples,
-               "Dimension reduction examples" => dr_examples,
+               "Optimize atomistic data via intelligent subsampling" => ss_examples,
+               "Optimize interatomic potential models via dimension reduction" => dr_examples,
                "API" => "api.md"],
       format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",

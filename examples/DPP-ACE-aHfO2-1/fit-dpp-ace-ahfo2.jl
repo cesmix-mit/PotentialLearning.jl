@@ -1,6 +1,6 @@
 # # Subsample a-HfO2 dataset and fit with ACE
 
-# ## Load packages, define paths, and create experiment folder.
+# ## a. Load packages, define paths, and create experiment folder.
 
 # Load packages.
 using AtomsBase, InteratomicPotentials, PotentialLearning
@@ -18,7 +18,7 @@ include("$path/../utils/utils.jl")
 # Create experiment folder.
 run(`mkdir -p $res_path`);
 
-# ## Load atomistic dataset and split it into training and test.
+# ## b. Load atomistic dataset and split it into training and test.
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
 ds = load_data(ds_path, uparse("eV"), uparse("Å"))
@@ -28,7 +28,7 @@ n_train, n_test = 100, 50 # Few samples per dataset are used in this example.
 conf_train, conf_test = split(ds[1:1000], n_train, n_test)
 
 
-# ## Subsampling
+# ## c. Subsampling
 
 # Compute ACE descriptors for energies as subsampling input.
 basis = ACE(species           = [:Hf, :O],
@@ -56,7 +56,7 @@ inds = get_random_subset(dataset_selector)
 conf_train = @views conf_train[inds]
 
 
-# ## Create ACE basis, compute descriptors and add them to the dataset.
+# ## d. Create ACE basis, compute descriptors and add them to the dataset.
 
 # Create ACE basis
 basis = ACE(species           = [:Hf, :O],
@@ -79,7 +79,7 @@ f_descr_train = compute_force_descriptors(conf_train, basis;
 # Update training dataset by adding energy and force descriptors.
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 
-# ## Learn ACE coefficients based on ACE descriptors and DFT data.
+# ## e. Learn ACE coefficients based on ACE descriptors and DFT data.
 println("Learning energies and forces...")
 lb = LBasisPotential(basis)
 ws, int = [1.0, 1.0], false
@@ -88,7 +88,7 @@ learn!(lb, ds_train, ws, int)
 @save_var res_path lb.β0
 lb.β, lb.β0
 
-# ## Post-process output: calculate metrics, create plots, and save results.
+# ## f. Post-process output: calculate metrics, create plots, and save results.
 
 # Compute ACE descriptors for energy and forces based on the atomistic test configurations.
 println("Computing energy descriptors of test dataset...")
