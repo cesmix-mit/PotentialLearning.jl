@@ -25,6 +25,7 @@ examples = [
     "Subsample a-HfO2 dataset with DPP and fit with ACE" => "DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl",
     "Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
     "Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
+    "Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
     "Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
 ]
 

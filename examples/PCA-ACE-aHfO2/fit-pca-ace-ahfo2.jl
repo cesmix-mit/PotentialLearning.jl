@@ -1,4 +1,4 @@
-# # Fit a-HfO2 dataset with ACE
+# # Reduce ACE descriptors with PCA and fit a-HfO2 dataset
 
 # ## Load packages, define paths, and create experiment folder.
 
@@ -8,7 +8,7 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
 
 # Define paths.
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/ACE-aHfO2")
+path = joinpath(dirname(pathof(PotentialLearning)), "../examples/PCA-ACE-aHfO2")
 ds_path =  "$path/../data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
 res_path = "$path/results/"
 
@@ -50,10 +50,16 @@ f_descr_train = compute_force_descriptors(conf_train, basis;
 # Update training dataset by adding energy and force descriptors.
 ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train)
 
+# ## Dimension reduction of energy and force descriptors of training dataset.
+n_desc = 20
+pca = PCAState(tol = n_desc)
+fit!(ds_train, pca)
+transform!(ds_train, pca)
+
 # ## Learn ACE coefficients based on ACE descriptors and DFT data.
 println("Learning energies and forces...")
 lb = LBasisPotential(basis)
-ws, int = [1.0, 1.0], false
+ws, int = [1.0, 1.0], true
 learn!(lb, ds_train, ws, int)
 @save_var res_path lb.β
 @save_var res_path lb.β0
@@ -71,6 +77,9 @@ f_descr_test = compute_force_descriptors(conf_test, basis;
 
 # Update test dataset by adding energy and force descriptors.
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test)
+
+# **Dimension reduction of energy and force descriptors of test dataset.**
+transform!(ds_test, pca)
 
 # Get true and predicted values for energies and forces.
 n_atoms_train = length.(get_system.(ds_train))
@@ -94,7 +103,7 @@ f_test, f_test_pred = get_all_forces(ds_test),
 @save_var res_path f_test
 @save_var res_path f_test_pred
 
-# Compute training metrics
+# Compute training metrics.
 e_train_metrics = get_metrics(e_train, e_train_pred,
                               metrics = [mae, rmse, rsq],
                               label = "e_train")
@@ -105,7 +114,7 @@ train_metrics = merge(e_train_metrics, f_train_metrics)
 @save_dict res_path train_metrics
 train_metrics
 
-# Compute test metrics
+# Compute test metrics.
 e_test_metrics = get_metrics(e_test, e_test_pred,
                              metrics = [mae, rmse, rsq],
                              label = "e_test")
@@ -116,19 +125,19 @@ test_metrics = merge(e_test_metrics, f_test_metrics)
 @save_dict res_path test_metrics
 test_metrics
 
-# Plot and save energy results
+# Plot and save energy results.
 e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig res_path e_plot
 DisplayAs.PNG(e_plot)
 
-# Plot and save force results
+# Plot and save force results.
 f_plot = plot_forces(f_train, f_train_pred,
                      f_test, f_test_pred)
 @save_fig res_path f_plot
 DisplayAs.PNG(f_plot)
 
-# Plot and save training force cosine
+# Plot and save training force cosine.
 e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)
 f_train_cos  = plot_cos(f_train, f_train_pred)
@@ -137,7 +146,7 @@ f_train_cos  = plot_cos(f_train, f_train_pred)
 @save_fig res_path f_train_cos
 DisplayAs.PNG(f_train_cos)
 
-# Plot and save test force cosine
+# Plot and save test force cosine.
 e_test_plot = plot_energy(e_test, e_test_pred)
 f_test_plot = plot_forces(f_test, f_test_pred)
 f_test_cos  = plot_cos(f_test, f_test_pred)
