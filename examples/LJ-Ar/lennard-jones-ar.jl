@@ -1,21 +1,21 @@
 # # Load Ar dataset with energies computed by Lennard-Jones and postprocess
 
-# ## Load packages and define paths
+# ## a. Load packages and define paths.
 
-# Load packages
+# Load packages.
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, Plots, DisplayAs
 
 # Define paths.
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/LJ-Ar")
-ds_path = "$path/../data/LJ-AR/lj-ar.yaml"
+ds_path = "$path/../data/LJ-AR/lj-ar.yaml";
 
-# ## Load atomistic dataset
+# ## b. Load atomistic dataset.
 ds, thermo = load_data(ds_path, YAML(:Ar, u"eV", u"Å"))
 ds = @views ds[2:end] # Filter first configuration (zero energy)
 
-# ## Compute distance from origin, extract LJ energies, and define time range.
+# ## c. Compute distance from origin, extract LJ energies, and define time range.
 
 # Get atom positions and compute distance from origin.
 systems = get_system.(ds)
@@ -23,15 +23,15 @@ n_atoms = length(first(systems)) # Note: in this dataset all systems contain the
 positions = position.(systems)
 dists_origin = map(x->ustrip.(norm.(x)), positions)
 
-# Extract LJ energies from dataset
+# Extract LJ energies from dataset.
 energies = get_values.(get_energy.(ds))
 
-# Define time range
+# Define time range.
 time_range = 0.5:0.5:5000
 
-# ## Post-process data.
+# ## d. Post-process data.
 
-# Plot distance from origin vs time
+# Plot distance from origin vs time.
 p = plot(xlabel = "τ | ps",
          ylabel = "Distance from origin | Å", 
          dpi = 300, fontsize = 12)
@@ -40,7 +40,7 @@ for i = 1:n_atoms
 end
 DisplayAs.PNG(p)
 
-# Plot LJ energies vs time
+# Plot LJ energies vs time.
 p = plot(time_range, energies,
          xlabel = "τ | ps",
          ylabel = "Lennard Jones energy | eV",
