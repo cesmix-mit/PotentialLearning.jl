@@ -1,26 +1,34 @@
+# # Subsample Si dataset and fit with ACE
+
+# ## a. Load packages, define paths, and create experiment folder.
+
+# Load packages.
 using LinearAlgebra, Random, InvertedIndices
 using Statistics, StatsBase, Distributions, Determinantal
 using Unitful, UnitfulAtomic
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using CSV, JLD, DataFrames
 
+# Define atomic type information.
+elname, elspec = "Si", [:Si] 
+
+# Define paths.
 path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Si")
-
-include("$path/subsampling_utils.jl")
-
-# Load dataset
-elname = "Si"
-elspec = [:Si]
 inpath = "$path/../data/Si-3Body-LAMMPS/"
 outpath = "$path/output/$elname/"
 
-# Read all data
+# Load utility functions.
+include("$path/subsampling_utils.jl")
+
+# ## b. Load atomistic datasets.
+
+# Load all atomistic datasets: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
 file_arr = readext(inpath, "xyz")
 nfile = length(file_arr)
 confs_arr = [load_data(inpath*file, ExtXYZ(u"eV", u"Å")) for file in file_arr]
 confs = concat_dataset(confs_arr)
 
-# Id of configurations per file
+# Id of configurations per file.
 n = 0
 confs_id = Vector{Vector{Int64}}(undef, nfile)
 for k = 1:nfile
@@ -29,7 +37,9 @@ for k = 1:nfile
     n += length(confs_arr[k])
 end
 
-# Define ACE basis
+# ## c. Subsampling by DPP.
+
+# Create ACE basis.
 nbody = 4
 deg = 5
 ace = ACE(species = elspec,             # species
@@ -40,17 +50,18 @@ ace = ACE(species = elspec,             # species
           r0 = 1.0,                     # minimum distance between atoms
           rcutoff = 10.0)
 
-# Update dataset by adding energy and force descriptors
+# Compute ACE descriptors for energies and forces.
 println("Computing local descriptors")
-e_descr = compute_local_descriptors(confs, ace)
-f_descr = compute_force_descriptors(confs, ace)
+e_descr = compute_local_descriptors(confs, ace; pbar=false)
+f_descr = compute_force_descriptors(confs, ace; pbar=false)
 JLD.save(outpath*"$(elname)_energy_descriptors.jld", "e_descr", e_descr)
 JLD.save(outpath*"$(elname)_force_descriptors.jld", "f_descr", f_descr)
 
+# Update training dataset by adding energy and force descriptors.
 ds = DataSet(confs .+ e_descr .+ f_descr)
 ndata = length(ds)
 
-# Compute cross validation error from training
+# ## d. Compute cross validation error from training dataset.
 batch_size = [80, 40]
 sel_ind = Dict{Int64, Vector}()
 cond_num = Dict{Int64, Vector}()

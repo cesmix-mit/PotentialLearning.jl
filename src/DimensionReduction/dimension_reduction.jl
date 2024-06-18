@@ -1,5 +1,9 @@
 abstract type DimensionReducer end
-export DimensionReducer, PCA, ActiveSubspace, fit, fit_transform, select_eigendirections, CUR, LinearTimeCUR, DEIMCUR, LSCUR
+
+export DimensionReducer, PCA, PCAState, ActiveSubspace
+export CUR, LinearTimeCUR, DEIMCUR, LSCUR
+export fit, fit_transform, fit!, transform!, select_eigendirections
+
 """
     fit(ds::DataSet, dr::DimensionReducer)
 
@@ -11,6 +15,7 @@ function compute_eigen(d::Vector{T}) where {T<:Vector{<:Real}}
     Q = Symmetric(mean(di * di' for di in d))
     eigen(Symmetric(Q))
 end
+
 function select_eigendirections(d::Vector{T}, tol::Float64) where {T<:Vector{<:Real}}
     λ, ϕ = compute_eigen(d)
     λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder
@@ -18,6 +23,7 @@ function select_eigendirections(d::Vector{T}, tol::Float64) where {T<:Vector{<:R
     W = ϕ[:, Σ.>tol]
     λ, W
 end
+
 function select_eigendirections(d::Vector{T}, tol::Int) where {T<:Vector{<:Real}}
     λ, ϕ = compute_eigen(d)
     λ, ϕ = λ[end:-1:1], ϕ[:, end:-1:1] # reorder
@@ -27,8 +33,10 @@ function select_eigendirections(d::Vector{T}, tol::Int) where {T<:Vector{<:Real}
 end
 
 include("pca.jl")
+include("pca_state.jl")
 include("as.jl")
 include("cur.jl")
+
 """
     fit_transform(ds::DataSet, dr::DimensionReducer)
 

@@ -1,6 +1,7 @@
 # [WIP] PotentialLearning.jl
 
-**Developing optimization workflows for fast and accurate interatomic potentials**. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
+**Composable optimization workflows for fast and accurate interatomic potentials**. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
+
 
 ## Goals
 

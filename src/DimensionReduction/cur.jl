@@ -9,7 +9,6 @@ large-scale data analysis.
 Three varients of CUR are implemented in PotentialLearning.jl: LinearTimeCUR, DEIMCUR, and LSCUR.
 
 """
-using StatsBase
 
 struct CUR{T<:Real} <: DimensionReducer
     rows::Vector{Int64}

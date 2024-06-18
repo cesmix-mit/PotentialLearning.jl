@@ -1,5 +1,3 @@
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add PotentialLearning to environment stack
-
 using PotentialLearning
 using Documenter
 using DocumenterCitations
@@ -12,33 +10,51 @@ DocMeta.setdocmeta!(
     recursive = true,
 )
 
+# Citations ####################################################################
 
 bib = CitationBibliography(joinpath(@__DIR__, "citation.bib"))
 
-# Generate examples
+# Generate examples ############################################################
 
 const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/generated")
 
-examples = [
-    "Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-aHfO2.jl",
-    "Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
-    "Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
-    "Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
-]
-
-for (_, example_path) in examples
-    s = split(example_path, "/")
-    sub_path, file_name = string(s[1:end-1]...), s[end]
-    example_filepath = joinpath(EXAMPLES_DIR, example_path)
-    Literate.markdown(example_filepath,
-                      joinpath(OUTPUT_DIR, sub_path),
-                      documenter = true)
+function create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
+    for (_, example_path) in examples
+        s = split(example_path, "/")
+        sub_path, file_name = string(s[1:end-1]...), s[end]
+        example_filepath = joinpath(EXAMPLES_DIR, example_path)
+        Literate.markdown(example_filepath,
+                          joinpath(OUTPUT_DIR, sub_path),
+                          documenter = true)
+    end
+    examples = [title => joinpath("generated", replace(example_path, ".jl" => ".md"))
+                for (title, example_path) in examples]
+    return examples
 end
 
-examples = [title => joinpath("generated", replace(example_path, ".jl" => ".md"))
-            for (title, example_path) in examples]
+# Basic examples
+examples = [
+    "1 - Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-ahfo2.jl",
+    "2 - Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
+]
+basic_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
+# Subsampling examples
+examples = [
+    "1 - Subsample a-HfO2 dataset with DPP and fit with ACE" => "DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl",
+    "2 - Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
+    "3 - Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
+]
+ss_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
+
+# Dimension reduction examples
+examples = [
+    "1 - Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
+]
+dr_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
+
+# Make and deploy docs #########################################################
 
 makedocs(
       root    =  joinpath(dirname(pathof(PotentialLearning)), "..", "docs"),
@@ -54,7 +70,9 @@ makedocs(
       draft = false,
       pages = ["Home" => "index.md",
                "How to run the examples" => "how-to-run-the-examples.md",
-               "Examples" => examples,
+               "Basic examples" => basic_examples,
+               "Optimize atomistic data via intelligent subsampling" => ss_examples,
+               "Optimize interatomic potential models via dimension reduction" => dr_examples,
                "API" => "api.md"],
       format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
@@ -69,3 +87,4 @@ deploydocs(;
     devbranch = "main",
     push_preview = true,
 )
+
