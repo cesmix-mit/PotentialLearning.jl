@@ -25,7 +25,7 @@ ds = load_data(ds_path, uparse("eV"), uparse("Å"))
 
 # Split atomistic dataset into training and test
 n_train, n_test = 100, 50 # Few samples per dataset are used in this example.
-conf_train, conf_test = split(ds, n_train, n_test)
+conf_train, conf_test = split(ds[1:1000], n_train, n_test)
 
 
 # ## Subsampling
@@ -61,7 +61,7 @@ conf_train = @views conf_train[inds]
 # Create ACE basis
 basis = ACE(species           = [:Hf, :O],
             body_order        = 3,
-            polynomial_degree = 3,
+            polynomial_degree = 4,
             rcutoff           = 5.0,
             wL                = 1.0,
             csp               = 1.0,
