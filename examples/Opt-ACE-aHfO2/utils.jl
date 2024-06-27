@@ -27,9 +27,9 @@ function get_results(ho)
 end
 
 # Plot fitting error vs force time (Pareto front)
-function plot_err_time(ho)
-    error      = [r[2][:error] for r in ho.results]
-    times      = [r[2][:time_us] for r in ho.results]
+function plot_err_time(res)
+    error      = res[!, :error] 
+    times      = res[!, :time_us]
     scatter(times,
             error,
             label = "",
@@ -37,7 +37,8 @@ function plot_err_time(ho)
             yaxis = "we MSE(E, E') + wf MSE(F, F')")
 end
 
-function hyper_loss(p)
+
+function loss(p)
     err, e_mae, f_mae, time_us = p[1], p[2], p[3], p[4]
     e_mae_max, f_mae_max = 0.05, 0.05
     if e_mae < e_mae_max && f_mae < f_mae_max
@@ -48,14 +49,27 @@ function hyper_loss(p)
     return loss
 end
 
-# hyperlearn!
-function hyperlearn!(n_samples, model, pars, conf_train;
-                     ws = [1.0, 1.0], int = true, loss = hyper_loss)
+function get_species(confs)
+    return unique(vcat(unique.(atomic_symbol.(get_system.(confs)))...))
+end
 
-    s = "ho = Hyperoptimizer($n_samples," * join("$k = $v, " for (k, v) in pars) * ")"
+create_ho(x) = Hyperoptimizer(1)
+
+# hyperlearn!
+function hyperlearn!(model, pars, conf_train;
+                     n_samples = 5, sampler = RandomSampler(), loss = loss,
+                     ws = [1.0, 1.0], int = true)
+
+    s = "create_ho(sampler) = Hyperoptimizer($n_samples, sampler, " *
+         join("$k = $v, " for (k, v) in pars) * ")"
     eval(Meta.parse(s))
+    ho = Base.invokelatest(create_ho, sampler)
+    if (ho.sampler isa LHSampler) || (ho.sampler isa CLHSampler)
+        Hyperopt.init!(ho.sampler, ho)
+    end
+    species = get_species(conf_train)
     for (i, state...) in ho
-        basis = model(; state...)
+        basis = model(; species = species, state...)
         iap = LBasisPotential(basis)
         ## Compute energy and force descriptors
         e_descr_new = compute_local_descriptors(conf_train, iap.basis, pbar = false)
@@ -71,7 +85,8 @@ function hyperlearn!(n_samples, model, pars, conf_train;
         f_mae, f_rmse, f_rsq = calc_metrics(f_pred, f)
         time_us  = estimate_time(conf_train, iap) * 10^6
         err = ws[1] * e_rmse^2 + ws[2] * f_rmse^2
-        metrics  = OrderedDict( :e_mae     => e_mae,
+        metrics  = OrderedDict( :error     => err,
+                                :e_mae     => e_mae,
                                 :e_rmse    => e_rmse,
                                 :e_rsq     => e_rsq,
                                 :f_mae     => f_mae,
