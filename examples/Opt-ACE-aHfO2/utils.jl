@@ -28,16 +28,6 @@ end
 
 # Plot fitting error vs force time (Pareto front)
 function plot_err_time(res)
-    error      = res[!, :error] 
-    times      = res[!, :time_us]
-    scatter(times,
-            error,
-            label = "",
-            xaxis = "Time per force per atom | µs",
-            yaxis = "we MAE(E, E') + wf MAE(F, F')")
-end
-
-function plot_err_time(res)
     e_mae = res[!, :e_mae]
     f_mae = res[!, :f_mae]
     times = res[!, :time_us]
@@ -69,17 +59,6 @@ function plot_err_time(res)
           ylabel = "MAE")
 end
 
-
-function loss(p)
-    err, e_mae, f_mae, time_us = p[1], p[2], p[3], p[4]
-    e_mae_max, f_mae_max = 0.05, 0.05
-    if e_mae < e_mae_max && f_mae < f_mae_max
-       loss = time_us
-    else
-       loss = time_us + err * 10^3
-    end
-    return loss
-end
 
 function get_species(confs)
     return unique(vcat(unique.(atomic_symbol.(get_system.(confs)))...))
@@ -126,7 +105,7 @@ function hyperlearn!(model, pars, conf_train;
                                 :f_rsq     => f_rsq,
                                 :time_us   => time_us)
         ## Compute multi-objetive loss based on error and time
-        l = loss([err, e_mae, f_mae, time_us])
+        l = loss(metrics)
         ## Print results
         print("E_MAE:$(round(e_mae; digits=3)), ")
         print("F_MAE:$(round(f_mae; digits=3)), ")

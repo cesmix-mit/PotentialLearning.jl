@@ -32,7 +32,23 @@ conf_train, conf_test = split(ds, n_train, n_test)
 
 # ## c. Hyper-parameter optimization.
 
-# Define the model and hyper-parameter value ranges to be optimized.
+# Define loss function. Here, we minimize error and time.
+function loss(metrics)
+    e_mae_max = 0.05
+    f_mae_max = 0.05
+    err       = metrics[:error] # weighted error: w_e * e_mae + w_f * f_mae
+    e_mae     = metrics[:e_mae]
+    f_mae     = metrics[:f_mae]
+    time_us   = metrics[:time_us]
+    if e_mae < e_mae_max && f_mae < f_mae_max
+       loss = time_us
+    else
+       loss = time_us + err * 10^3
+    end
+    return loss
+end
+
+# Define model and hyper-parameter value ranges to be optimized.
 model = ACE
 pars = OrderedDict( :body_order        => [2, 3, 4],
                     :polynomial_degree => [3, 4, 5],
@@ -40,18 +56,20 @@ pars = OrderedDict( :body_order        => [2, 3, 4],
                     :wL                => [0.5, 1.0, 1.5],
                     :csp               => [0.5, 1.0, 1.5],
                     :r0                => [0.5, 1.0, 1.5]);
+
 # Use random sampling to find the optimal hyper-parameters.
 iap, res = hyperlearn!(model, pars, conf_train; 
                        n_samples = 10, sampler = RandomSampler(),
                        ws = [1.0, 1.0], int = true)
 
+# Save and show results.
 @save_var res_path iap.β
 @save_var res_path iap.β0
 @save_var res_path iap.basis
 @save_dataframe res_path res
 res
 
-# Plot error vs time
+# Plot error vs time.
 err_time = plot_err_time(res)
 @save_fig res_path err_time
 DisplayAs.PNG(err_time)
@@ -62,13 +80,14 @@ iap, res = hyperlearn!(model, pars, conf_train;
                        n_samples = 3, sampler = LHSampler(),
                        ws = [1.0, 1.0], int = true)
 
+# Save and show results.
 @save_var res_path iap.β
 @save_var res_path iap.β0
 @save_var res_path iap.basis
 @save_dataframe res_path res
 res
 
-# Plot error vs time
+# Plot error vs time.
 err_time = plot_err_time(res)
 @save_fig res_path err_time
 DisplayAs.PNG(err_time)
