@@ -60,7 +60,7 @@ pars = OrderedDict( :body_order        => [2, 3, 4],
 # Use random sampling to find the optimal hyper-parameters.
 iap, res = hyperlearn!(model, pars, conf_train; 
                        n_samples = 10, sampler = RandomSampler(),
-                       ws = [1.0, 1.0], int = true)
+                       loss = loss, ws = [1.0, 1.0], int = true)
 
 # Save and show results.
 @save_var res_path iap.β

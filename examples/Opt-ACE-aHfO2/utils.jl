@@ -26,39 +26,6 @@ function get_results(ho)
     return sort!(results)
 end
 
-# Plot fitting error vs force time (Pareto front)
-function plot_err_time(res)
-    e_mae = res[!, :e_mae]
-    f_mae = res[!, :f_mae]
-    times = res[!, :time_us]
-    plot(times,
-         e_mae,
-         seriestype = :scatter,
-         alpha = 0.55,
-         thickness_scaling = 1.35,
-         markersize = 3,
-         markerstrokewidth = 1,
-         markerstrokecolor = :black,
-         markershape = :circle,
-         markercolor = :gray,
-         label = "MAE(E_Pred, E_DFT)")
-    plot!(times,
-          f_mae,
-          seriestype = :scatter,
-          alpha = 0.55,
-          thickness_scaling = 1.35,
-          markersize = 3,
-          markerstrokewidth = 1,
-          markerstrokecolor = :red,
-          markershape = :utriangle,
-          markercolor = :red2,
-          label = "MAE(F_Pred, F_DFT)")
-    plot!(dpi = 300,
-          label = "",
-          xlabel = "Time per force per atom | µs",
-          ylabel = "MAE")
-end
-
 
 function get_species(confs)
     return unique(vcat(unique.(atomic_symbol.(get_system.(confs)))...))
@@ -68,8 +35,8 @@ create_ho(x) = Hyperoptimizer(1)
 
 # hyperlearn!
 function hyperlearn!(model, pars, conf_train;
-                     n_samples = 5, sampler = RandomSampler(), loss = loss,
-                     ws = [1.0, 1.0], int = true)
+                     n_samples = 5, sampler = RandomSampler(),
+                     loss = loss, ws = [1.0, 1.0], int = true)
 
     s = "create_ho(sampler) = Hyperoptimizer($n_samples, sampler, " *
          join("$k = $v, " for (k, v) in pars) * ")"
