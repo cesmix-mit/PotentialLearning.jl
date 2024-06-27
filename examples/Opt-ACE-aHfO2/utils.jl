@@ -34,7 +34,39 @@ function plot_err_time(res)
             error,
             label = "",
             xaxis = "Time per force per atom | µs",
-            yaxis = "we MSE(E, E') + wf MSE(F, F')")
+            yaxis = "we MAE(E, E') + wf MAE(F, F')")
+end
+
+function plot_err_time(res)
+    e_mae = res[!, :e_mae]
+    f_mae = res[!, :f_mae]
+    times = res[!, :time_us]
+    plot(times,
+         e_mae,
+         seriestype = :scatter,
+         alpha = 0.55,
+         thickness_scaling = 1.35,
+         markersize = 3,
+         markerstrokewidth = 1,
+         markerstrokecolor = :black,
+         markershape = :circle,
+         markercolor = :gray,
+         label = "MAE(E_Pred, E_DFT)")
+    plot!(times,
+          f_mae,
+          seriestype = :scatter,
+          alpha = 0.55,
+          thickness_scaling = 1.35,
+          markersize = 3,
+          markerstrokewidth = 1,
+          markerstrokecolor = :red,
+          markershape = :utriangle,
+          markercolor = :red2,
+          label = "MAE(F_Pred, F_DFT)")
+    plot!(dpi = 300,
+          label = "",
+          xlabel = "Time per force per atom | µs",
+          ylabel = "MAE")
 end
 
 
