@@ -200,3 +200,17 @@ function compute_force_descriptors(
     return f_des
 end
 
+# Get species from a dataset ###################################################
+"""
+function get_species(
+    ds::DataSet
+)
+
+Get species from a dataset.
+"""
+function get_species(
+    ds::DataSet
+)
+    return unique(vcat(unique.(atomic_symbol.(get_system.(ds)))...))
+end
+

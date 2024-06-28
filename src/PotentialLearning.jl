@@ -6,6 +6,8 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Statistics, Random, Distributions
 using StaticArrays
 using OrderedCollections
+using DataFrames
+using Hyperopt
 using Flux
 using Zygote
 using Optimization
@@ -32,6 +34,9 @@ include("DimensionReduction/dimension_reduction.jl")
 
 # Learning problems 
 include("Learning/learning.jl")
+
+# Learning problems 
+include("HyperLearning/hyperlearning.jl")
 
 # Metrics 
 include("Metrics/metrics.jl") 
