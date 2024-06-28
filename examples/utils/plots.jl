@@ -238,3 +238,46 @@ function plot_cos(
     return p
 end
 
+
+"""
+    plot_err_time(
+        res
+    )
+
+`res`: Dataframe with fitting error and force time information.
+
+Returns a plot with fitting errors vs force times. Required in hyper-parameter optimization.
+
+"""
+function plot_err_time(res)
+    e_mae = res[!, :e_mae]
+    f_mae = res[!, :f_mae]
+    times = res[!, :time_us]
+    plot(times,
+         e_mae,
+         seriestype = :scatter,
+         alpha = 0.55,
+         thickness_scaling = 1.35,
+         markersize = 3,
+         markerstrokewidth = 1,
+         markerstrokecolor = :black,
+         markershape = :circle,
+         markercolor = :gray,
+         label = "MAE(E_Pred, E_DFT) | eV/atom")
+    plot!(times,
+          f_mae,
+          seriestype = :scatter,
+          alpha = 0.55,
+          thickness_scaling = 1.35,
+          markersize = 3,
+          markerstrokewidth = 1,
+          markerstrokecolor = :red,
+          markershape = :utriangle,
+          markercolor = :red2,
+          label = "MAE(F_Pred, F_DFT) | eV/Å")
+    plot!(dpi = 300,
+          label = "",
+          xlabel = "Time per force per atom | µs",
+          ylabel = "MAE")
+end
+

@@ -6,9 +6,11 @@ version = "0.2.3"
 [deps]
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Determinantal = "2673d5e8-682c-11e9-2dfd-471b09c6c819"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Hyperopt = "93e5fe13-2215-51db-baaf-2e9a34fb2712"
 InteratomicPotentials = "a9efe35a-c65d-452d-b8a8-82646cd5cb04"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -26,5 +28,5 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-julia = ">= 1.10"
 InteratomicPotentials = ">= 0.2.9"
+julia = ">= 1.10"

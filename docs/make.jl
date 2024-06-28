@@ -48,6 +48,12 @@ examples = [
 ]
 ss_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
+# Optimization examples
+examples = [
+    "1 - Optimize ACE hyper-parameters: minimize force time and fitting error" => "Opt-ACE-aHfO2/fit-opt-ace-ahfo2.jl",
+]
+opt_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
+
 # Dimension reduction examples
 examples = [
     "1 - Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
@@ -72,6 +78,7 @@ makedocs(
                "How to run the examples" => "how-to-run-the-examples.md",
                "Basic examples" => basic_examples,
                "Optimize atomistic data via intelligent subsampling" => ss_examples,
+               "Optimize interatomic potential models via hyper-paramter optimization" => opt_examples,
                "Optimize interatomic potential models via dimension reduction" => dr_examples,
                "API" => "api.md"],
       format = Documenter.HTML(;
