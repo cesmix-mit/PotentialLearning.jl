@@ -32,19 +32,18 @@ conf_train, conf_test = split(ds, n_train, n_test)
 # ## c. Hyper-parameter optimization.
 
 # Define a custom loss function. Here, we minimize fitting error and force calculation time.
-function hyperloss(
-    metrics::OrderedDict;
-    w_e       = 1.0,
-    w_f       = 1.0,
-    w_t       = 1.0E-3,
-    e_mae_max = 0.05,
-    f_mae_max = 0.05
+# Possible metrics are `e_mae`, `e_rmse`, `e_rsq`, `f_mae`, `f_rmse`, `f_rsq`, and `time_us`.
+function custom_loss(
+    metrics::OrderedDict
 )
     e_mae     = metrics[:e_mae]
     f_mae     = metrics[:f_mae]
     time_us   = metrics[:time_us]
-    w_e = w_e * e_mae/e_mae_max
-    w_f = w_f * f_mae/f_mae_max
+    e_mae_max = 0.05 # eV/atom
+    f_mae_max = 0.05 # eV/Å
+    w_e       = e_mae/e_mae_max
+    w_f       = f_mae/f_mae_max
+    w_t       = 1.0E-3
     loss = w_e * e_mae + w_f * e_mae + w_t * time_us
     return loss
 end;
@@ -61,7 +60,7 @@ pars = OrderedDict( :body_order        => [2, 3, 4],
 # Use random sampling to find the optimal hyper-parameters.
 iap, res = hyperlearn!(model, pars, conf_train; 
                        n_samples = 10, sampler = RandomSampler(),
-                       loss = hyperloss, ws = [1.0, 1.0], int = true);
+                       loss = custom_loss, ws = [1.0, 1.0], int = true);
 
 # Save and show results.
 @save_var res_path iap.β
@@ -79,7 +78,7 @@ DisplayAs.PNG(err_time)
 # Alternatively, use latin hypercube sampling to find the optimal hyper-parameters.
 iap, res = hyperlearn!(model, pars, conf_train; 
                        n_samples = 3, sampler = LHSampler(),
-                       loss = hyperloss, ws = [1.0, 1.0], int = true);
+                       loss = custom_loss, ws = [1.0, 1.0], int = true);
 
 # Save and show results.
 @save_var res_path iap.β
