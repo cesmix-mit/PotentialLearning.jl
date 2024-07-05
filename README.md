@@ -1,6 +1,7 @@
-## [WIP] PotentialLearning.jl
 
-Composable Optimization Workflows for Fast and Accurate Interatomic Potentials. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
+## PotentialLearning.jl 
+
+Optimize your atomistic data and interatomic potential models in your molecular dynamics workflows.
 
 <!--<a href="https://cesmix-mit.github.io/PotentialLearning.jl/stable">
 <img alt="Stable documentation" src="https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square">
@@ -14,7 +15,39 @@ Composable Optimization Workflows for Fast and Accurate Interatomic Potentials. 
 <a href="https://github.com/cesmix-mit/PotentialLearning.jl/issues/new">
 <img alt="Ask us anything" src="https://img.shields.io/badge/Ask%20us-anything-1abc9c.svg?style=flat-square">
 </a>
-<a href="https://github.com/cesmix-mit/PotentialLearning.jl/releases">
-<img alt="GitHub tag (latest SemVer pre-release)" src="https://img.shields.io/github/v/tag/cesmix-mit/PotentialLearning.jl?include_prereleases&label=latest%20version&logo=github&sort=semver&style=flat-square">
-</a>
+</a> 
+<br />
+<br />
+
+**Reduce expensive Density Functional Theory (DFT) calculations** while maintaining training accuracy by intelligently reducing your atomistic dataset.
+
+```julia
+# Reduce your atomistic dataset by intellegently comparing energy descriptors.
+ds = DataSet(conf_train .+ e_descr)
+dataset_selector = kDPP(ds, GlobalMean(), DotProduct())
+inds = get_random_subset(dataset_selector)
+conf_train = @views conf_train[inds]
+```
+
+***Get fast and accurate interatomic potential models*** through multi-objective hyper-parameter optimization.
+
+```julia
+# Define the interatomic potential model and hyper-parameter value ranges.
+model = ACE
+pars = OrderedDict( :body_order        => [2, 3, 4],
+                    :polynomial_degree => [3, 4, 5], ...)
+
+# Define your custom loss function: fitting accuracy and force calculations.
+function custom_loss(metrics::OrderedDict)
+    ...
+    return w_e * e_mae + w_f * f_mae + w_t * time_us
+end
+
+# Optimize the hyper-parameters.
+iap, res = hyperlearn!(model, pars, conf_train; loss = custom_loss);
+```
+
+
+**Acknowledgment:** Center for the Exascale Simulation of Materials in Extreme Environments [CESMIX](https://computing.mit.edu/cesmix/). Massachusetts Institute of Technology (MIT).
+
 
