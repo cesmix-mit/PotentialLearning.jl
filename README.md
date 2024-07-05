@@ -1,7 +1,7 @@
 
 ## PotentialLearning.jl 
 
-Optimize your atomistic data and interatomic potential models in your molecular dynamics workflows.
+Optimize your atomistic data and interatomic potential models in your molecular dynamic workflows.
 
 <!--<a href="https://cesmix-mit.github.io/PotentialLearning.jl/stable">
 <img alt="Stable documentation" src="https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square">
@@ -19,17 +19,20 @@ Optimize your atomistic data and interatomic potential models in your molecular 
 <br />
 <br />
 
-**Reduce expensive Density Functional Theory (DFT) calculations** while maintaining training accuracy by intelligently reducing your atomistic dataset.
+***Reduce expensive Density functional theory calculations*** while maintaining training accuracy by intelligently subsampling your atomistic dataset. Example: 
 
+1) Subsample your [atomistic configurations](https://github.com/JuliaMolSim/AtomsBase.jl) using a Determinantal Point Process ([DPP](https://github.com/dahtah/Determinantal.jl)) based algorithm that compares energy descriptors computed with the Atomic Cluster Expansion ([ACE](https://github.com/ACEsuit)). See complete example [here](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2/).
 ```julia
-# Reduce your atomistic dataset by intellegently comparing energy descriptors.
 ds = DataSet(conf_train .+ e_descr)
 dataset_selector = kDPP(ds, GlobalMean(), DotProduct())
 inds = get_random_subset(dataset_selector)
 conf_train = @views conf_train[inds]
 ```
+2) Use Density functional theory ([DFT](https://docs.dftk.org/stable/)) on the subsampled dataset.
 
-***Get fast and accurate interatomic potential models*** through multi-objective hyper-parameter optimization.
+We are working to provide different intelligent subsampling algorithms based on [DPP](https://github.com/dahtah/Determinantal.jl), [DBSCAN](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit), and [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl); highly scalable parallel subsampling via hierarchical subsampling and distributed parallelism; and optimal subsampler selection.
+
+***Get fast and accurate interatomic potential models*** through multi-objective hyper-parameter optimization. 
 
 ```julia
 # Define the interatomic potential model and hyper-parameter value ranges.
@@ -47,7 +50,4 @@ end
 iap, res = hyperlearn!(model, pars, conf_train; loss = custom_loss);
 ```
 
-
-**Acknowledgment:** Center for the Exascale Simulation of Materials in Extreme Environments [CESMIX](https://computing.mit.edu/cesmix/). Massachusetts Institute of Technology (MIT).
-
-
+**Acknowledgment:** Center for the Exascale Simulation of Materials in Extreme Environments ([CESMIX](https://computing.mit.edu/cesmix/)). Massachusetts Institute of Technology (MIT).
