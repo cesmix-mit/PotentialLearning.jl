@@ -46,12 +46,12 @@ dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 # Subsample trainig dataset.
 dpp_inds = get_random_subset(dpp)
 
-# ## Learn ACE coefficients based on ACE descriptors and DFT data.
+# ## e. Learn ACE coefficients based on ACE descriptors and DFT data.
 lb = LBasisPotential(ace)
 α = 1e-8
 Σ = learn!(lb, ds_train[dpp_inds], α)
 
-# ## e. Post-process output: calculate metrics, create plots, and save results.
+# ## f. Post-process output: calculate metrics, create plots, and save results.
 
 # Update test dataset by adding energy descriptors.
 println("Computing local descriptors of test dataset")
