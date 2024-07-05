@@ -35,32 +35,32 @@ end
 
 # Basic examples
 examples = [
-    "Example 1 - Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-ahfo2.jl",
+    "Fit a-HfO2 dataset with ACE" => "ACE-aHfO2/fit-ace-ahfo2.jl",
 ]
 basic_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
 # Subsampling examples
 examples = [
-    "Example 1 - Subsample a-HfO2 dataset with DPP and fit with ACE" => "DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl",
-    "Example 2 - Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
-    "Example 3 - Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
+    "Subsample a-HfO2 dataset with DPP and fit with ACE" => "DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl",
+    "Subsample Na dataset with DPP and fit with ACE" => "DPP-ACE-Na/fit-dpp-ace-na.jl",
+    "Subsample Si dataset with DPP, fit with ACE, and cross validate" => "DPP-ACE-Si/fit-dpp-ace-si.jl",
 ]
 ss_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
 # Optimization examples
 examples = [
-    "Example 1 - Optimize ACE hyper-parameters: minimize force time and fitting error" => "Opt-ACE-aHfO2/fit-opt-ace-ahfo2.jl",
+    "Optimize ACE hyper-parameters: minimize force time and fitting error" => "Opt-ACE-aHfO2/fit-opt-ace-ahfo2.jl",
 ]
 opt_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
 # Dimension reduction examples
 examples = [
-    "Example 1 - Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
+    "Reduce ACE descriptors with PCA and fit a-HfO2 dataset" => "PCA-ACE-aHfO2/fit-pca-ace-ahfo2.jl",
 ]
 dr_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 
 examples = [
-    "Example 1 - Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
+    "Load Ar+Lennard-Jones dataset and postprocess" => "LJ-Ar/lennard-jones-ar.jl"
 ]
 misc_examples = create_examples(examples, EXAMPLES_DIR, OUTPUT_DIR)
 

@@ -53,11 +53,14 @@ See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/Op
 The models are compatible with the interfaces of our sister package [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl). In particular, we are interested in maintaining compatibility with [ACESuit](https://github.com/ACEsuit), as well as integrating [LAMMPS](https://www.lammps.org/) based potentials such as [ML-POD](https://docs.lammps.org/Packages_details.html#pkg-ml-pod) and [ML-PACE](https://docs.lammps.org/Packages_details.html#ml-pace-package). We are also working to provide neural network potential architecture optimization.
 
 <ins>**Compress your interatomic potential data and model**</ins> using dimensionality reduction of energy and force descriptors:
+1) Define a PCA state, fit PCA with your the energy and force descriptors of your dataset, and transform all dataset descriptors.
 ```julia
 pca = PCAState(tol = n_desc)
 fit!(ds_train, pca)
 transform!(ds_train, pca)
 ```
+2) Export PCA fitted data to be used in your workflow.
+
 See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/PCA-ACE-aHfO2/fit-pca-ace-ahfo2/).
 
 We are working to provide feature selection of energy and force descriptors based on [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl).
