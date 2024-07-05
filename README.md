@@ -18,7 +18,7 @@ Optimize your atomistic data and interatomic potential models in your molecular 
 <br />
 <br />
 
-**Reduce expensive ***Density functional theory*** calculations** while maintaining training accuracy by intelligently subsampling your atomistic dataset. 
+**Reduce expensive ***Density functional theory*** calculations** while maintaining training accuracy by intelligently subsampling your atomistic dataset:
 
 1) Subsample your [atomistic configurations](https://github.com/JuliaMolSim/AtomsBase.jl) using a Determinantal Point Process ([DPP](https://github.com/dahtah/Determinantal.jl)) based algorithm that compares energy descriptors computed with the Atomic Cluster Expansion ([ACE](https://github.com/ACEsuit)).
 ```julia
@@ -33,7 +33,7 @@ See example [here](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generat
 
 We are working to provide different intelligent subsampling algorithms based on [DPP](https://github.com/dahtah/Determinantal.jl), [DBSCAN](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit), and [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl); highly scalable parallel subsampling via hierarchical subsampling and distributed parallelism; and optimal subsampler selection.
 
-**Get fast and accurate interatomic potential models** through parallel multi-objective hyper-parameter optimization. 
+**Get fast and accurate interatomic potential models** through parallel multi-objective hyper-parameter optimization:
 
 1) Define the interatomic potential model, hyper-parameter value ranges, and custom loss functions. Then, optimize your model.
 ```julia
@@ -46,8 +46,12 @@ function custom_loss(metrics::OrderedDict)
 end
 iap, res = hyperlearn!(model, pars, conf_train; loss = custom_loss);
 ```
-2) Export optimal hyper-parameter values to your molecular dynamic workflow.
+2) Export optimal values to your molecular dynamic workflow.
 
 See example [here](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/Opt-ACE-aHfO2/fit-opt-ace-ahfo2/).
+
+The interatomic potential models are compatible with the flexible interfaces of our sister package [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl). 
+In particular, we are interested in maintaining compatibility with the ACE model of [ACESuit](https://github.com/ACEsuit) as well as integrating potentials based on [LAMMPS](https://www.lammps.org/) such as [ML-POD](https://docs.lammps.org/Packages_details.html#pkg-ml-pod) and [ML-PACE](https://docs.lammps.org/Packages_details.html#ml-pace-package).
+
 
 **Acknowledgment:** Center for the Exascale Simulation of Materials in Extreme Environments ([CESMIX](https://computing.mit.edu/cesmix/)). Massachusetts Institute of Technology (MIT).
