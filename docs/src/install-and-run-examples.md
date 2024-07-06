@@ -1,12 +1,18 @@
-# How to run the examples
+# Install package and run examples
 
-## Add registries
+## Add registries and package
 Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the following registries:
 ```julia
     pkg> registry add https://github.com/JuliaRegistries/General
     pkg> registry add https://github.com/cesmix-mit/CESMIX.git 
     pkg> registry add https://github.com/JuliaMolSim/MolSim.git
     pkg> registry add https://github.com/ACEsuit/ACEregistry
+```
+
+Then, add PotentialLearning:
+```julia
+    pkg> add PotentialLearning
+
 ```
 
 ## Clone repository and access an example folder

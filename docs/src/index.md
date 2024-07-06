@@ -1,9 +1,9 @@
-## PotentialLearning.jl 
+# PotentialLearning.jl 
 
 Optimize your atomistic data and interatomic potential models in your molecular dynamic workflows.
 
 
-### Reduce expensive Density functional theory calculations
+## Reduce expensive Density functional theory calculations
 
 Reduce expensive Density functional theory calculations while maintaining training accuracy by intelligently subsampling your atomistic dataset:
 
@@ -21,7 +21,7 @@ See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/DP
 We are working to provide different intelligent subsampling algorithms based on [DPP](https://github.com/dahtah/Determinantal.jl), [DBSCAN](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit), and [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl); highly scalable parallel subsampling via hierarchical subsampling and [distributed parallelism](https://github.com/JuliaParallel/Dagger.jl); and optimal subsampler selection.
 
 
-### Get fast and accurate interatomic potential models
+## Get fast and accurate interatomic potential models
 
 Get fast and accurate interatomic potential models through parallel multi-objective hyper-parameter optimization:
 
@@ -42,9 +42,9 @@ See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/Op
 
 The models are compatible with the interfaces of our sister package [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl). In particular, we are interested in maintaining compatibility with [ACESuit](https://github.com/ACEsuit), as well as integrating [LAMMPS](https://www.lammps.org/) based potentials such as [ML-POD](https://docs.lammps.org/Packages_details.html#pkg-ml-pod) and [ML-PACE](https://docs.lammps.org/Packages_details.html#ml-pace-package). We are also working to provide neural network potential architecture optimization.
 
-### Compress your interatomic potential data and model
+## Compress interatomic potential data and model
 
-Compress your interatomic potential data and model using dimensionality reduction of energy and force descriptors:
+Compress interatomic potential data and model using dimensionality reduction of energy and force descriptors:
 
 1 - Define a PCA state, fit PCA with your the energy and force descriptors of your dataset, and transform all dataset descriptors.
 ```julia
@@ -60,4 +60,6 @@ We are working to provide feature selection of energy and force descriptors base
 
 Additionally, this package includes utilities for loading input data (such as XYZ files), computing various metrics (including MAE, MSE, RSQ, and COV), exporting results, and generating plots.
 
-**Acknowledgment:** Center for the Exascale Simulation of Materials in Extreme Environments ([CESMIX](https://computing.mit.edu/cesmix/)). Massachusetts Institute of Technology ([MIT](https://www.mit.edu/)).
+## Acknowledgment
+
+Center for the Exascale Simulation of Materials in Extreme Environments ([CESMIX](https://computing.mit.edu/cesmix/)). Massachusetts Institute of Technology ([MIT](https://www.mit.edu/)).
