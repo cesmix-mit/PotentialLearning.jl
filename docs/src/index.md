@@ -1,28 +1,65 @@
-# [WIP] PotentialLearning.jl
+# PotentialLearning.jl 
 
-**Composable optimization workflows for fast and accurate interatomic potentials**. This package is part of a software suite developed for the [CESMIX](https://computing.mit.edu/cesmix/) project.
+Optimize your atomistic data and interatomic potential models in your molecular dynamic workflows.
 
 
-## Goals
+## Reduce expensive Density functional theory calculations
 
-**Optimize your atomistic data:** intelligent subsampling of large datasets to reduce DFT computations
-- Intelligent subsampling of atomistic configurations using algorithms based on [DPP](https://github.com/dahtah/Determinantal.jl), [DBSCAN](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit), [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl), etc.
-- Highly scalable parallel subsampling via hierarchical subsampling and distributed parallelism ([Dagger.jl](https://github.com/JuliaParallel/Dagger.jl)).
-- Optimal subsampler choosing via [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl).
+Reduce expensive Density functional theory calculations while maintaining training accuracy by intelligently subsampling your atomistic dataset:
 
-**Optimize your interatomic potential model:** hyperparameters, coefficients, model compression, and model selection.
-- Parallel optimization of hyperparameters, coefficients, and model selection via [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl); multi-objective optimization (Pareto fronts): force execution time vs fitting accuracy (e.g. MAE of energies and forces).
-- Model compression via feature selection (e.g. [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl)) and dimensionality reduction (e.g [PCA](https://juliastats.org/MultivariateStats.jl/dev/pca/), Active Subspaces) of atomistic descriptors.
-- Fitting of linear potentials and inference of parameter uncertainties. Training of neural versions of [Julia-ACE](https://github.com/ACEsuit/ACE1.jl) and [LAMMPS-POD](https://docs.lammps.org/pair_pod.html).
+1 - Subsample your [atomistic configurations](https://github.com/JuliaMolSim/AtomsBase.jl) using a Determinantal Point Process ([DPP](https://github.com/dahtah/Determinantal.jl)) based algorithm that compares energy descriptors computed with the Atomic Cluster Expansion ([ACE](https://github.com/ACEsuit)).
+```julia
+ds = DataSet(conf_train .+ e_descr)
+dataset_selector = kDPP(ds, GlobalMean(), DotProduct())
+inds = get_random_subset(dataset_selector)
+conf_train = @views conf_train[inds]
+```
+2 - Export the reduced dataset, use Density functional theory ([DFT](https://docs.dftk.org/stable/)) on it, and fit your model.
 
-Additionally, this package provides utilities for atomistic configuration and DFT data management and post-processing.
-  - Process input data so that it is ready for training. E.g. read XYZ file with atomic configurations, linearize energies and forces, split dataset into training and testing, normalize data, transfer data to GPU, define iterators, etc.
-  - Post-processing: computation of different metrics (MAE, RSQ, COV, etc), saving results, and plotting.
+See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2/).
 
-## Leveraging Julia!
+We are working to provide different intelligent subsampling algorithms based on [DPP](https://github.com/dahtah/Determinantal.jl), [DBSCAN](https://docs.google.com/document/d/1SWAanEWQkpsbr2lqetMO3uvdX_QK-Z7dwrgPaM1Dl0o/edit), and [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl); highly scalable parallel subsampling via hierarchical subsampling and [distributed parallelism](https://github.com/JuliaParallel/Dagger.jl); and optimal subsampler selection.
 
-- [Software composability](https://julialang.org/) through [multiple dispatch](https://www.youtube.com/watch?v=kc9HwsxE1OY). A series of [composable workflows](https://github.com/cesmix-mit/AtomisticComposableWorkflows) is guiding our design and development. We analyzed three of the most representative workflows: classical molecular dynamics (MD), Ab initio MD, and classical MD with active learning. In addition, it facilitates the training of new  potentials defined by the composition of neural networks with state-of-the-art interatomic potential descriptors.
-- [Differentiable programming](https://fluxml.ai/blog/2019/02/07/what-is-differentiable-programming.html). Powerful automatic differentiation tools, such as [Enzyme](https://enzyme.mit.edu/julia/) or [Zygote](https://fluxml.ai/Zygote.jl/latest/), help to accelerate the development of new interatomic potentials by automatically calculating loss function gradients and forces.
-- [SciML](https://sciml.ai/): Open Source Software for Scientific Machine Learning. It provides libraries, such as [Optimization.jl](https://github.com/SciML/Optimization.jl), that bring together several optimization packages into one unified Julia interface. 
-- Machine learning and HPC abstractions: [Flux.jl](https://fluxml.ai/Flux.jl/stable/) makes parallel learning simple using the NVIDIA GPU abstractions of [CUDA.jl](https://cuda.juliagpu.org/stable/). Mini-batch iterations on heterogeneous data, as required by a loss function based on energies and forces, can be handled by [DataLoader.jl](https://fluxml.ai/Flux.jl/v0.10/data/dataloader/).
 
+## Get fast and accurate interatomic potential models
+
+Get fast and accurate interatomic potential models through parallel multi-objective hyper-parameter optimization:
+
+1 - Define the interatomic potential model, hyper-parameter value ranges, and custom loss function. Then, [optimize](https://github.com/baggepinnen/Hyperopt.jl) your model.
+```julia
+model = ACE
+pars = OrderedDict( :body_order        => [2, 3, 4],
+                    :polynomial_degree => [3, 4, 5], ...)
+function custom_loss(metrics::OrderedDict)
+    ...
+    return w_e * e_mae + w_f * f_mae + w_t * time_us
+end
+iap, res = hyperlearn!(model, pars, conf_train; loss = custom_loss);
+```
+2 - Export optimal values to your molecular dynamic workflow.
+
+See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/Opt-ACE-aHfO2/fit-opt-ace-ahfo2/).
+
+The models are compatible with the interfaces of our sister package [InteratomicPotentials.jl](https://github.com/cesmix-mit/InteratomicPotentials.jl). In particular, we are interested in maintaining compatibility with [ACESuit](https://github.com/ACEsuit), as well as integrating [LAMMPS](https://www.lammps.org/) based potentials such as [ML-POD](https://docs.lammps.org/Packages_details.html#pkg-ml-pod) and [ML-PACE](https://docs.lammps.org/Packages_details.html#ml-pace-package). We are also working to provide neural network potential architecture optimization.
+
+## Compress interatomic potential data and model
+
+Compress interatomic potential data and model using dimensionality reduction of energy and force descriptors:
+
+1 - Define a PCA state, fit PCA with your the energy and force descriptors of your dataset, and transform all dataset descriptors.
+```julia
+pca = PCAState(tol = n_desc)
+fit!(ds_train, pca)
+transform!(ds_train, pca)
+```
+2 - Export PCA fitted data to be used in your workflow.
+
+See [example](https://cesmix-mit.github.io/PotentialLearning.jl/dev/generated/PCA-ACE-aHfO2/fit-pca-ace-ahfo2/).
+
+We are working to provide feature selection of energy and force descriptors based on [CUR](https://github.com/JuliaLinearAlgebra/LowRankApprox.jl).
+
+Additionally, this package includes utilities for loading input data (such as XYZ files), computing various metrics (including MAE, MSE, RSQ, and COV), exporting results, and generating plots.
+
+## Acknowledgment
+
+Center for the Exascale Simulation of Materials in Extreme Environments ([CESMIX](https://computing.mit.edu/cesmix/)). Massachusetts Institute of Technology ([MIT](https://www.mit.edu/)).
