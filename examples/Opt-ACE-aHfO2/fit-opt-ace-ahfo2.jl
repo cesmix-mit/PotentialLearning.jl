@@ -57,7 +57,7 @@ pars = OrderedDict( :body_order        => [2, 3, 4],
                     :csp               => LinRange(0.5, 1.5, 10),
                     :r0                => LinRange(0.5, 1.5, 10));
 
-# Use **latin hypercube sampling** to find the optimal hyper-parameters.
+# Use **latin hypercube sampling** to find the optimal hyper-parameters. Alternatively, use **random sampling** (sampler = RandomSampler()).
 sampler = CLHSampler(dims=[Categorical(3), Categorical(3), Continuous(),
                            Continuous(), Continuous(), Continuous()])
 iap, res = hyperlearn!(model, pars, conf_train; 
@@ -75,6 +75,4 @@ res
 err_time = plot_err_time(res)
 @save_fig res_path err_time
 DisplayAs.PNG(err_time)
-
-# Alternatively, use **random sampling** using "sampler = RandomSampler()".
 
