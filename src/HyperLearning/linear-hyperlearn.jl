@@ -57,9 +57,9 @@ function hyperlearn!(
     model::DataType,
     pars::OrderedDict,
     conf_train::DataSet;
-    n_samples = 5,
+    n_samples = 10,
     sampler = RandomSampler(),
-    loss = loss,
+    loss = hyperlearn!,
     ws = [1.0, 1.0],
     int = true
 )
