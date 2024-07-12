@@ -194,7 +194,7 @@ function learn!(
 
     # Calculate coefficients β.
     Q = Diagonal(ws[1] * ones(length(e_train)))
-    βs = (A'*Q*A) \ (A'*Q*b)
+    βs = pinv(A'*Q*A)*(A'*Q*b)
     
     # Update lp.
     if int
@@ -238,7 +238,7 @@ function learn!(
     # Calculate coefficients βs.
     Q = Diagonal([ws[1] * ones(length(e_train));
                   ws[2] * ones(length(f_train))])
-    βs = (A'*Q*A) \ (A'*Q*b)
+    βs = pinv(A'*Q*A)*(A'*Q*b)
 
     # Update lp.
     if int
