@@ -8,7 +8,7 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, Plots, DisplayAs
 
 # Define paths.
-base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "."
+base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/LJ-AR/lj-ar.yaml"
 
 # ## b. Load atomistic dataset.

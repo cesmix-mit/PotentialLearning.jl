@@ -9,7 +9,7 @@ using LinearAlgebra, Random, DisplayAs
 using DataFrames, Hyperopt
 
 # Define paths.
-base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "."
+base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
 res_path  = "$base_path/examples/Opt-ACE-aHfO2/results/";
 

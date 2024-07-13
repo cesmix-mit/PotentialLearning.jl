@@ -6,7 +6,7 @@ using JLD, CairoMakie
 
 #################### Importing Data ###################
 
-base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "."
+base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/a-HfO2/aHfO2_diverse_descriptors_3600.jld"
 res_path  = "$base_path/examples/DPP-ACE-aHfO2-2/results/";
 
