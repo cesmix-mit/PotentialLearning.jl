@@ -8,8 +8,8 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, Plots
 
 # Define paths.
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Na")
-ds_path = "$path/../data/Na/liquify_sodium.yaml";
+base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+ds_path   = "$base_path/examples/data/Na/liquify_sodium.yaml"
 
 # ## b. Load atomistic dataset and split it into training and test.
 

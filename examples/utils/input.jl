@@ -1,5 +1,5 @@
 # New function to read XYZ files ###############################################
-include("$path/../utils/xyz.jl")
+include("$base_path/examples/utils/xyz.jl")
 
 # New functions to get input parameters from OrderedDict #######################
 

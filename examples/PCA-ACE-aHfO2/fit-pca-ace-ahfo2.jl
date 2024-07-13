@@ -8,12 +8,12 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
 
 # Define paths.
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/PCA-ACE-aHfO2")
-ds_path =  "$path/../data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
-res_path = "$path/results/";
+base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+ds_path   = "$base_path/examples/data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
+res_path  = "$base_path/examples/PCA-ACE-aHfO2/results/";
 
 # Load utility functions.
-include("$path/../utils/utils.jl")
+include("$base_path/examples/utils/utils.jl")
 
 # Create experiment folder.
 run(`mkdir -p $res_path`);

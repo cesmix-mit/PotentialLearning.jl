@@ -13,12 +13,12 @@ using CSV, JLD, DataFrames
 elname, elspec = "Si", [:Si] 
 
 # Define paths.
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-Si")
-inpath = "$path/../data/Si-3Body-LAMMPS/"
-outpath = "$path/output/$elname/"
+base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+inpath   = "$base_path/examples/data/Si-3Body-LAMMPS/"
+outpath  = "$base_path/examples/DPP-ACE-Si/output/$elname/";
 
 # Load utility functions.
-include("$path/subsampling_utils.jl")
+include("$base_path/examples/DPP-ACE-Si/subsampling_utils.jl")
 
 # ## b. Load atomistic datasets.
 

@@ -1,5 +1,3 @@
-push!(Base.LOAD_PATH, "../../")
-
 using LinearAlgebra, Random
 using Statistics, StatsBase, Distributions, Determinantal
 using Unitful, UnitfulAtomic
@@ -8,11 +6,13 @@ using JLD, CairoMakie
 
 #################### Importing Data ###################
 
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/DPP-ACE-aHfO2")
+base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+ds_path   = "$base_path/examples/data/a-HfO2/aHfO2_diverse_descriptors_3600.jld"
+res_path  = "$base_path/examples/DPP-ACE-aHfO2-2/results/";
 
 # Import Raw Data
 energies, descriptors = JLD.load(
-    "$path/../data/aHfO2/aHfO2_diverse_descriptors_3600.jld",
+    ds_path,
     "energies",
     "descriptors",
 )
@@ -84,4 +84,4 @@ ax4 = Axis(
 )
 scatter!(ax4, [length(c.B) - 32 for c in configs], ips, markersize = 4.0)
 
-save("examples/aHfO2/figures/aHfO2_dpp_inclusion_probabilities.pdf", fig)
+save("$res_path/figures/aHfO2_dpp_inclusion_probabilities.pdf", fig)

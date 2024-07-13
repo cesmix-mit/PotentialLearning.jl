@@ -8,8 +8,8 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, Plots, DisplayAs
 
 # Define paths.
-path = joinpath(dirname(pathof(PotentialLearning)), "../examples/LJ-Ar")
-ds_path = "$path/../data/LJ-AR/lj-ar.yaml";
+base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+ds_path   = "$base_path/examples/data/LJ-AR/lj-ar.yaml"
 
 # ## b. Load atomistic dataset.
 ds, thermo = load_data(ds_path, YAML(:Ar, u"eV", u"Å"))
