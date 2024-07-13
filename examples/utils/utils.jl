@@ -6,9 +6,9 @@ using ProgressBars
 using Plots
 using CSV
 
-include("$path/../utils/input.jl")
-include("$path/../utils/macros.jl")
-include("$path/../utils/plots.jl")
+include("$base_path/examples/utils/input.jl")
+include("$base_path/examples/utils/macros.jl")
+include("$base_path/examples/utils/plots.jl")
 
 # Missing function
 Base.size(fd::ForceDescriptors) = (length(fd), )
