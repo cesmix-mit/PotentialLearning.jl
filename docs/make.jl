@@ -10,15 +10,15 @@ DocMeta.setdocmeta!(
     recursive = true,
 )
 
-# Citations ####################################################################
+ENV["BASE_PATH"]    = joinpath(@__DIR__, "../") 
 
-bib = CitationBibliography("citation.bib")
+# Citations ####################################################################
+bib = CitationBibliography(joinpath(@__DIR__, "citation.bib"))
+
 
 # Generate examples ############################################################
-ENV["BASE_PATH"]    = joinpath(@__DIR__, "../") 
 const examples_path = joinpath(@__DIR__, "..", "examples")
 const output_path   = joinpath(@__DIR__, "src/generated")
-
 function create_examples(examples, examples_path, output_path)
     for (_, example_path) in examples
         s = split(example_path, "/")
