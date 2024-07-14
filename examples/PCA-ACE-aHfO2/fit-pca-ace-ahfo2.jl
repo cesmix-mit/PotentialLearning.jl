@@ -56,7 +56,7 @@ ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train);
 n_desc = 20
 pca = PCAState(tol = n_desc)
 fit!(ds_train, pca)
-transform!(ds_train, pca)
+transform!(ds_train, pca);
 
 # ## Learn coefficients
 
@@ -83,7 +83,7 @@ f_descr_test = compute_force_descriptors(conf_test, basis;
 ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test);
 
 # **Dimension reduction of energy and force descriptors of test dataset.**
-transform!(ds_test, pca)
+transform!(ds_test, pca);
 
 # Get and save true and predicted values for energies and forces.
 n_atoms_train = length.(get_system.(ds_train))

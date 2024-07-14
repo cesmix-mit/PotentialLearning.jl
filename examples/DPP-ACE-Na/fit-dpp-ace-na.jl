@@ -46,7 +46,7 @@ dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 # Subsample trainig dataset.
 dpp_inds = get_random_subset(dpp)
 
-# ## e. Learn coefficients
+# ## Learn coefficients
 
 # Learn ACE coefficients based on ACE descriptors and DFT data.
 lb = LBasisPotential(ace)

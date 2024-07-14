@@ -63,6 +63,8 @@ iap, res = hyperlearn!(model, pars, conf_train;
                        n_samples = 10, sampler = sampler,
                        loss = custom_loss, ws = [1.0, 1.0], int = true);
 
+# ## Post-process results
+
 # Save and show results.
 @save_var res_path iap.β
 @save_var res_path iap.β0
