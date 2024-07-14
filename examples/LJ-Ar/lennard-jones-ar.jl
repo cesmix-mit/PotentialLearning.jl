@@ -9,7 +9,7 @@ using LinearAlgebra, Plots, DisplayAs
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
-ds_path   = "$base_path/examples/data/LJ-AR/lj-ar.yaml"
+ds_path   = "$base_path/examples/data/LJ-AR/lj-ar.yaml";
 
 # ## Load datasets
 ds, thermo = load_data(ds_path, YAML(:Ar, u"eV", u"Å"))

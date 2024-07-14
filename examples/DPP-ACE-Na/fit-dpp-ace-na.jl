@@ -9,7 +9,7 @@ using LinearAlgebra, Plots
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
-ds_path   = "$base_path/examples/data/Na/liquify_sodium.yaml"
+ds_path   = "$base_path/examples/data/Na/liquify_sodium.yaml";
 
 # ## Load datasets
 
@@ -44,7 +44,7 @@ ds_train = DataSet(conf_train .+ e_descr_train);
 dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 
 # Subsample trainig dataset.
-dpp_inds = get_random_subset(dpp)
+dpp_inds = get_random_subset(dpp);
 
 # ## Learn coefficients
 
@@ -57,7 +57,7 @@ lb = LBasisPotential(ace)
 
 # Update test dataset by adding energy descriptors.
 println("Computing local descriptors of test dataset")
-e_descr_test = compute_local_descriptors(conf_test, ace)
+e_descr_test = compute_local_descriptors(conf_test, ace, pbar = false)
 ds_test = DataSet(conf_test .+ e_descr_test);
 
 # Get true and predicted energy values (assuming that all configurations have the same no. of atoms).
