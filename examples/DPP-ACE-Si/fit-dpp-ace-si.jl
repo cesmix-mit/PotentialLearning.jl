@@ -13,7 +13,7 @@ using CSV, JLD, DataFrames
 elname, elspec = "Si", [:Si] 
 
 # Define paths.
-base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 inpath   = "$base_path/examples/data/Si-3Body-LAMMPS/"
 outpath  = "$base_path/examples/DPP-ACE-Si/output/$elname/";
 

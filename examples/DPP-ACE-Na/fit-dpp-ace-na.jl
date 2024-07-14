@@ -8,7 +8,7 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using LinearAlgebra, Plots
 
 # Define paths.
-base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/Na/liquify_sodium.yaml"
 
 # ## b. Load atomistic dataset and split it into training and test.

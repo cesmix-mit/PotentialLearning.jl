@@ -8,11 +8,12 @@ using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
 
 # Define paths.
-base_path = match(r"^(.*/PotentialLearning/)", @__DIR__).match
+base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
 res_path  = "$base_path/examples/ACE-aHfO2/results/";
 
 # Load utility functions.
+
 include("$base_path/examples/utils/utils.jl")
 
 # Create experiment folder.
