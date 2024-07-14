@@ -1,6 +1,6 @@
 # # Optimize ACE hyper-parameters: minimize force time and fitting error.
 
-# ## a. Load packages, define paths, and create experiment folder.
+# ## Setup experiment
 
 # Load packages.
 using AtomsBase, InteratomicPotentials, PotentialLearning
@@ -14,22 +14,21 @@ ds_path   = "$base_path/examples/data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz"
 res_path  = "$base_path/examples/Opt-ACE-aHfO2/results/";
 
 # Load utility functions.
-include("$base_path/examples/utils/utils.jl")
+include("$base_path/examples/utils/utils.jl");
 
 # Create experiment folder.
 run(`mkdir -p $res_path`);
 
-# ## b. Load atomistic dataset and split it into training and test.
+# ## Load datasets
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
-ds = load_data(ds_path, uparse("eV"), uparse("Å"))[1:1000]
+ds = load_data(ds_path, uparse("eV"), uparse("Å"))[1:1000]; # Load first 1K samples.
 
 # Split atomistic dataset into training and test
 n_train, n_test = 50, 50 # Only 50 samples per dataset are used in this example.
 conf_train, conf_test = split(ds, n_train, n_test)
 
-
-# ## c. Hyper-parameter optimization.
+# ## Optimize hyper-parameters
 
 # Define a custom loss function. Here, we minimize fitting error and force calculation time.
 # Possible metrics are `e_mae`, `e_rmse`, `e_rsq`, `f_mae`, `f_rmse`, `f_rsq`, and `time_us`.

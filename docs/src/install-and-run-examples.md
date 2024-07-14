@@ -1,6 +1,7 @@
-# Install package and run examples
+## Install and run examples
 
-## Add registries and package
+## Add registries
+
 Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the following registries:
 ```julia
     pkg> registry add https://github.com/JuliaRegistries/General
@@ -9,16 +10,10 @@ Open a Julia REPL (`$ julia`), type `]` to enter the Pkg REPL, and add the follo
     pkg> registry add https://github.com/ACEsuit/ACEregistry
 ```
 
-Then, add PotentialLearning:
-```julia
-    pkg> add PotentialLearning
-
-```
-
-## Clone repository and access an example folder
+## Clone repository to access example folders
 Clone `PotentialLearning.jl` repository in your working directory.
 ```shell
-    $ git clone git@github.com:cesmix-mit/PotentialLearning.jl.git
+    $ git clone https://github.com/cesmix-mit/PotentialLearning.jl.git
 ```
 Access to any folder within `PotentialLearning.jl/examples`. E.g.
 ```shell

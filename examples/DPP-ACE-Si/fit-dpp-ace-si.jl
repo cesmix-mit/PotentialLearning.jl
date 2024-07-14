@@ -1,6 +1,6 @@
 # # Subsample Si dataset and fit with ACE
 
-# ## a. Load packages, define paths, and create experiment folder.
+# ## Setup experiment
 
 # Load packages.
 using LinearAlgebra, Random, InvertedIndices
@@ -10,17 +10,17 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using CSV, JLD, DataFrames
 
 # Define atomic type information.
-elname, elspec = "Si", [:Si] 
+elname, elspec = "Si", [:Si];
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 inpath   = "$base_path/examples/data/Si-3Body-LAMMPS/"
-outpath  = "$base_path/examples/DPP-ACE-Si/output/$elname/";
+outpath  = "$base_path/examples/DPP-ACE-Si/output/$elname/"
 
 # Load utility functions.
-include("$base_path/examples/DPP-ACE-Si/subsampling_utils.jl")
+include("$base_path/examples/DPP-ACE-Si/subsampling_utils.jl");
 
-# ## b. Load atomistic datasets.
+# ## Load datasets
 
 # Load all atomistic datasets: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)
 file_arr = readext(inpath, "xyz")
@@ -37,7 +37,7 @@ for k = 1:nfile
     n += length(confs_arr[k])
 end
 
-# ## c. Subsampling by DPP.
+# ## Subsample dataset
 
 # Create ACE basis.
 nbody = 4
@@ -48,9 +48,9 @@ ace = ACE(species = elspec,             # species
           wL = 1.0,                     # Defaults, See ACE.jl documentation 
           csp = 1.0,                    # Defaults, See ACE.jl documentation 
           r0 = 1.0,                     # minimum distance between atoms
-          rcutoff = 10.0)
+          rcutoff = 10.0);
 
-# Compute ACE descriptors for energies and forces.
+# Compute and save ACE descriptors for energies and forces.
 println("Computing local descriptors")
 e_descr = compute_local_descriptors(confs, ace; pbar=false)
 f_descr = compute_force_descriptors(confs, ace; pbar=false)
@@ -59,9 +59,11 @@ JLD.save(outpath*"$(elname)_force_descriptors.jld", "f_descr", f_descr)
 
 # Update training dataset by adding energy and force descriptors.
 ds = DataSet(confs .+ e_descr .+ f_descr)
-ndata = length(ds)
+ndata = length(ds);
 
-# ## d. Compute cross validation error from training dataset.
+# ## Post-process results
+
+# Compute cross validation error from training dataset.
 batch_size = [80, 40]
 sel_ind = Dict{Int64, Vector}()
 cond_num = Dict{Int64, Vector}()
@@ -73,6 +75,6 @@ for bs in batch_size
 end
 
 JLD.save(outpath*"$(elname)_ACE-$(nbody)-$(deg)_DPP_indices_and_condnum.jld",
-    "ind", sel_ind,
-    "condnum", cond_num)
+         "ind", sel_ind,
+         "condnum", cond_num)
 
