@@ -1,6 +1,6 @@
 # # Subsample Na dataset with DPP and fit energies with ACE
 
-# ## a. Load packages and define paths.
+# ## Setup experiment
 
 # Load packages.
 using Unitful, UnitfulAtomic
@@ -9,9 +9,9 @@ using LinearAlgebra, Plots
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
-ds_path   = "$base_path/examples/data/Na/liquify_sodium.yaml"
+ds_path   = "$base_path/examples/data/Na/liquify_sodium.yaml";
 
-# ## b. Load atomistic dataset and split it into training and test.
+# ## Load datasets
 
 # Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.).
 confs, thermo = load_data(ds_path, YAML(:Na, u"eV", u"Å"))
@@ -20,7 +20,7 @@ confs, thermo = confs[220:end], thermo[220:end]
 # Split atomistic dataset into training and test.
 conf_train, conf_test = confs[1:1000], confs[1001:end]
 
-# ## c. Create ACE basis, compute energy descriptors and add them to the dataset.
+# ## Compute descriptors
 
 # Create ACE basis.
 ace = ACE(species = [:Na],         # species
@@ -29,39 +29,41 @@ ace = ACE(species = [:Na],         # species
           wL = 1.0,                # Defaults, See ACE.jl documentation 
           csp = 1.0,               # Defaults, See ACE.jl documentation 
           r0 = 1.0,                # minimum distance between atoms
-          rcutoff = 5.0)           # cutoff radius 
+          rcutoff = 5.0);          # cutoff radius 
 
 # Update training dataset by adding energy (local) descriptors.
 println("Computing local descriptors of training dataset")
 e_descr_train = compute_local_descriptors(conf_train, ace) # JLD.load("data/sodium_empirical_full.jld", "descriptors")
 
 # Update training dataset by adding energy and force descriptors.
-ds_train = DataSet(conf_train .+ e_descr_train)
+ds_train = DataSet(conf_train .+ e_descr_train);
 
-# ## d. Subsampling via DPP.
+# ## Subsample dataset
 
 # Create DPP subselector.
 dpp = kDPP(ds_train, GlobalMean(), DotProduct(); batch_size = 200)
 
 # Subsample trainig dataset.
-dpp_inds = get_random_subset(dpp)
+dpp_inds = get_random_subset(dpp);
 
-# ## e. Learn ACE coefficients based on ACE descriptors and DFT data.
+# ## Learn coefficients
+
+# Learn ACE coefficients based on ACE descriptors and DFT data.
 lb = LBasisPotential(ace)
 α = 1e-8
 Σ = learn!(lb, ds_train[dpp_inds], α)
 
-# ## f. Post-process output: calculate metrics, create plots, and save results.
+# ## Post-process results
 
 # Update test dataset by adding energy descriptors.
 println("Computing local descriptors of test dataset")
-e_descr_test = compute_local_descriptors(conf_test, ace)
-ds_test = DataSet(conf_test .+ e_descr_test)
+e_descr_test = compute_local_descriptors(conf_test, ace, pbar = false)
+ds_test = DataSet(conf_test .+ e_descr_test);
 
 # Get true and predicted energy values (assuming that all configurations have the same no. of atoms).
 n = size(get_system(ds_train[1]))[1]
 e_train, e_train_pred = get_all_energies(ds_train)/n, get_all_energies(ds_train, lb)/n
-e_test, e_test_pred   = get_all_energies(ds_test)/n, get_all_energies(ds_test, lb)/n
+e_test, e_test_pred   = get_all_energies(ds_test)/n, get_all_energies(ds_test, lb)/n;
 
 # Compute and print metrics.
 e_mae, e_rmse, e_rsq = calc_metrics(e_train, e_train_pred)
