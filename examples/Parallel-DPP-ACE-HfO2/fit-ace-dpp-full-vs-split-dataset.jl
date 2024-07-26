@@ -10,7 +10,7 @@ using DataFrames, Plots
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
-ds_path   = "$base_path/examples/data/Hf/"
+ds_path   = "$base_path/examples/data/Hfo_data/"
 res_path  = "$base_path/examples/Parallel-DPP-ACE-HfO2/results/";
 
 # Load utility functions.
@@ -102,16 +102,23 @@ end
 # Load training and test configuration datasets ################################
 
 paths = [
-#         "$ds_path/Hf2_gas_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
-#         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200, :)
-#         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377, :(
-         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k, :-D or out of memory
-#         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306, :(
-#         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
-#         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498, :(
-#         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201, ??
-#         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
-         ]
+         "$ds_path/HfO2_figshare_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
+         "$ds_path/HfO2_mp550893_EOS_1D_form_sorted.extxyz", # 200, :)
+         "$ds_path/HfO_gas_form_sorted.extxyz", # 9377, :(
+         "$ds_path/HfO2_figshare_form_sorted.extxyz", # 17.2k, :-D or out of memory
+         "$ds_path/HfO2_mp352_EOS_1D_form_sorted.extxyz", # 306, :(
+         "$ds_path/HfO2_mp550893_EOS_6D_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf2_gas_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 50, ...
+         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz", # 50, ...
+
+]
 
 confs = []
 for ds_path in paths
@@ -121,7 +128,7 @@ confs = DataSet(confs)
 n = length(confs)
 GC.gc()
 
-#ds_path = string("../data/HfO2_large/HfO2_figshare_form_sorted.extxyz")
+#ds_path = string("$ds_path/a-HfO2-300K-NVT-6000.extxyz")
 #confs = load_data(ds_path, uparse("eV"), uparse("Å"))
 #n = length(confs)
 
@@ -164,8 +171,8 @@ for j in 1:n_experiments
     global metrics
     
     # Define randomized training and test dataset
-    n_train = 2400 #floor(Int, 0.8 * n)
-    n_test = 600 #n - n_train
+    n_train = floor(Int, 0.8 * n)
+    n_test = n - n_train
     rnd_inds = randperm(n)
     rnd_inds_train = rnd_inds[1:n_train]
     rnd_inds_test = rnd_inds[n_train+1:n_train+n_test] # rnd_inds[n_train+1:end]
