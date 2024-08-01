@@ -102,14 +102,14 @@ end
 # Load training and test configuration datasets ################################
 
 paths = [
-#         "$ds_path/Hf2_gas_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
-#         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200, :)
-#         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377, :(
-         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k, :-D or out of memory
-#         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306, :(
-#         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
-#         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498, :(
-#         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201, ??
+#         "$ds_path/Hf2_gas_form_sorted.extxyz",
+#         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200
+#         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377
+         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k
+#         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306
+#         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50
+#         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498
+#         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201
 #         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
          ]
 
@@ -159,13 +159,13 @@ metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
 metrics = DataFrame([Any[] for _ in 1:length(metric_names)], metric_names)
 
 # Subsampling experiments: subsample full dataset vs subsample dataset by chunks
-n_experiments = 30 # 100
+n_experiments = 100
 for j in 1:n_experiments
     global metrics
     
     # Define randomized training and test dataset
-    n_train = 2400 #floor(Int, 0.8 * n)
-    n_test = 600 #n - n_train
+    n_train = floor(Int, 0.8 * n)
+    n_test = n - n_train
     rnd_inds = randperm(n)
     rnd_inds_train = rnd_inds[1:n_train]
     rnd_inds_test = rnd_inds[n_train+1:n_train+n_test] # rnd_inds[n_train+1:end]
@@ -173,8 +173,7 @@ for j in 1:n_experiments
     ds_test_rnd  = @views ds[rnd_inds_test]
 
     # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32] #[0.05, 0.10, 0.25]
-            #[0.01, 0.02, 0.04, 0.08, 0.16, 0.32] #[0.05, 0.25, 0.5, 0.75, 0.95] #[0.05, 0.10, 0.20, 0.30] #[0.05, 0.25, 0.5, 0.75, 0.95]
+    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32]
     
             # Experiment j - SRS ###############################################
             println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
@@ -254,29 +253,5 @@ end
 
 # Postprocess ##################################################################
 
-for metric in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae, :time]
-    scatter()
-    for method in reverse(unique(metrics[:, :method])[1:end])
-        batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
-        metric_vals = metrics[metrics.method .== method, :][:, metric]
-        scatter!(batch_size_vals, metric_vals, label = method,
-                 alpha = 0.5, dpi=300, markerstrokewidth=0, markersize=5, xaxis=:log2,
-                 xlabel = "Sample size",
-                 ylabel = "$metric")
-    end
-    savefig("$res_path/$metric-srs.png")
-end
-
-scatter()
-for method in reverse(unique(metrics[:, :method])[2:end])
-    batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
-    speedup_vals = metrics[metrics.method .== "DPP", :][:, :time] ./
-                  metrics[metrics.method .== method, :][:, :time]
-    scatter!(batch_size_vals, speedup_vals, label = "DPP time / $method time",
-             alpha = 0.5, dpi=300, markerstrokewidth=0, markersize=5, xaxis=:log2,
-             xlabel = "Sample size",
-             ylabel = "Speedup")
-end
-savefig("$res_path/speedup-srs.png")
-
+include("$base_path/examples/Parallel-DPP-ACE-HfO2/plotmetrics.jl")
 
