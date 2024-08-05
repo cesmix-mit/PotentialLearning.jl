@@ -48,7 +48,7 @@ for (i, metric) in enumerate(metrics_cols)
               xscale=:log2, 
               xticks = (batch_sizes, xticks_label),
               ylim=(min, max),
-              xlabel = "Sample size",
+              xlabel = "Training Dataset Sample Size",
               ylabel = metric_labels[i])
     end
     savefig("$res_path/$metric.png")
