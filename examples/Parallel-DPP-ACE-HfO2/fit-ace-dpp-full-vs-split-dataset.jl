@@ -11,7 +11,7 @@ using DataFrames, Plots
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/Hf/"
-res_path  = "$base_path/examples/Parallel-DPP-ACE-HfO2/results/";
+res_path  = "$base_path/examples/Parallel-DPP-ACE-HfO2/results-Hf/";
 
 # Load utility functions.
 include("$base_path/examples/utils/utils.jl")
@@ -102,15 +102,15 @@ end
 # Load training and test configuration datasets ################################
 
 paths = [
-#         "$ds_path/Hf2_gas_form_sorted.extxyz",
-#         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200
-#         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377
+         "$ds_path/Hf2_gas_form_sorted.extxyz",
+         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200
+         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377
          "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k
-#         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306
-#         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50
-#         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498
-#         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201
-#         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
+         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306
+         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50
+         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498
+         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201
+         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
          ]
 
 confs = []
@@ -134,9 +134,9 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 
 # Compute ACE descriptors
 basis = ACE(species           = species,
-            body_order        = 4,
-            polynomial_degree = 5,
-            rcutoff           = 10.0,
+            body_order        = 6,
+            polynomial_degree = 6,
+            rcutoff           = 7.0,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)

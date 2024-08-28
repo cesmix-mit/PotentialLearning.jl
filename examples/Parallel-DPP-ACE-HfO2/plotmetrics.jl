@@ -1,7 +1,6 @@
 using DataFrames, CSV, Statistics, Plots
 
-metrics = CSV.read("metrics.csv", DataFrame)
-res_path = "dyomet/"
+metrics = CSV.read("$res_path/metrics.csv", DataFrame)
 
 methods = reverse(unique(metrics.method))
 batch_sizes = unique(metrics.batch_size)
