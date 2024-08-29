@@ -7,6 +7,12 @@ using AtomsBase, InteratomicPotentials, PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
 using DataFrames, Plots
+using MPI
+
+MPI.Init()
+comm = MPI.COMM_WORLD
+size = MPI.Comm_size(comm)
+rank = MPI.Comm_rank(comm)
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
@@ -102,21 +108,21 @@ end
 # Load training and test configuration datasets ################################
 
 paths = [
-         "$ds_path/HfO2_figshare_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
+         #"$ds_path/HfO2_figshare_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
          "$ds_path/HfO2_mp550893_EOS_1D_form_sorted.extxyz", # 200, :)
          "$ds_path/HfO_gas_form_sorted.extxyz", # 9377, :(
-         "$ds_path/HfO2_figshare_form_sorted.extxyz", # 17.2k, :-D or out of memory
-         "$ds_path/HfO2_mp352_EOS_1D_form_sorted.extxyz", # 306, :(
-         "$ds_path/HfO2_mp550893_EOS_6D_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf2_gas_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 50, ...
-         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz", # 50, ...
+         #"$ds_path/HfO2_figshare_form_sorted.extxyz", # 17.2k, :-D or out of memory
+         #"$ds_path/HfO2_mp352_EOS_1D_form_sorted.extxyz", # 306, :(
+         #"$ds_path/HfO2_mp550893_EOS_6D_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf2_gas_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 50, ...
+         #"$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz", # 50, ...
 
 ]
 
@@ -166,8 +172,17 @@ metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
 metrics = DataFrame([Any[] for _ in 1:length(metric_names)], metric_names)
 
 # Subsampling experiments: subsample full dataset vs subsample dataset by chunks
-n_experiments = 30 # 100
-for j in 1:n_experiments
+n_experiments = 5 # 100
+local_exp = ceil(Int, n_experiments / size)
+for nc in 1:ceil(Int, n_experiments / size)
+
+    #check it there is left over
+    j = rank + size * (nc-1) + 1
+    
+    if j > n_experiments
+        break
+    end
+
     global metrics
     
     # Define randomized training and test dataset
@@ -188,6 +203,8 @@ for j in 1:n_experiments
             exp_path = "$res_path/$j-SRS-bsp$batch_size_prop/"
             run(`mkdir -p $exp_path`)
             batch_size = floor(Int, n_train * batch_size_prop)
+            @show batch_size
+            @show batch_size_prop
             sampling_time = @elapsed begin
                 inds = randperm(n_train)[1:batch_size]
             end
@@ -253,7 +270,8 @@ for j in 1:n_experiments
                                               "time" => sampling_time),
                                   merge(metrics_j...))
                 push!(metrics, metrics_j)
-                @save_dataframe(res_path, metrics)
+                #@save_dataframe(res_path, metrics)
+                CSV.write("metrics_$j.csv", metrics)
             end
             GC.gc()
     end
