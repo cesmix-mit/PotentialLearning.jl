@@ -176,9 +176,10 @@ n_experiments = 5 # 100
 local_exp = ceil(Int, n_experiments / size)
 for nc in 1:ceil(Int, n_experiments / size)
 
-    #check it there is left over
+    #Assign iterations based on rank and cyclicly distribute iterations across different iterations
     j = rank + size * (nc-1) + 1
-    
+
+    #check if there is left over
     if j > n_experiments
         break
     end
