@@ -134,9 +134,9 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 
 # Compute ACE descriptors
 basis = ACE(species           = species,
-            body_order        = 6,
-            polynomial_degree = 6,
-            rcutoff           = 7.0,
+            body_order        = 8,
+            polynomial_degree = 8,
+            rcutoff           = 10.0,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
@@ -229,7 +229,8 @@ for j in 1:n_experiments
                 
                 #sampling_time = @elapsed @threads for i in 1:n_threads
                 sampling_time = @elapsed for i in 1:n_chunks
-                    a, b = 1 + (i-1) * n_chunk, i * n_chunk
+                    a, b = 1 + (i-1) * n_chunk, i * n_chunk + 1
+                    b = norm(b-n_train)<n_chunk ? n_train : b
                     dataset_selector = kDPP(  ds_train_rnd[a:b],
                                               GlobalMean(),
                                               DotProduct();
