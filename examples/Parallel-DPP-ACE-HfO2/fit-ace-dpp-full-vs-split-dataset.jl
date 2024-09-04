@@ -173,7 +173,7 @@ for j in 1:n_experiments
     ds_test_rnd  = @views ds[rnd_inds_test]
 
     # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32]
+    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.99]
     
             # Experiment j - SRS ###############################################
             println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
@@ -200,7 +200,7 @@ for j in 1:n_experiments
                 run(`mkdir -p $exp_path`)
                 batch_size = floor(Int, n_train * batch_size_prop)
                 sampling_time = @elapsed begin
-                    dataset_selector = kDPP(  ds_train_rnd,
+                    dataset_selector = kDPP(ds_train_rnd,
                                             GlobalMean(),
                                             DotProduct();
                                             batch_size = batch_size)
@@ -208,10 +208,10 @@ for j in 1:n_experiments
                 end
                 metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
                 metrics_j = merge(OrderedDict("exp_number" => j,
-                                            "method" => "DPP",
-                                            "batch_size_prop" => batch_size_prop,
-                                            "batch_size" => batch_size,
-                                            "time" => sampling_time),
+                                              "method" => "DPP",
+                                              "batch_size_prop" => batch_size_prop,
+                                              "batch_size" => batch_size,
+                                              "time" => sampling_time),
                                 merge(metrics_j...))
                 push!(metrics, metrics_j)
                 @save_dataframe(res_path, metrics)
@@ -235,10 +235,10 @@ for j in 1:n_experiments
                 sampling_time = @elapsed for i in 1:n_chunks
                     a, b = 1 + (i-1) * n_chunk, i * n_chunk + 1
                     b = norm(b-n_train)<n_chunk ? n_train : b
-                    dataset_selector = kDPP(  ds_train_rnd[a:b],
-                                              GlobalMean(),
-                                              DotProduct();
-                                              batch_size = batch_size_chunk)
+                    dataset_selector = kDPP(@views(ds_train_rnd[a:b]),
+                                            GlobalMean(),
+                                            DotProduct();
+                                            batch_size = batch_size_chunk)
                     inds_i = get_random_subset(dataset_selector)
                     append!(inds, inds_i .+ (a .- 1))
                 end
