@@ -194,26 +194,30 @@ for j in 1:n_experiments
             @save_dataframe(res_path, metrics)
 
             # Experiment j - DPP ###############################################
-            println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
-            exp_path = "$res_path/$j-DPP-bsp$batch_size_prop/"
-            run(`mkdir -p $exp_path`)
-            batch_size = floor(Int, n_train * batch_size_prop)
-            sampling_time = @elapsed begin
-                dataset_selector = kDPP(  ds_train_rnd,
-                                          GlobalMean(),
-                                          DotProduct();
-                                          batch_size = batch_size)
-                inds = get_random_subset(dataset_selector)
+            try
+                println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
+                exp_path = "$res_path/$j-DPP-bsp$batch_size_prop/"
+                run(`mkdir -p $exp_path`)
+                batch_size = floor(Int, n_train * batch_size_prop)
+                sampling_time = @elapsed begin
+                    dataset_selector = kDPP(  ds_train_rnd,
+                                            GlobalMean(),
+                                            DotProduct();
+                                            batch_size = batch_size)
+                    inds = get_random_subset(dataset_selector)
+                end
+                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+                metrics_j = merge(OrderedDict("exp_number" => j,
+                                            "method" => "DPP",
+                                            "batch_size_prop" => batch_size_prop,
+                                            "batch_size" => batch_size,
+                                            "time" => sampling_time),
+                                merge(metrics_j...))
+                push!(metrics, metrics_j)
+                @save_dataframe(res_path, metrics)
+            catch e # Catch error from excessive matrix allocation.
+                println(e)
             end
-            metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-            metrics_j = merge(OrderedDict("exp_number" => j,
-                                          "method" => "DPP",
-                                          "batch_size_prop" => batch_size_prop,
-                                          "batch_size" => batch_size,
-                                          "time" => sampling_time),
-                              merge(metrics_j...))
-            push!(metrics, metrics_j)
-            @save_dataframe(res_path, metrics)
             
             # Experiment j - DPP′ using n_chunks ##############################
             for n_chunks in [2, 4, 8]
