@@ -16,8 +16,8 @@ rank = MPI.Comm_rank(comm)
 
 # Define paths.
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
-ds_path   = "$base_path/examples/data/Hfo_data/"
-res_path  = "$base_path/examples/Parallel-DPP-ACE-HfO2/results/";
+ds_path   = "$base_path/examples/data/Hf/"
+res_path  = "$base_path/examples/Parallel-DPP-ACE-HfO2/results-Hf/";
 
 # Load utility functions.
 include("$base_path/examples/utils/utils.jl")
@@ -107,24 +107,36 @@ end
 
 # Load training and test configuration datasets ################################
 
-paths = [
-         #"$ds_path/HfO2_figshare_form_sorted.extxyz", # ERROR: LoadError: SingularException(18)
-         "$ds_path/HfO2_mp550893_EOS_1D_form_sorted.extxyz", # 200, :)
-         "$ds_path/HfO_gas_form_sorted.extxyz", # 9377, :(
-         #"$ds_path/HfO2_figshare_form_sorted.extxyz", # 17.2k, :-D or out of memory
-         #"$ds_path/HfO2_mp352_EOS_1D_form_sorted.extxyz", # 306, :(
-         #"$ds_path/HfO2_mp550893_EOS_6D_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf2_gas_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 50, ...
-         #"$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz", # 50, ...
+# Dataset 1 (28k)
+paths = ["$ds_path/Hf2_gas_form_sorted.extxyz",
+         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200
+         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377
+         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k
+         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306
+         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50
+         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498
+         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201
+         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
+         ]
 
-]
+# Dataset 2
+#paths = [
+#         "$ds_path/HfO2_figshare_form_sorted.extxyz",
+#         "$ds_path/HfO2_mp550893_EOS_1D_form_sorted.extxyz",
+#         "$ds_path/HfO_gas_form_sorted.extxyz",
+#         "$ds_path/HfO2_figshare_form_sorted.extxyz",
+#         "$ds_path/HfO2_mp352_EOS_1D_form_sorted.extxyz",
+#         "$ds_path/HfO2_mp550893_EOS_6D_form_sorted.extxyz",
+#         "$ds_path/Hf2_gas_form_sorted.extxyz",
+#         "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz",
+#         "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz",
+#         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz",
+#         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", 
+#         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz",
+#         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz",
+#         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz",
+#         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz",
+#]
 
 confs = []
 for ds_path in paths
@@ -147,8 +159,8 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 
 # Compute ACE descriptors
 basis = ACE(species           = species,
-            body_order        = 4,
-            polynomial_degree = 5,
+            body_order        = 8,
+            polynomial_degree = 8,
             rcutoff           = 10.0,
             wL                = 1.0,
             csp               = 1.0,
@@ -172,14 +184,13 @@ metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
 metrics = DataFrame([Any[] for _ in 1:length(metric_names)], metric_names)
 
 # Subsampling experiments: subsample full dataset vs subsample dataset by chunks
-n_experiments = 5 # 100
+n_experiments = 100
 local_exp = ceil(Int, n_experiments / size)
-for nc in 1:ceil(Int, n_experiments / size)
+for nc in 1:local_exp
 
-    #Assign iterations based on rank and cyclicly distribute iterations across different iterations
+    #check it there is left over
     j = rank + size * (nc-1) + 1
-
-    #check if there is left over
+    
     if j > n_experiments
         break
     end
@@ -196,16 +207,13 @@ for nc in 1:ceil(Int, n_experiments / size)
     ds_test_rnd  = @views ds[rnd_inds_test]
 
     # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32] #[0.05, 0.10, 0.25]
-            #[0.01, 0.02, 0.04, 0.08, 0.16, 0.32] #[0.05, 0.25, 0.5, 0.75, 0.95] #[0.05, 0.10, 0.20, 0.30] #[0.05, 0.25, 0.5, 0.75, 0.95]
+    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.99]
     
             # Experiment j - SRS ###############################################
             println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
             exp_path = "$res_path/$j-SRS-bsp$batch_size_prop/"
             run(`mkdir -p $exp_path`)
             batch_size = floor(Int, n_train * batch_size_prop)
-            @show batch_size
-            @show batch_size_prop
             sampling_time = @elapsed begin
                 inds = randperm(n_train)[1:batch_size]
             end
@@ -220,26 +228,30 @@ for nc in 1:ceil(Int, n_experiments / size)
             @save_dataframe(res_path, metrics)
 
             # Experiment j - DPP ###############################################
-            println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
-            exp_path = "$res_path/$j-DPP-bsp$batch_size_prop/"
-            run(`mkdir -p $exp_path`)
-            batch_size = floor(Int, n_train * batch_size_prop)
-            sampling_time = @elapsed begin
-                dataset_selector = kDPP(  ds_train_rnd,
-                                          GlobalMean(),
-                                          DotProduct();
-                                          batch_size = batch_size)
-                inds = get_random_subset(dataset_selector)
+            try
+                println("Experiment:$j, method:DPP, batch_size_prop:$batch_size_prop")
+                exp_path = "$res_path/$j-DPP-bsp$batch_size_prop/"
+                run(`mkdir -p $exp_path`)
+                batch_size = floor(Int, n_train * batch_size_prop)
+                sampling_time = @elapsed begin
+                    dataset_selector = kDPP(ds_train_rnd,
+                                            GlobalMean(),
+                                            DotProduct();
+                                            batch_size = batch_size)
+                    inds = get_random_subset(dataset_selector)
+                end
+                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+                metrics_j = merge(OrderedDict("exp_number" => j,
+                                              "method" => "DPP",
+                                              "batch_size_prop" => batch_size_prop,
+                                              "batch_size" => batch_size,
+                                              "time" => sampling_time),
+                                merge(metrics_j...))
+                push!(metrics, metrics_j)
+                @save_dataframe(res_path, metrics)
+            catch e # Catch error from excessive matrix allocation.
+                println(e)
             end
-            metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-            metrics_j = merge(OrderedDict("exp_number" => j,
-                                          "method" => "DPP",
-                                          "batch_size_prop" => batch_size_prop,
-                                          "batch_size" => batch_size,
-                                          "time" => sampling_time),
-                              merge(metrics_j...))
-            push!(metrics, metrics_j)
-            @save_dataframe(res_path, metrics)
             
             # Experiment j - DPP′ using n_chunks ##############################
             for n_chunks in [2, 4, 8]
@@ -255,11 +267,12 @@ for nc in 1:ceil(Int, n_experiments / size)
                 
                 #sampling_time = @elapsed @threads for i in 1:n_threads
                 sampling_time = @elapsed for i in 1:n_chunks
-                    a, b = 1 + (i-1) * n_chunk, i * n_chunk
-                    dataset_selector = kDPP(  ds_train_rnd[a:b],
-                                              GlobalMean(),
-                                              DotProduct();
-                                              batch_size = batch_size_chunk)
+                    a, b = 1 + (i-1) * n_chunk, i * n_chunk + 1
+                    b = norm(b-n_train)<n_chunk ? n_train : b
+                    dataset_selector = kDPP(@views(ds_train_rnd[a:b]),
+                                            GlobalMean(),
+                                            DotProduct();
+                                            batch_size = batch_size_chunk)
                     inds_i = get_random_subset(dataset_selector)
                     append!(inds, inds_i .+ (a .- 1))
                 end
@@ -271,8 +284,7 @@ for nc in 1:ceil(Int, n_experiments / size)
                                               "time" => sampling_time),
                                   merge(metrics_j...))
                 push!(metrics, metrics_j)
-                #@save_dataframe(res_path, metrics)
-                CSV.write("metrics_$j.csv", metrics)
+                @save_dataframe(res_path, metrics)
             end
             GC.gc()
     end
@@ -280,29 +292,5 @@ end
 
 # Postprocess ##################################################################
 
-for metric in [:e_train_mae, :f_train_mae, :e_test_mae, :f_test_mae, :time]
-    scatter()
-    for method in reverse(unique(metrics[:, :method])[1:end])
-        batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
-        metric_vals = metrics[metrics.method .== method, :][:, metric]
-        scatter!(batch_size_vals, metric_vals, label = method,
-                 alpha = 0.5, dpi=300, markerstrokewidth=0, markersize=5, xaxis=:log2,
-                 xlabel = "Sample size",
-                 ylabel = "$metric")
-    end
-    savefig("$res_path/$metric-srs.png")
-end
-
-scatter()
-for method in reverse(unique(metrics[:, :method])[2:end])
-    batch_size_vals = metrics[metrics.method .== method, :][:, :batch_size]
-    speedup_vals = metrics[metrics.method .== "DPP", :][:, :time] ./
-                  metrics[metrics.method .== method, :][:, :time]
-    scatter!(batch_size_vals, speedup_vals, label = "DPP time / $method time",
-             alpha = 0.5, dpi=300, markerstrokewidth=0, markersize=5, xaxis=:log2,
-             xlabel = "Sample size",
-             ylabel = "Speedup")
-end
-savefig("$res_path/speedup-srs.png")
-
+include("$base_path/examples/Parallel-DPP-ACE-HfO2/plotmetrics.jl")
 
