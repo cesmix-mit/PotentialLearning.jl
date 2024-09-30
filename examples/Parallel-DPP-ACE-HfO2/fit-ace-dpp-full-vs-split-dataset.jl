@@ -44,7 +44,7 @@ end
 # Thin wrapper to dbscan to reduce samples (rows)
 function dbscan_sample(A, N′)
     # Create clusters using dbscan
-    c = dbscan(A', 10; min_neighbors = 3, min_cluster_size = 20, metric=Euclidean())
+    c = dbscan(A', 10; min_neighbors = 3, min_cluster_size = 20, metric=Clustering.Euclidean())
     a = c.assignments # get the assignments of points to clusters
     n_clusters = maximum(a)
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]
@@ -82,11 +82,6 @@ function lrdpp_sample(A, N′)
         curr_N′ = Base.size(inds, 1)
     end
     inds = Int64.(inds[1:N′])
-
-    # r′ = @views r
-    # if length(r) > N′
-    #     r′ = @views r[1:N′]
-    # end
 
     return inds
 end
@@ -292,7 +287,6 @@ for nc in 1:local_exp
     ged = sum.(get_values.(get_local_descriptors.(ds_train_rnd)))
     ged_mat = stack(ged)'
 
-
     # Subsampling experiments:  different sample sizes
     for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.99]
     
@@ -329,6 +323,50 @@ for nc in 1:local_exp
                                               "batch_size_prop" => batch_size_prop,
                                               "batch_size" => batch_size,
                                               "time" => sampling_time),
+                                merge(metrics_j...))
+                push!(metrics, metrics_j)
+                @save_dataframe(res_path, metrics)
+            catch e # Catch error from excessive matrix allocation.
+                println(e)
+            end
+
+            # Experiment j - DBSCAN ###############################################
+            try
+                println("Experiment:$j, method:DBSCAN, batch_size_prop:$batch_size_prop")
+                exp_path = "$res_path/$j-DBSCAN-bsp$batch_size_prop/"
+                run(`mkdir -p $exp_path`)
+                batch_size = floor(Int, n_train * batch_size_prop)
+                sampling_time = @elapsed begin
+                    inds = dbscan_sample(ged_mat, batch_size)
+                end
+                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+                metrics_j = merge(OrderedDict("exp_number" => j,
+                                                "method" => "DBSCAN",
+                                                "batch_size_prop" => batch_size_prop,
+                                                "batch_size" => batch_size,
+                                                "time" => sampling_time),
+                                merge(metrics_j...))
+                push!(metrics, metrics_j)
+                @save_dataframe(res_path, metrics)
+            catch e # Catch error from excessive matrix allocation.
+                println(e)
+            end
+
+            # Experiment j - CUR ###############################################
+            try
+                println("Experiment:$j, method:CUR, batch_size_prop:$batch_size_prop")
+                exp_path = "$res_path/$j-CUR-bsp$batch_size_prop/"
+                run(`mkdir -p $exp_path`)
+                batch_size = floor(Int, n_train * batch_size_prop)
+                sampling_time = @elapsed begin
+                    inds = cur_sample(ged_mat, batch_size)
+                end
+                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
+                metrics_j = merge(OrderedDict("exp_number" => j,
+                                                "method" => "CUR",
+                                                "batch_size_prop" => batch_size_prop,
+                                                "batch_size" => batch_size,
+                                                "time" => sampling_time),
                                 merge(metrics_j...))
                 push!(metrics, metrics_j)
                 @save_dataframe(res_path, metrics)

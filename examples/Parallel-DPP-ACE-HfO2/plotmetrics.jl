@@ -40,8 +40,8 @@ for (i, metric) in enumerate(metrics_cols)
               markerstrokecolor = :black, 
               markercolor = colors[j],
               label="")
-        max = metric == :time ? 4000 : 1
-        min = metric == :time ? -100 : minimum(metric_means) * 0.99
+        max = metric == :time ? 1 : 1
+        min = metric == :time ? -1 : minimum(metric_means) * 0.99
         plot!(dpi = 300,
               label = "",
               xscale=:log2, 
