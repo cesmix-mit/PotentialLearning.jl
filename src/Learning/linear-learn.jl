@@ -194,7 +194,15 @@ function learn!(
 
     # Calculate coefficients β.
     Q = Diagonal(ws[1] * ones(length(e_train)))
-    βs = pinv(A'*Q*A)*(A'*Q*b)
+
+    βs = Vector{Float64}() 
+    try
+        βs = (A'*Q*A) \ (A'*Q*b)
+    catch e
+        println(e)
+        println("Linear system will be solved using pinv.") 
+        βs = pinv(A'*Q*A)*(A'*Q*b)
+    end
     
     # Update lp.
     if int
@@ -238,7 +246,15 @@ function learn!(
     # Calculate coefficients βs.
     Q = Diagonal([ws[1] * ones(length(e_train));
                   ws[2] * ones(length(f_train))])
-    βs = pinv(A'*Q*A)*(A'*Q*b)
+    
+    βs = Vector{Float64}() 
+    try
+        βs = (A'*Q*A) \ (A'*Q*b)
+    catch e
+        println(e)
+        println("Linear system will be solved using pinv.") 
+        βs = pinv(A'*Q*A)*(A'*Q*b)
+    end
 
     # Update lp.
     if int
