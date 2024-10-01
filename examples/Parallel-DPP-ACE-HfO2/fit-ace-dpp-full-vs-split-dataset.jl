@@ -1,8 +1,8 @@
-# Fit ACE and postprocess results. Used in subsampling experiments #############
+#################################################################################
+# Find best sampling methods for a given atomistic dataset
+#################################################################################
 
-# ## Setup experiment
-
-# Load packages.
+# Load packages #################################################################
 using AtomsBase, InteratomicPotentials, PotentialLearning
 using Unitful, UnitfulAtomic
 using LinearAlgebra, Random, DisplayAs
@@ -19,165 +19,16 @@ comm = MPI.COMM_WORLD
 size = MPI.Comm_size(comm)
 rank = MPI.Comm_rank(comm)
 
-# Define paths.
+# Define paths and create experiment folder ###################################
 base_path = haskey(ENV, "BASE_PATH") ? ENV["BASE_PATH"] : "../../"
 ds_path   = "$base_path/examples/data/Hf/"
 res_path  = "$base_path/examples/Parallel-DPP-ACE-HfO2/results-Hf/";
 
-# Load utility functions.
+run(`mkdir -p $res_path`);
+
+# Load auxiliary functions  ####################################################
 include("$base_path/examples/utils/utils.jl")
-
-
-# Data reduction algorithms ####################################################
-
-
-# Thin wrapper to kmeans to reduce samples (rows)
-function kmeans_sample(A, N′)
-    c = kmeans(A', 5; maxiter=200)
-    a = c.assignments # get the assignments of points to clusters
-    n_clusters = maximum(a)
-    clusters = [findall(x->x==i, a) for i in 1:n_clusters]
-    r = reduce(vcat, Clustering.sample.(clusters, [N′ ÷ length(clusters)]))
-    return r
-end
-
-# Thin wrapper to dbscan to reduce samples (rows)
-function dbscan_sample(A, N′)
-    # Create clusters using dbscan
-    c = dbscan(A', 10; min_neighbors = 3, min_cluster_size = 20, metric=Clustering.Euclidean())
-    a = c.assignments # get the assignments of points to clusters
-    n_clusters = maximum(a)
-    clusters = [findall(x->x==i, a) for i in 1:n_clusters]
-    r = reduce(vcat, Clustering.sample.(clusters, [N′ ÷ length(clusters)]))
-    return r
-end
-
-# Thin wrapper to Low Rank DPP to reduce samples (rows)
-function lrdpp_sample(A, N′)
-    # Compute a kernel matrix for the points in x
-    #L = [ exp(-norm(a-b)^2) for a in eachcol(A'), b in eachcol(A') ]
-    #L = pairwise(Distances.Euclidean(), A')
-    L = LowRank(Matrix(A))
-    
-    # Form an L-ensemble based on the L matrix
-    dpp = EllEnsemble(L)
-    
-    # Scale so that the expected size is N′
-    #rescale!(dpp, N′)
-
-    # Sample A (obtain indices)
-    _, N = Base.size(A)
-    N′′ = N′ > N ? N : N′
-    #n_samples = N′ > N ? N′ ÷ N + 1 : 1
-    # inds = []
-    # for _ in 1:n_samples
-    #     push!(inds, Determinantal.sample(dpp, N′′)...);
-    # end
-
-    curr_N′ = 0
-    inds = []
-    while curr_N′ < N′
-        curr_inds = Determinantal.sample(dpp, N′′)
-        inds = unique([inds; curr_inds])
-        curr_N′ = Base.size(inds, 1)
-    end
-    inds = Int64.(inds[1:N′])
-
-    return inds
-end
-
-# Thin wrapper to CUR to reduce samples (rows)
-function cur_sample(A, N′)
-    r, _ = cur(A)
-    r′ = @views r
-    if length(r) > N′
-        r′ = @views r[1:N′]
-    end
-    return r′
-end
-
-
-function fit(path, ds_train, ds_test, basis)
-
-    # Learn
-    lb = LBasisPotential(basis)
-    ws, int = [1.0, 1.0], false
-    learn!(lb, ds_train, ws, int)
-
-    @save_var path lb.β
-    @save_var path lb.β0
-
-    # Post-process output: calculate metrics, create plots, and save results #######
-
-    # Get true and predicted values
-    n_atoms_train = length.(get_system.(ds_train))
-    n_atoms_test = length.(get_system.(ds_test))
-
-    e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
-                            get_all_energies(ds_train, lb) ./ n_atoms_train
-    f_train, f_train_pred = get_all_forces(ds_train),
-                            get_all_forces(ds_train, lb)
-    @save_var path e_train
-    @save_var path e_train_pred
-    @save_var path f_train
-    @save_var path f_train_pred
-
-    e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
-                          get_all_energies(ds_test, lb) ./ n_atoms_test
-    f_test, f_test_pred = get_all_forces(ds_test),
-                          get_all_forces(ds_test, lb)
-    @save_var path e_test
-    @save_var path e_test_pred
-    @save_var path f_test
-    @save_var path f_test_pred
-
-    # Compute metrics
-    e_train_metrics = get_metrics(e_train, e_train_pred,
-                                  metrics = [mae, rmse, rsq],
-                                  label = "e_train")
-    f_train_metrics = get_metrics(f_train, f_train_pred,
-                                  metrics = [mae, rmse, rsq, mean_cos],
-                                  label = "f_train")
-    train_metrics = merge(e_train_metrics, f_train_metrics)
-    @save_dict path train_metrics
-
-    e_test_metrics = get_metrics(e_test, e_test_pred,
-                                 metrics = [mae, rmse, rsq],
-                                 label = "e_test")
-    f_test_metrics = get_metrics(f_test, f_test_pred,
-                                 metrics = [mae, rmse, rsq, mean_cos],
-                                 label = "f_test")
-    test_metrics = merge(e_test_metrics, f_test_metrics)
-    @save_dict path test_metrics
-
-    # Plot and save results
-
-    e_plot = plot_energy(e_train, e_train_pred,
-                         e_test, e_test_pred)
-    @save_fig path e_plot
-
-    f_plot = plot_forces(f_train, f_train_pred,
-                         f_test, f_test_pred)
-    @save_fig path f_plot
-
-    e_train_plot = plot_energy(e_train, e_train_pred)
-    f_train_plot = plot_forces(f_train, f_train_pred)
-    f_train_cos  = plot_cos(f_train, f_train_pred)
-    @save_fig path e_train_plot
-    @save_fig path f_train_plot
-    @save_fig path f_train_cos
-
-    e_test_plot = plot_energy(e_test, e_test_pred)
-    f_test_plot = plot_forces(f_test, f_test_pred)
-    f_test_cos  = plot_cos(f_test, f_test_pred)
-    @save_fig path e_test_plot
-    @save_fig path f_test_plot
-    @save_fig path f_test_cos
-    
-    return e_train_metrics, f_train_metrics, 
-           e_test_metrics, f_test_metrics
-end
-
+include("$base_path/examples/Parallel-DPP-ACE-HfO2/aux_sample_functions.jl")
 
 # Load training and test configuration datasets ################################
 
@@ -224,14 +75,10 @@ GC.gc()
 #confs = load_data(ds_path, uparse("eV"), uparse("Å"))
 #n = length(confs)
 
-run(`mkdir -p $res_path`);
-
 species = unique(vcat([atomic_symbol.(get_system(c).particles)
           for c in confs]...))
 
-# Compute descriptors ##########################################################
-
-# Compute ACE descriptors
+# Compute ACE descriptors to update dataset
 basis = ACE(species           = species,
             body_order        = 8,
             polynomial_degree = 8,
@@ -249,6 +96,23 @@ dB_time = @elapsed f_descr = compute_force_descriptors(confs, basis)
 GC.gc()
 ds = DataSet(confs .+ e_descr .+ f_descr)
 
+# Subsampling experiments #####################################################
+
+# Define number of experiments
+n_experiments = 10
+
+# Define samplers
+#samplers = [simple_random_sample, dbscan_sample, kmeans_sample, 
+#            cur_sample, dpp_sample, lrdpp_sample]
+samplers = [simple_random_sample, dbscan_sample, kmeans_sample, 
+            cur_sample, lrdpp_sample]
+
+# Define batch sample sizes (proportions)
+batch_size_props = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.99]
+
+# Define precisions
+# precs = [Float32, Float64]
+
 # Create metric dataframe
 metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
                 :e_train_mae, :e_train_rmse, :e_train_rsq,
@@ -257,22 +121,14 @@ metric_names = [:exp_number,  :method, :batch_size_prop, :batch_size, :time,
                 :f_test_mae,  :f_test_rmse,  :f_test_rsq,  :f_test_mean_cos]
 metrics = DataFrame([Any[] for _ in 1:length(metric_names)], metric_names)
 
-
-#precs = [Float32, Float64]
-samplers = [cur_sample, lrdpp_sample, kmeans_sample, dbscan_sample]
-
-# Subsampling experiments: subsample full dataset vs subsample dataset by chunks
-n_experiments = 10
+# Run experiments
 local_exp = ceil(Int, n_experiments / size)
 for nc in 1:local_exp
-
     #check it there is left over
     j = rank + size * (nc-1) + 1
-    
     if j > n_experiments
         break
     end
-
     global metrics
     
     # Define randomized training and test dataset
@@ -283,153 +139,18 @@ for nc in 1:local_exp
     rnd_inds_test = rnd_inds[n_train+1:n_train+n_test] # rnd_inds[n_train+1:end]
     ds_train_rnd = @views ds[rnd_inds_train]
     ds_test_rnd  = @views ds[rnd_inds_test]
-
     ged = sum.(get_values.(get_local_descriptors.(ds_train_rnd)))
     ged_mat = stack(ged)'
 
-    # Subsampling experiments:  different sample sizes
-    for batch_size_prop in [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.99]
-    
-            # Experiment j - SRS ###############################################
-            println("Experiment:$j, method:SRS, batch_size_prop:$batch_size_prop")
-            exp_path = "$res_path/$j-SRS-bsp$batch_size_prop/"
-            run(`mkdir -p $exp_path`)
-            batch_size = floor(Int, n_train * batch_size_prop)
-            sampling_time = @elapsed begin
-                inds = randperm(n_train)[1:batch_size]
-            end
-            metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-            metrics_j = merge(OrderedDict("exp_number" => j,
-                                          "method" => "SRS",
-                                          "batch_size_prop" => batch_size_prop,
-                                          "batch_size" => batch_size,
-                                          "time" => sampling_time),
-                              merge(metrics_j...))
-            push!(metrics, metrics_j)
-            @save_dataframe(res_path, metrics)
-
-            # Experiment j - KMEANS ###############################################
-            try
-                println("Experiment:$j, method:KMEANS, batch_size_prop:$batch_size_prop")
-                exp_path = "$res_path/$j-KMEANS-bsp$batch_size_prop/"
-                run(`mkdir -p $exp_path`)
-                batch_size = floor(Int, n_train * batch_size_prop)
-                sampling_time = @elapsed begin
-                    inds = kmeans_sample(ged_mat, batch_size)
-                end
-                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-                metrics_j = merge(OrderedDict("exp_number" => j,
-                                              "method" => "KMEANS",
-                                              "batch_size_prop" => batch_size_prop,
-                                              "batch_size" => batch_size,
-                                              "time" => sampling_time),
-                                merge(metrics_j...))
-                push!(metrics, metrics_j)
-                @save_dataframe(res_path, metrics)
-            catch e # Catch error from excessive matrix allocation.
-                println(e)
-            end
-
-            # Experiment j - DBSCAN ###############################################
-            try
-                println("Experiment:$j, method:DBSCAN, batch_size_prop:$batch_size_prop")
-                exp_path = "$res_path/$j-DBSCAN-bsp$batch_size_prop/"
-                run(`mkdir -p $exp_path`)
-                batch_size = floor(Int, n_train * batch_size_prop)
-                sampling_time = @elapsed begin
-                    inds = dbscan_sample(ged_mat, batch_size)
-                end
-                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-                metrics_j = merge(OrderedDict("exp_number" => j,
-                                                "method" => "DBSCAN",
-                                                "batch_size_prop" => batch_size_prop,
-                                                "batch_size" => batch_size,
-                                                "time" => sampling_time),
-                                merge(metrics_j...))
-                push!(metrics, metrics_j)
-                @save_dataframe(res_path, metrics)
-            catch e # Catch error from excessive matrix allocation.
-                println(e)
-            end
-
-            # Experiment j - CUR ###############################################
-            try
-                println("Experiment:$j, method:CUR, batch_size_prop:$batch_size_prop")
-                exp_path = "$res_path/$j-CUR-bsp$batch_size_prop/"
-                run(`mkdir -p $exp_path`)
-                batch_size = floor(Int, n_train * batch_size_prop)
-                sampling_time = @elapsed begin
-                    inds = cur_sample(ged_mat, batch_size)
-                end
-                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-                metrics_j = merge(OrderedDict("exp_number" => j,
-                                                "method" => "CUR",
-                                                "batch_size_prop" => batch_size_prop,
-                                                "batch_size" => batch_size,
-                                                "time" => sampling_time),
-                                merge(metrics_j...))
-                push!(metrics, metrics_j)
-                @save_dataframe(res_path, metrics)
-            catch e # Catch error from excessive matrix allocation.
-                println(e)
-            end
-
-            # Experiment j - LRDPP ###############################################
-            try
-                println("Experiment:$j, method:LRDPP, batch_size_prop:$batch_size_prop")
-                exp_path = "$res_path/$j-LRDPP-bsp$batch_size_prop/"
-                run(`mkdir -p $exp_path`)
-                batch_size = floor(Int, n_train * batch_size_prop)
-                sampling_time = @elapsed begin
-                    inds = lrdpp_sample(ged_mat, batch_size)
-                end
-                metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-                metrics_j = merge(OrderedDict("exp_number" => j,
-                                              "method" => "LRDPP",
-                                              "batch_size_prop" => batch_size_prop,
-                                              "batch_size" => batch_size,
-                                              "time" => sampling_time),
-                                merge(metrics_j...))
-                push!(metrics, metrics_j)
-                @save_dataframe(res_path, metrics)
-            catch e # Catch error from excessive matrix allocation.
-                println(e)
-            end
-            
-            # Experiment j - DPP′ using n_chunks ##############################
-            # for n_chunks in [2, 4, 8]
-            #     println("Experiment:$j, method:DPP′(n=$n_chunks), batch_size_prop:$batch_size_prop")
-            #     exp_path = "$res_path/$j-DPP′-bsp$batch_size_prop-n$n_chunks/"
-            #     run(`mkdir -p $exp_path`)
-            #     inds = Int[]
-            #     n_chunk = n_train ÷ n_chunks
-            #     batch_size_chunk = floor(Int, n_chunk * batch_size_prop)
-            #     if batch_size_chunk == 0 
-            #         batch_size_chunk = 1
-            #     end
-                
-            #     #sampling_time = @elapsed @threads for i in 1:n_threads
-            #     sampling_time = @elapsed for i in 1:n_chunks
-            #         a, b = 1 + (i-1) * n_chunk, i * n_chunk + 1
-            #         b = norm(b-n_train)<n_chunk ? n_train : b
-            #         inds_i = dpp_sample(@views(ged_mat[a:b, :]), batch_size_chunk)
-            #         append!(inds, inds_i .+ (a .- 1))
-            #     end
-            #     metrics_j = fit(exp_path, (@views ds_train_rnd[inds]), ds_test_rnd, basis)
-            #     metrics_j = merge(OrderedDict("exp_number" => j,
-            #                                   "method" => "DPP′(n:$n_chunks)",
-            #                                   "batch_size_prop" => batch_size_prop,
-            #                                   "batch_size" => batch_size,
-            #                                   "time" => sampling_time),
-            #                       merge(metrics_j...))
-            #     push!(metrics, metrics_j)
-            #     @save_dataframe(res_path, metrics)
-            # end
+    # Sampling experiments
+    for batch_size_prop in batch_size_props
+        for sampler in samplers
+            sample_experiment!(res_path, j, sampler, batch_size_prop, n_train, 
+                               ged_mat, ds_train_rnd, ds_test_rnd, basis, metrics)
             GC.gc()
+        end
     end
 end
 
 # Postprocess ##################################################################
-
 include("$base_path/examples/Parallel-DPP-ACE-HfO2/plotmetrics.jl")
-
