@@ -41,13 +41,13 @@ for (i, metric) in enumerate(metrics_cols)
               markercolor = colors[j],
               label="")
         max = metric == :time ? 1 : 1
-        min = metric == :time ? -1 : minimum(metric_means) * 0.99
+        min = metric == :time ? -0.1 : minimum(metric_means) * 0.50
         plot!(dpi = 300,
               label = "",
               xscale=:log2, 
               xticks = (batch_sizes, xticks_label),
               ylim=(min, max),
-              xlabel = "Training Dataset Sample Size",
+              xlabel = "Training Dataset Size (Sample Size)",
               ylabel = metric_labels[i])
     end
     savefig("$res_path/$metric.png")

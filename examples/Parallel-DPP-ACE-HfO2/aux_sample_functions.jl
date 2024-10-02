@@ -1,30 +1,46 @@
 
 # Data reduction algorithms ####################################################
 
+# Simple random sampling
 function simple_random_sample(A, N′)
     n_train = Base.size(A, 1)
     inds = randperm(n_train)[1:N′]
     return inds
 end
 
-# kmeans-based sampling method
+# Kmeans-based sampling method
 function kmeans_sample(A, N′)
     c = kmeans(A', 5; maxiter=200)
     a = c.assignments # get the assignments of points to clusters
     n_clusters = maximum(a)
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]
-    inds = reduce(vcat, Clustering.sample.(clusters, [N′ ÷ length(clusters)]))
+    p = N′ / Base.size(A, 1)
+    ns = []
+    for c_i in clusters
+        n = round(Int64,length(c_i) * p)
+        n = n == 0 ? 1 : n
+        push!(ns, n)
+    end
+    inds = reduce(vcat, Clustering.sample.(clusters, ns))
+    #inds = reduce(vcat, Clustering.sample.(clusters, [N′ ÷ length(clusters)]))
     return inds
 end
 
-# dbscan-based sampling method
+# Dbscan-based sampling method
 function dbscan_sample(A, N′)
-    # Create clusters using dbscan
-    c = dbscan(A', 10; min_neighbors = 3, min_cluster_size = 20, metric=Clustering.Euclidean())
+    c = dbscan(A', 0.1; min_neighbors = 3, min_cluster_size = 20, metric=Clustering.Euclidean())
     a = c.assignments # get the assignments of points to clusters
     n_clusters = maximum(a)
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]
-    inds = reduce(vcat, Clustering.sample.(clusters, [N′ ÷ length(clusters)]))
+    p = N′ / Base.size(A, 1)
+    ns = []
+    for c_i in clusters
+        n = round(Int64,length(c_i) * p)
+        n = n == 0 ? 1 : n
+        push!(ns, n)
+    end
+    inds = reduce(vcat, Clustering.sample.(clusters, ns))
+    #inds = reduce(vcat, Clustering.sample.(clusters, [N′ ÷ length(clusters)]))
     return inds
 end
 
