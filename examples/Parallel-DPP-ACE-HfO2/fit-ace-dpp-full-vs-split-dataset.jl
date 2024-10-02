@@ -13,6 +13,7 @@ using DataFrames, Plots
 using MPI
 using JLD
 using Colors
+using Base.Threads
 
 MPI.Init()
 comm = MPI.COMM_WORLD
@@ -29,6 +30,7 @@ run(`mkdir -p $res_path`);
 # Load auxiliary functions  ####################################################
 include("$base_path/examples/utils/utils.jl")
 include("$base_path/examples/Parallel-DPP-ACE-HfO2/aux_sample_functions.jl")
+include("$base_path/examples/Parallel-DPP-ACE-HfO2/plotmetrics.jl")
 
 # Load training and test configuration datasets ################################
 
@@ -36,13 +38,13 @@ include("$base_path/examples/Parallel-DPP-ACE-HfO2/aux_sample_functions.jl")
 paths = ["$ds_path/Hf2_gas_form_sorted.extxyz",
          "$ds_path/Hf2_mp103_EOS_1D_form_sorted.extxyz", # 200
          "$ds_path/Hf2_mp103_EOS_3D_form_sorted.extxyz", # 9377
-        #  "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k
-        #  "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306
-        #  "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50
-        #  "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498
-        #  "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201
-        #  "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
-         ]
+         "$ds_path/Hf2_mp103_EOS_6D_form_sorted.extxyz", # 17.2k
+         "$ds_path/Hf128_MC_rattled_mp100_form_sorted.extxyz", # 306
+         "$ds_path/Hf128_MC_rattled_mp103_form_sorted.extxyz", # 50
+         "$ds_path/Hf128_MC_rattled_random_form_sorted.extxyz", # 498
+         "$ds_path/Hf_mp100_EOS_1D_form_sorted.extxyz", # 201
+         "$ds_path/Hf_mp100_primitive_EOS_1D_form_sorted.extxyz"
+        ]
 
 # Dataset 2
 #paths = [
@@ -82,7 +84,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 basis = ACE(species           = species,
             body_order        = 8,
             polynomial_degree = 8,
-            rcutoff           = 10.0,
+            rcutoff           = 5.5,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
@@ -99,16 +101,15 @@ ds = DataSet(confs .+ e_descr .+ f_descr)
 # Subsampling experiments #####################################################
 
 # Define number of experiments
-n_experiments = 10
+n_experiments = 1
 
 # Define samplers
 #samplers = [simple_random_sample, dbscan_sample, kmeans_sample, 
 #            cur_sample, dpp_sample, lrdpp_sample]
-samplers = [simple_random_sample, dbscan_sample, kmeans_sample, 
-            cur_sample, lrdpp_sample]
+samplers = [simple_random_sample, kmeans_sample, cur_sample, lrdpp_sample]
 
 # Define batch sample sizes (proportions)
-batch_size_props = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 0.99]
+batch_size_props = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64] # TODO: add 0.99 in final experiment
 
 # Define precisions
 # precs = [Float32, Float64]
@@ -153,4 +154,4 @@ for nc in 1:local_exp
 end
 
 # Postprocess ##################################################################
-include("$base_path/examples/Parallel-DPP-ACE-HfO2/plotmetrics.jl")
+plotmetrics("$res_path/metrics.csv")

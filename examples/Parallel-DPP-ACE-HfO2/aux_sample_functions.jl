@@ -10,7 +10,7 @@ end
 
 # Kmeans-based sampling method
 function kmeans_sample(A, N′)
-    c = kmeans(A', 5; maxiter=200)
+    c = kmeans(A', 5; maxiter=1000)
     a = c.assignments # get the assignments of points to clusters
     n_clusters = maximum(a)
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]
@@ -28,7 +28,7 @@ end
 
 # Dbscan-based sampling method
 function dbscan_sample(A, N′)
-    c = dbscan(A', 0.1; min_neighbors = 3, min_cluster_size = 20, metric=Clustering.Euclidean())
+    c = dbscan(A', 0.1; min_neighbors = 3, min_cluster_size = 3, metric=Clustering.Euclidean())
     a = c.assignments # get the assignments of points to clusters
     n_clusters = maximum(a)
     clusters = [findall(x->x==i, a) for i in 1:n_clusters]
@@ -62,10 +62,111 @@ function lrdpp_sample(A, N′)
         inds = unique([inds; curr_inds])
         curr_N′ = Base.size(inds, 1)
     end
+        # while curr_N′ < N′
+    #     n_threads = Threads.nthreads()
+    #     inds_vec = inds_vec = Vector{Vector{Int64}}(undef, n_threads)
+    #     @threads for i in 1:n_threads
+    #         inds_vec[i] = Determinantal.sample(dpp, N′′)
+    #     end
+    #     inds = unique(reduce(vcat, [inds; inds_vec]))
+    #     curr_N′ = Base.size(inds, 1)
+    # end
     inds = inds[1:N′]
 
     return inds
 end
+
+# function lrdpp_sample_1(A, N′)
+#     # Compute a kernel matrix for the points in x
+#     L = LowRank(Matrix(A))
+    
+#     # Form an L-ensemble based on the L matrix
+#     dpp = EllEnsemble(L)
+    
+#     # Sample A (obtain indices)
+#     _, N = Base.size(A)
+#     N′′ = N′ > N ? N : N′
+#     curr_N′ = 0
+#     inds = []
+
+#     while curr_N′ < N′
+#         n_threads = Threads.nthreads()
+#         inds_vec = inds_vec = Vector{Vector{Int64}}(undef, n_threads)
+#         @threads for i in 1:n_threads
+#             inds_vec[i] = Determinantal.sample(dpp, N′′)
+#         end
+#         inds = unique(reduce(vcat, [inds; inds_vec]))
+#         curr_N′ = Base.size(inds, 1)
+#     end
+#     inds = inds[1:N′]
+
+#     return inds
+# end
+
+# function lrdpp_sample_2(A, N′)
+#     # Compute a kernel matrix for the points in x
+#     L = LowRank(Matrix(A))
+    
+#     # Form an L-ensemble based on the L matrix
+#     dpp = EllEnsemble(L)
+    
+#     # Sample A (obtain indices)
+#     _, N = Base.size(A)
+#     N′′ = N′ > N ? N : N′
+#     curr_N′ = 0
+#     inds = []
+#     while curr_N′ < N′
+#         for _ in 1:10
+#             curr_inds = Determinantal.sample(dpp, N′′)
+#             inds = [inds; curr_inds]
+#         end
+#         freq_map = countmap(inds)
+#         inds = sort(inds, by = x -> (freq_map[x], x), rev=true)
+#         inds = unique(inds)
+#         curr_N′ = Base.size(inds, 1)
+#     end
+#     inds = inds[1:N′]
+
+#     return inds
+# end
+
+# function lrdpp_sample_3(A, N′)
+
+#     # Sample A (obtain indices)
+#     _, N = Base.size(A)
+#     N′′ = N′ > N ? N : N′
+#     curr_N′ = 0
+#     inds = []
+
+#     while curr_N′ < N′
+#         for _ in 1:10
+#             # Compute a kernel matrix for the points in x
+#             L = LowRank(Matrix(A))
+            
+#             # Form an L-ensemble based on the L matrix
+#             dpp = EllEnsemble(L)
+
+#             curr_inds = Determinantal.sample(dpp, N′′)
+#             inds = [inds; curr_inds]
+#         end
+#         inds = unique(inds)
+#         curr_N′ = Base.size(inds, 1)
+#     end
+
+#     freq_map = countmap(inds)
+#     inds = sort(inds, by = x -> (freq_map[x], x), rev=true)
+    
+#     inds = unique(inds)
+#     inds = inds[1:N′]
+
+#     return inds
+# end
+
+
+
+# sample_experiment!(res_path, 1, lrdpp_sample, 0.04, n_train, 
+# ged_mat, ds_train_rnd, ds_test_rnd, basis, metrics)
+
 
 # DPP-based sampling method
 function dpp_sample(A, N′)
@@ -181,7 +282,7 @@ end
 function sample_experiment!(res_path, j, sampler, batch_size_prop, n_train, 
                             ged_mat, ds_train_rnd, ds_test_rnd, basis, metrics)
     try
-        println("Experiment:$j, method:$sampler, batch_size_prop:$batch_size_prop")
+        print("Experiment:$j, method:$sampler, batch_size_prop:$batch_size_prop")
         exp_path = "$res_path/$j-$sampler-bsp$batch_size_prop/"
         run(`mkdir -p $exp_path`)
         batch_size = floor(Int, n_train * batch_size_prop)
@@ -190,13 +291,15 @@ function sample_experiment!(res_path, j, sampler, batch_size_prop, n_train,
         end
         metrics_j = fit(exp_path, (@views ds_train_rnd[Int64.(inds)]), ds_test_rnd, basis)
         metrics_j = merge(OrderedDict("exp_number" => j,
-                                "method" => "$sampler",
-                                "batch_size_prop" => batch_size_prop,
-                                "batch_size" => batch_size,
-                                "time" => sampling_time),
+                                      "method" => "$sampler",
+                                      "batch_size_prop" => batch_size_prop,
+                                      "batch_size" => batch_size,
+                                      "time" => sampling_time),
                     merge(metrics_j...))
         push!(metrics, metrics_j)
         @save_dataframe(res_path, metrics)
+        print(", e_test_mae:$(round(metrics_j["e_test_mae"], sigdigits=4)), f_test_mae:$(round(metrics_j["f_test_mae"], sigdigits=4)), time:$(round(sampling_time, sigdigits=4))")
+        println()
     catch e # Catch error from excessive matrix allocation.
         println(e)
     end
