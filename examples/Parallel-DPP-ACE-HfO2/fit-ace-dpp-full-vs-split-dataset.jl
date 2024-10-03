@@ -84,7 +84,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 basis = ACE(species           = species,
             body_order        = 8,
             polynomial_degree = 8,
-            rcutoff           = 5.5,
+            rcutoff           = 10,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
@@ -101,7 +101,7 @@ ds = DataSet(confs .+ e_descr .+ f_descr)
 # Subsampling experiments #####################################################
 
 # Define number of experiments
-n_experiments = 1
+n_experiments = 10
 
 # Define samplers
 #samplers = [simple_random_sample, dbscan_sample, kmeans_sample, 
