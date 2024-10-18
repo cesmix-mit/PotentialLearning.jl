@@ -226,7 +226,8 @@ Fit energies and forces using weighted least squares.
 function learn!(
     lp::CovariateLinearProblem,
     ws::Vector,
-    int::Bool
+    int::Bool;
+    λ::Real=0.0
 )
     @views B_train = reduce(hcat, lp.B)'
     @views dB_train = reduce(hcat, lp.dB)'
@@ -249,11 +250,11 @@ function learn!(
     
     βs = Vector{Float64}() 
     try
-        βs = (A'*Q*A) \ (A'*Q*b)
+        βs = (A'*Q*A + λ*I) \ (A'*Q*b)
     catch e
         println(e)
         println("Linear system will be solved using pinv.") 
-        βs = pinv(A'*Q*A)*(A'*Q*b)
+        βs = pinv(A'*Q*A + λ*I)*(A'*Q*b)
     end
 
     # Update lp.
@@ -302,7 +303,7 @@ function ooc_learn!(
     ds_train::PotentialLearning.DataSet;
     ws = [30.0,1.0],
     symmetrize::Bool = true,
-    lambda::Union{Real,Nothing} = 0.01,
+    λ::Union{Real,Nothing} = 0.01,
     reg_style::Symbol = :default,
     AtWA = nothing,
     AtWb = nothing
@@ -345,17 +346,17 @@ function ooc_learn!(
         AtWA = Symmetric(AtWA)
     end
     
-    if !isnothing(lambda)
+    if !isnothing(λ)
         if reg_style == :default
-            reg_matrix = lambda*Diagonal(ones(size(AtWA)[1]))
+            reg_matrix = λ*Diagonal(ones(size(AtWA)[1]))
             AtWA += reg_matrix 
         end
 
         if reg_style == :scale_thresh || reg_style == :scale
             for i in 1:size(AtWA,1)
-               reg_elem = AtWA[i,i]*(1+lambda)
+               reg_elem = AtWA[i,i]*(1+λ)
                if reg_style == :scale_thresh
-                   reg_elem = max(reg_elem,lambda)
+                   reg_elem = max(reg_elem,λ)
                end#
                AtWA[i,i] = reg_elem        
             end
