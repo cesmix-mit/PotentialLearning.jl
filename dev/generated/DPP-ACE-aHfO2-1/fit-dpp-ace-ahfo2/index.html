@@ -5,14 +5,14 @@ using LinearAlgebra, Random, DisplayAs</code></pre><p>Define paths.</p><pre><cod
 ds_path   = &quot;$base_path/examples/data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz&quot;
 res_path  = &quot;$base_path/examples/DPP-ACE-aHfO2-1/results/&quot;;</code></pre><p>Load utility functions.</p><pre><code class="language-julia hljs">include(&quot;$base_path/examples/utils/utils.jl&quot;);</code></pre><p>Create experiment folder.</p><pre><code class="language-julia hljs">run(`mkdir -p $res_path`);</code></pre><h2 id="Load-datasets"><a class="docs-heading-anchor" href="#Load-datasets">Load datasets</a><a id="Load-datasets-1"></a><a class="docs-heading-anchor-permalink" href="#Load-datasets" title="Permalink"></a></h2><p>Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)</p><pre><code class="language-julia hljs">ds = load_data(ds_path, uparse(&quot;eV&quot;), uparse(&quot;Å&quot;))[1:1000]; # Load first 1K samples.</code></pre><p>Split atomistic dataset into training and test</p><pre><code class="language-julia hljs">n_train, n_test = 100, 50 # Few samples per dataset are used in this example.
 conf_train, conf_test = split(ds, n_train, n_test)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(DataSet{num_configs = 100} 
-	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Energy, Forces}
-	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Energy, Forces}
+	 Configuration{S, Energy, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces}
+	 Configuration{S, Energy, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces}
 	 ⋮
-	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Energy, Forces}, DataSet{num_configs = 50} 
-	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Energy, Forces}
-	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Energy, Forces}
+	 Configuration{S, Energy, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces}, DataSet{num_configs = 50} 
+	 Configuration{S, Energy, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces}
+	 Configuration{S, Energy, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces}
 	 ⋮
-	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Energy, Forces})</code></pre><h2 id="Subsample-dataset"><a class="docs-heading-anchor" href="#Subsample-dataset">Subsample dataset</a><a id="Subsample-dataset-1"></a><a class="docs-heading-anchor-permalink" href="#Subsample-dataset" title="Permalink"></a></h2><p>Compute ACE descriptors for energies to be used as subsampling input.</p><pre><code class="language-julia hljs">basis = ACE(species           = [:Hf, :O],
+	 Configuration{S, Energy, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces})</code></pre><h2 id="Subsample-dataset"><a class="docs-heading-anchor" href="#Subsample-dataset">Subsample dataset</a><a id="Subsample-dataset-1"></a><a class="docs-heading-anchor-permalink" href="#Subsample-dataset" title="Permalink"></a></h2><p>Compute ACE descriptors for energies to be used as subsampling input.</p><pre><code class="language-julia hljs">basis = ACE(species           = [:Hf, :O],
             body_order        = 2,
             polynomial_degree = 3,
             rcutoff           = 5.0,
@@ -25,7 +25,7 @@ e_descr = compute_local_descriptors(conf_train,
                           GlobalMean(),
                           DotProduct();
                           batch_size = 50)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">kDPP(L-Ensemble.
-Number of items in ground set : 100. Max. rank : 100. Rescaling constant α=1.5880985174633905e15
+Number of items in ground set : 100. Max. rank : 100. Rescaling constant α=1.4901069812248468e15
 , 50)</code></pre><p>Subsample trainig dataset.</p><pre><code class="language-julia hljs">inds = get_random_subset(dataset_selector)
 conf_train = @views conf_train[inds];</code></pre><h2 id="Compute-descriptors"><a class="docs-heading-anchor" href="#Compute-descriptors">Compute descriptors</a><a id="Compute-descriptors-1"></a><a class="docs-heading-anchor-permalink" href="#Compute-descriptors" title="Permalink"></a></h2><p>Create ACE basis.</p><pre><code class="language-julia hljs">basis = ACE(species           = [:Hf, :O],
             body_order        = 3,
@@ -65,7 +65,7 @@ ws, int = [1.0, 1.0], false
 learn!(lb, ds_train, ws, int)
 @save_var res_path lb.β
 @save_var res_path lb.β0
-lb.β, lb.β0</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">([815.355034108722, 416.8957301481792, 150.87828114108316, 28.260620627832033, 3571.882793287089, -1975.4218831414385, 2770.599445873579, 271.5038212715617, 13905.244312758105, 7599.082409427138  …  154.29861406342823, 80.84597753850993, -11573.018901230584, -2393.4513890048806, 112.13220899999597, 1.1891778659079869e6, 609786.8643121405, 28450.24990668392, -1044.8189509427843, 27928.461234204573], [0.0])</code></pre><h2 id="Post-process-results"><a class="docs-heading-anchor" href="#Post-process-results">Post-process results</a><a id="Post-process-results-1"></a><a class="docs-heading-anchor-permalink" href="#Post-process-results" title="Permalink"></a></h2><p>Compute ACE descriptors for energy and forces based on the atomistic test configurations.</p><pre><code class="language-julia hljs">println(&quot;Computing energy descriptors of test dataset...&quot;)
+lb.β, lb.β0</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">([562.6777139053343, 335.9281392354712, 140.75494997699892, 28.864766392119442, -3380.029977566463, 2977.420435742574, 736.7617308890311, -1509.221966784294, 13923.358937156832, 7657.463385147952  …  170.592025722026, 74.1299358877025, -11159.74368480518, -2219.509836459846, 26.99853137144724, 1.2397644162188594e6, 626874.7599729385, 37135.44445939115, -1054.0842528138462, 25014.744544510657], [0.0])</code></pre><h2 id="Post-process-results"><a class="docs-heading-anchor" href="#Post-process-results">Post-process results</a><a id="Post-process-results-1"></a><a class="docs-heading-anchor-permalink" href="#Post-process-results" title="Permalink"></a></h2><p>Compute ACE descriptors for energy and forces based on the atomistic test configurations.</p><pre><code class="language-julia hljs">println(&quot;Computing energy descriptors of test dataset...&quot;)
 e_descr_test = compute_local_descriptors(conf_test, basis;
                                          pbar = false)
 println(&quot;Computing force descriptors of test dataset...&quot;)
@@ -99,13 +99,13 @@ f_train_metrics = get_metrics(f_train, f_train_pred,
 train_metrics = merge(e_train_metrics, f_train_metrics)
 @save_dict res_path train_metrics
 train_metrics</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">OrderedCollections.OrderedDict{String, Float64} with 7 entries:
-  &quot;e_train_mae&quot;      =&gt; 0.00158822
-  &quot;e_train_rmse&quot;     =&gt; 0.00186209
-  &quot;e_train_rsq&quot;      =&gt; 0.694551
-  &quot;f_train_mae&quot;      =&gt; 0.170834
-  &quot;f_train_rmse&quot;     =&gt; 0.218109
-  &quot;f_train_rsq&quot;      =&gt; 0.854155
-  &quot;f_train_mean_cos&quot; =&gt; 0.888261</code></pre><p>Compute and save test metrics.</p><pre><code class="language-julia hljs">e_test_metrics = get_metrics(e_test, e_test_pred,
+  &quot;e_train_mae&quot;      =&gt; 0.00210617
+  &quot;e_train_rmse&quot;     =&gt; 0.00245813
+  &quot;e_train_rsq&quot;      =&gt; 0.471295
+  &quot;f_train_mae&quot;      =&gt; 0.172322
+  &quot;f_train_rmse&quot;     =&gt; 0.220313
+  &quot;f_train_rsq&quot;      =&gt; 0.850829
+  &quot;f_train_mean_cos&quot; =&gt; 0.890453</code></pre><p>Compute and save test metrics.</p><pre><code class="language-julia hljs">e_test_metrics = get_metrics(e_test, e_test_pred,
                              metrics = [mae, rmse, rsq],
                              label = &quot;e_test&quot;)
 f_test_metrics = get_metrics(f_test, f_test_pred,
@@ -114,28 +114,28 @@ f_test_metrics = get_metrics(f_test, f_test_pred,
 test_metrics = merge(e_test_metrics, f_test_metrics)
 @save_dict res_path test_metrics
 test_metrics</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">OrderedCollections.OrderedDict{String, Float64} with 7 entries:
-  &quot;e_test_mae&quot;      =&gt; 0.000628537
-  &quot;e_test_rmse&quot;     =&gt; 0.000758249
-  &quot;e_test_rsq&quot;      =&gt; 0.927767
-  &quot;f_test_mae&quot;      =&gt; 0.173444
-  &quot;f_test_rmse&quot;     =&gt; 0.217601
-  &quot;f_test_rsq&quot;      =&gt; 0.852637
-  &quot;f_test_mean_cos&quot; =&gt; 0.887873</code></pre><p>Plot and save energy results.</p><pre><code class="language-julia hljs">e_plot = plot_energy(e_train, e_train_pred,
+  &quot;e_test_mae&quot;      =&gt; 0.000719634
+  &quot;e_test_rmse&quot;     =&gt; 0.00084652
+  &quot;e_test_rsq&quot;      =&gt; 0.942059
+  &quot;f_test_mae&quot;      =&gt; 0.173101
+  &quot;f_test_rmse&quot;     =&gt; 0.217455
+  &quot;f_test_rsq&quot;      =&gt; 0.851239
+  &quot;f_test_mean_cos&quot; =&gt; 0.887703</code></pre><p>Plot and save energy results.</p><pre><code class="language-julia hljs">e_plot = plot_energy(e_train, e_train_pred,
                      e_test, e_test_pred)
 @save_fig res_path e_plot
-DisplayAs.PNG(e_plot)</code></pre><img src="d8584f3b.png" alt="Example block output"/><p>Plot and save force results.</p><pre><code class="language-julia hljs">f_plot = plot_forces(f_train, f_train_pred,
+DisplayAs.PNG(e_plot)</code></pre><img src="c3f3a63d.png" alt="Example block output"/><p>Plot and save force results.</p><pre><code class="language-julia hljs">f_plot = plot_forces(f_train, f_train_pred,
                      f_test, f_test_pred)
 @save_fig res_path f_plot
-DisplayAs.PNG(f_plot)</code></pre><img src="3c14b092.png" alt="Example block output"/><p>Plot and save training force cosine.</p><pre><code class="language-julia hljs">e_train_plot = plot_energy(e_train, e_train_pred)
+DisplayAs.PNG(f_plot)</code></pre><img src="aff283a3.png" alt="Example block output"/><p>Plot and save training force cosine.</p><pre><code class="language-julia hljs">e_train_plot = plot_energy(e_train, e_train_pred)
 f_train_plot = plot_forces(f_train, f_train_pred)
 f_train_cos  = plot_cos(f_train, f_train_pred)
 @save_fig res_path e_train_plot
 @save_fig res_path f_train_plot
 @save_fig res_path f_train_cos
-DisplayAs.PNG(f_train_cos)</code></pre><img src="95ad4409.png" alt="Example block output"/><p>Plot and save test force cosine.</p><pre><code class="language-julia hljs">e_test_plot = plot_energy(e_test, e_test_pred)
+DisplayAs.PNG(f_train_cos)</code></pre><img src="276d64d4.png" alt="Example block output"/><p>Plot and save test force cosine.</p><pre><code class="language-julia hljs">e_test_plot = plot_energy(e_test, e_test_pred)
 f_test_plot = plot_forces(f_test, f_test_pred)
 f_test_cos  = plot_cos(f_test, f_test_pred)
 @save_fig res_path e_test_plot
 @save_fig res_path f_test_plot
 @save_fig res_path f_test_cos
-DisplayAs.PNG(f_test_cos)</code></pre><img src="39f07633.png" alt="Example block output"/><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../ACE-aHfO2/fit-ace-ahfo2/">« Fit a-HfO2 dataset with ACE</a><a class="docs-footer-nextpage" href="../../DPP-ACE-Na/fit-dpp-ace-na/">Subsample Na dataset with DPP and fit with ACE »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Tuesday 10 September 2024 11:52">Tuesday 10 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+DisplayAs.PNG(f_test_cos)</code></pre><img src="fbaa995c.png" alt="Example block output"/><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../ACE-aHfO2/fit-ace-ahfo2/">« Fit a-HfO2 dataset with ACE</a><a class="docs-footer-nextpage" href="../../DPP-ACE-Na/fit-dpp-ace-na/">Subsample Na dataset with DPP and fit with ACE »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 21 October 2024 18:03">Monday 21 October 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
