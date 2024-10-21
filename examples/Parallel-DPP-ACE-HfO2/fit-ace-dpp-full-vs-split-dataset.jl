@@ -10,6 +10,7 @@ using Statistics, Distances
 using Determinantal, Clustering
 using MultivariateStats, LowRankApprox
 using DataFrames, Plots
+using Hyperopt
 using MPI
 using JLD
 using Colors
@@ -29,6 +30,7 @@ run(`mkdir -p $res_path`);
 
 # Load auxiliary functions  ####################################################
 include("$base_path/examples/utils/utils.jl")
+include("$base_path/examples/Parallel-DPP-ACE-HfO2/samplers.jl")
 include("$base_path/examples/Parallel-DPP-ACE-HfO2/aux_sample_functions.jl")
 include("$base_path/examples/Parallel-DPP-ACE-HfO2/plotmetrics.jl")
 
@@ -84,7 +86,7 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 basis = ACE(species           = species,
             body_order        = 8,
             polynomial_degree = 8,
-            rcutoff           = 10,
+            rcutoff           = 5.5,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)

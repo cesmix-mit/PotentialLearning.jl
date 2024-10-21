@@ -51,6 +51,7 @@ function plotmetrics(metrics_path)
                 xlabel = "Training Dataset Size (Sample Size)",
                 ylabel = metric_labels[i])
         end
+        plot!(legend=:topleft)
         savefig("$res_path/$metric.png")
     end
 end
