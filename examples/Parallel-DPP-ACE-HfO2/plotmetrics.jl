@@ -1,7 +1,7 @@
-using DataFrames, CSV, Statistics, Plots
+using DataFrames, CSV, Statistics, Plots, StatsBase
 
-function plotmetrics(metrics_path)
-    metrics = CSV.read(metrics_path, DataFrame)
+function plotmetrics(res_path, metrics_filename)
+    metrics = CSV.read("$res_path/$metrics_filename", DataFrame)
 
     methods = reverse(unique(metrics.method))
     batch_sizes = unique(metrics.batch_size)
@@ -18,22 +18,35 @@ function plotmetrics(metrics_path)
         plot()
         for (j, method) in enumerate(methods)
             metric_means = []; metric_se = []
+            metric_q3 = []; metric_q2 = []; metric_q1 = []
             for batch_size in batch_sizes
                 ms = metrics[ metrics.method .== method .&&
-                            metrics.batch_size .== batch_size , metric]
+                              metrics.batch_size .== batch_size , metric]
+
+                # Calculation of mean and standard error
                 m = mean(ms)
-                se = stdm(ms, m) / sqrt(length(ms)) # standard error
+                se = stdm(ms, m) / sqrt(length(ms))
                 push!(metric_means, m)
                 push!(metric_se, se)
+
+                # Calculation of quantiles
+                qs = quantile(ms, [0.25, 0.5, 0.75])
+                push!(metric_q3, qs[3])
+                push!(metric_q2, qs[2])
+                push!(metric_q1, qs[1])
             end
             plot!(batch_sizes,
-                metric_means,
-                ribbon = metric_se,
+                metric_q2,
+                #metric_means,
+                #ribbon = metric_se,
+                ribbon = (metric_q2 .- metric_q1, metric_q3 .- metric_q2),
+                #yerror = (metric_q2 .- metric_q1, metric_q3 .- metric_q2),
                 color = colors[j],
-                fillalpha=.1,
+                fillalpha=.05,
                 label=method)
             plot!(batch_sizes,
-                metric_means,
+                #metric_means,
+                metric_q2,
                 seriestype = :scatter,
                 thickness_scaling = 1.35,
                 markersize = 3,
@@ -41,17 +54,18 @@ function plotmetrics(metrics_path)
                 markerstrokecolor = :black, 
                 markercolor = colors[j],
                 label="")
-            max = metric == :time ? 1 : 1
-            min = metric == :time ? -0.1 : minimum(metric_means) * 0.50
+            max = metric == :time ? 1 : 0.8 #maximum(metric_q2) #1
+            min = metric == :time ? -0.1 : minimum(metric_q2) * 0.50
             plot!(dpi = 300,
                 label = "",
-                xscale=:log2, 
+                xscale=:log2,
+                #yscale=:log10,
                 xticks = (batch_sizes, xticks_label),
                 ylim=(min, max),
                 xlabel = "Training Dataset Size (Sample Size)",
                 ylabel = metric_labels[i])
         end
-        plot!(legend=:topleft)
+        plot!(legend=:topright)
         savefig("$res_path/$metric.png")
     end
 end
