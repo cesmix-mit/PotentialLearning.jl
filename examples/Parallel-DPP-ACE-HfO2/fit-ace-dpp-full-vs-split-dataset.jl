@@ -15,6 +15,7 @@ using MPI
 using JLD
 using Colors
 using Base.Threads
+using Preconditioners
 
 MPI.Init()
 comm = MPI.COMM_WORLD
@@ -68,8 +69,15 @@ paths = ["$ds_path/Hf2_gas_form_sorted.extxyz",
 #]
 
 confs = []
-for ds_path in paths
-    push!(confs, load_data(ds_path, uparse("eV"), uparse("Å"))...)
+confsizes = zeros(Int, length(paths))
+for (i, ds_path) in enumerate(paths)
+    newconfs = load_data(ds_path, uparse("eV"), uparse("Å"))
+    push!(confs, newconfs...)
+    confsizes[i] = length(newconfs)
+end
+offsets = zeros(Int, length(paths))
+for i in 2:length(paths)
+    offsets[i] = confsizes[i-1] + offsets[i-1]
 end
 confs = DataSet(confs)
 n = length(confs)
@@ -84,9 +92,9 @@ species = unique(vcat([atomic_symbol.(get_system(c).particles)
 
 # Compute ACE descriptors to update dataset
 basis = ACE(species           = species,
-            body_order        = 8,
-            polynomial_degree = 8,
-            rcutoff           = 5.5,
+            body_order        = 5,
+            polynomial_degree = 10,
+            rcutoff           = 6.0,
             wL                = 1.0,
             csp               = 1.0,
             r0                = 1.0)
@@ -103,7 +111,7 @@ ds = DataSet(confs .+ e_descr .+ f_descr)
 # Subsampling experiments #####################################################
 
 # Define number of experiments
-n_experiments = 10
+n_experiments = 40
 
 # Define samplers
 #samplers = [simple_random_sample, dbscan_sample, kmeans_sample, 
@@ -135,13 +143,19 @@ for nc in 1:local_exp
     global metrics
     
     # Define randomized training and test dataset
-    n_train = floor(Int, 0.8 * n)
-    n_test = n - n_train
-    rnd_inds = randperm(n)
-    rnd_inds_train = rnd_inds[1:n_train]
-    rnd_inds_test = rnd_inds[n_train+1:n_train+n_test] # rnd_inds[n_train+1:end]
+    rnd_inds_train = Int[]
+    rnd_inds_test = Int[]
+    for (i, ni) in enumerate(confsizes)
+        n_train_i = floor(Int, 0.8 * ni)
+        n_test_i = ni - n_train_i
+        rnd_inds = randperm(ni) .+ offsets[i]
+        push!(rnd_inds_train, rnd_inds[1:n_train_i]...)
+        push!(rnd_inds_test, rnd_inds[n_train_i+1:n_train_i+n_test_i]...)
+    end
     ds_train_rnd = @views ds[rnd_inds_train]
     ds_test_rnd  = @views ds[rnd_inds_test]
+    n_train = length(ds_train_rnd)
+    n_test = length(ds_test_rnd)
     ged = sum.(get_values.(get_local_descriptors.(ds_train_rnd)))
     ged_mat = stack(ged)'
 
@@ -156,4 +170,4 @@ for nc in 1:local_exp
 end
 
 # Postprocess ##################################################################
-plotmetrics("$res_path/metrics.csv")
+plotmetrics(res_path, "metrics.csv")

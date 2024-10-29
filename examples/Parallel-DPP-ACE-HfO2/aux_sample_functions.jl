@@ -1,11 +1,80 @@
+
+import Base.\
+\(C::CholeskyPreconditioner, A::AbstractMatrix) = reduce(hcat, [C \ c for c in eachcol(A)])
+
+function PotentialLearning.learn!(
+    lp::PotentialLearning.CovariateLinearProblem,
+    ws::Vector,
+    int::Bool;
+    λ::Real=0.0
+)
+    println("newlearn2")
+    @views B_train = reduce(hcat, lp.B)'
+    @views dB_train = reduce(hcat, lp.dB)'
+    @views e_train = lp.e
+    @views f_train = reduce(vcat, lp.f)
+    
+    # Calculate A and b.
+    if int
+        #int_col = ones(size(B_train, 1) + size(dB_train, 1))
+        int_col = [ones(Base.size(B_train, 1)); zeros(Base.size(dB_train, 1))]
+        @views A = hcat(int_col, [B_train; dB_train])
+    else
+        @views A = [B_train; dB_train]
+    end
+    @views b = [e_train; f_train]
+
+    # Calculate coefficients βs.
+    Q = Diagonal([ws[1] * ones(length(e_train));
+                  ws[2] * ones(length(f_train))])
+    
+    βs = Vector{Float64}() 
+    try
+        A′ = (A'*Q*A + λ*I)
+        b′ = (A'*Q*b)
+        P = CholeskyPreconditioner(A′, 2)
+        CA = P \ A′
+        Cb = P \ b′
+        βs = CA \ Cb
+        #y = A′*inv(P) \ b′
+        #βs = P \ y
+        #println("cond(A'*Q*A + λ*I):", cond(A′*inv(P), 2))
+    catch e
+        println(e)
+        println("Linear system will be solved using pinv.") 
+        βs = pinv(A'*Q*A + λ*I)*(A'*Q*b)
+    end
+
+    # Update lp.
+    if int
+        lp.β0 .= βs[1]
+        lp.β  .= βs[2:end]
+    else
+        lp.β  .= βs
+    end
+    
+end
+
+
 # Fit function used to get errors based on sampling
 function fit(path, ds_train, ds_test, basis)
 
     # Learn
-    lb = LBasisPotential(basis)
-    #ws, int = [1.0, 1.0], false
-    #learn!(lb, ds_train, ws, int)
-    ooc_learn!(lb, ds_train)
+    lb = PotentialLearning.LBasisPotential(basis)
+    ws, int = [30.0, 1.0], true
+    #learn!(lb, ds_train, ws, int, λ=0.1)
+
+    lp = PotentialLearning.LinearProblem(ds_train)
+    learn!(lp, ws, int; λ=0.1)
+    resize!(lb.β, length(lp.β))
+    lb.β .= lp.β
+    lb.β0 .= lp.β0
+    
+    #AtWA, AtWb = ooc_learn!(lb, ds_train; λ=0.1)
+    #p = DiagonalPreconditioner(AtWA)
+    #AtWA = p \ AtWA
+    #println("condition number of AtWA with P: $(cond(AtWA))")
+    #lb.β = AtWA \ AtWb
 
     @save_var path lb.β
     @save_var path lb.β0
