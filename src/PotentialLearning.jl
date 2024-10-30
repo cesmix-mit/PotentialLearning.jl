@@ -3,7 +3,7 @@ module PotentialLearning
 using AtomsBase
 using InteratomicPotentials
 using Unitful, UnitfulAtomic
-using LinearAlgebra, Statistics, Random, Distributions
+using LinearAlgebra, Statistics, StatsBase, Random, Distributions
 using StaticArrays
 using OrderedCollections
 using DataFrames
