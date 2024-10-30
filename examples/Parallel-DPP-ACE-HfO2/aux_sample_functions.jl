@@ -8,7 +8,7 @@ function PotentialLearning.learn!(
     int::Bool;
     λ::Real=0.0
 )
-    println("newlearn2")
+    println("(using redefinition of learn)")
     @views B_train = reduce(hcat, lp.B)'
     @views dB_train = reduce(hcat, lp.dB)'
     @views e_train = lp.e
@@ -30,15 +30,35 @@ function PotentialLearning.learn!(
     
     βs = Vector{Float64}() 
     try
+
+        # Option 0:
+        #A′ = (A'*Q*A + λ*I)
+        #b′ = (A'*Q*b)
+        #βs = A′ \ b′
+
+        # Option 1:
+        #A′ = (A'*Q*A + λ*I)
+        #b′ = (A'*Q*b)
+        #P = CholeskyPreconditioner(A′, 2)
+        #P = DiagonalPreconditioner(A′)
+        #P = AMGPreconditioner{SmoothedAggregation}(A)
+        #βs = cg(A′, b′, Pl = P)
+
+        # Option 2:
+        #A′ = (A'*Q*A)
+        #b′ = (A'*Q*b)
+        #P = CholeskyPreconditioner(A′, 2)
+        #P = DiagonalPreconditioner(A′)
+        #P = AMGPreconditioner{SmoothedAggregation}(A)
+        #βs = (A′ + λ*P'*P) \ b′
+        
+        # Option 3
         A′ = (A'*Q*A + λ*I)
         b′ = (A'*Q*b)
         P = CholeskyPreconditioner(A′, 2)
         CA = P \ A′
         Cb = P \ b′
         βs = CA \ Cb
-        #y = A′*inv(P) \ b′
-        #βs = P \ y
-        #println("cond(A'*Q*A + λ*I):", cond(A′*inv(P), 2))
     catch e
         println(e)
         println("Linear system will be solved using pinv.") 
@@ -65,17 +85,11 @@ function fit(path, ds_train, ds_test, basis)
     #learn!(lb, ds_train, ws, int, λ=0.1)
 
     lp = PotentialLearning.LinearProblem(ds_train)
-    learn!(lp, ws, int; λ=0.1)
+    learn!(lp, ws, int; λ=0.01)
     resize!(lb.β, length(lp.β))
     lb.β .= lp.β
     lb.β0 .= lp.β0
     
-    #AtWA, AtWb = ooc_learn!(lb, ds_train; λ=0.1)
-    #p = DiagonalPreconditioner(AtWA)
-    #AtWA = p \ AtWA
-    #println("condition number of AtWA with P: $(cond(AtWA))")
-    #lb.β = AtWA \ AtWb
-
     @save_var path lb.β
     @save_var path lb.β0
 
