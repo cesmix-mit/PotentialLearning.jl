@@ -306,7 +306,8 @@ function ooc_learn!(
     λ::Union{Real,Nothing} = 0.01,
     reg_style::Symbol = :default,
     AtWA = nothing,
-    AtWb = nothing
+    AtWb = nothing,
+    pbar = true
 )
 
     basis_size = length(lb.basis)
@@ -317,9 +318,13 @@ function ooc_learn!(
 
         W = zeros(1,1)
    
-        configs = get_system.(ds_train)
+        if pbar
+            iter = ProgressBar(ds_train)
+        else
+            iter = ds_train
+        end
         
-        for config in ds_train
+        for config in iter
             ref_energy = get_values(get_energy(config))
             ref_forces = reduce(vcat,get_values(get_forces(config)))
 
