@@ -307,7 +307,8 @@ function ooc_learn!(
     reg_style::Symbol = :default,
     AtWA = nothing,
     AtWb = nothing,
-    pbar = true
+    pbar = true,
+    eweight_normalized = :squared  # :squared, :standard or nothing
 )
 
     basis_size = length(lb.basis)
@@ -329,14 +330,26 @@ function ooc_learn!(
             ref_forces = reduce(vcat,get_values(get_forces(config)))
 
             sys = get_system(config)
+            natoms = length(sys)
             global_descrs = reshape(sum(compute_local_descriptors(sys,lb.basis)),:,1)'
             force_descrs  = stack(reduce(vcat,compute_force_descriptors(sys,lb.basis)))'
 
             A = [global_descrs; force_descrs]
             b = [ref_energy; ref_forces]
             if size(W)[1] != size(A)[1]
-                W = Diagonal( [ws[1]*ones(length(ref_energy));
-                               ws[2]*ones(length(ref_forces))])
+
+                if isnothing(eweight_normalized)
+                    we_norm = 1.0
+                elseif eweight_normalized == :standard
+                    we_norm = 1/natoms
+                elseif eweight_normalized == :squared
+                    we_norm = 1/natoms^2
+                else
+                    error("eweight_normalized can only be nothing, :standard, or :squared")
+                end
+
+                W = Diagonal( [we_norm*ws[1];
+                               ws[2]*ones(length(ref_forces))] )
             end
 
             AtWA .+= A'*W*A
