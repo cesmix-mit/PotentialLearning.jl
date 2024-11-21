@@ -9,10 +9,10 @@ outpath  = &quot;$base_path/examples/DPP-ACE-Si/output/$elname/&quot;</code></pr
 nfile = length(file_arr)
 confs_arr = [load_data(inpath*file, ExtXYZ(u&quot;eV&quot;, u&quot;Å&quot;)) for file in file_arr]
 confs = concat_dataset(confs_arr)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">DataSet{num_configs = 201} 
-	 Configuration{S, Energy, Forces, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}}
-	 Configuration{S, Energy, Forces, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}}
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}
 	 ⋮
-	 Configuration{S, Energy, Forces, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}}</code></pre><p>Id of configurations per file.</p><pre><code class="language-julia hljs">n = 0
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}</code></pre><p>Id of configurations per file.</p><pre><code class="language-julia hljs">n = 0
 confs_id = Vector{Vector{Int64}}(undef, nfile)
 for k = 1:nfile
     global n
@@ -49,13 +49,11 @@ batch 2
 batch 3
 batch 4
 batch 5
-LinearAlgebra.SingularException(18)
-Linear system will be solved using pinv.
-condnum: [1.9720680789816124e10, 1.837293213026608e10, 1.804373394439172e10, 1.9958444390060787e10, 1.976247074085906e10]
+condnum: [1.8250171327596577e10, 1.8834222892961536e10, 1.8371809106971245e10, 1.8999110129193974e10, 1.930632369850247e10]
 =============== Starting batch size 40 ===============
 batch 1
 batch 2
 batch 3
 batch 4
 batch 5
-condnum: [1.79172982810321e10, 1.7935491927640392e10, 1.9895906928284584e10, 1.7063741088236666e10, 1.862179734152307e10]</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../DPP-ACE-Na/fit-dpp-ace-na/">« Subsample Na dataset with DPP and fit with ACE</a><a class="docs-footer-nextpage" href="../../Opt-ACE-aHfO2/fit-opt-ace-ahfo2/">Optimize ACE hyper-parameters: minimize force time and fitting error »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 21 October 2024 19:03">Monday 21 October 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+condnum: [2.0418578156265305e10, 1.9179722454348164e10, 2.015453871188599e10, 1.852346593259402e10, 1.848211189883588e10]</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../DPP-ACE-Na/fit-dpp-ace-na/">« Subsample Na dataset with DPP and fit with ACE</a><a class="docs-footer-nextpage" href="../../Opt-ACE-aHfO2/fit-opt-ace-ahfo2/">Optimize ACE hyper-parameters: minimize force time and fitting error »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 21 November 2024 20:10">Thursday 21 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
