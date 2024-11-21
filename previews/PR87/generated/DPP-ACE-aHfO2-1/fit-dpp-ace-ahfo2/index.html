@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Subsample a-HfO2 dataset with DPP and fit with ACE · PotentialLearning.jl</title><meta name="title" content="Subsample a-HfO2 dataset with DPP and fit with ACE · PotentialLearning.jl"/><meta property="og:title" content="Subsample a-HfO2 dataset with DPP and fit with ACE · PotentialLearning.jl"/><meta property="twitter:title" content="Subsample a-HfO2 dataset with DPP and fit with ACE · PotentialLearning.jl"/><meta name="description" content="Documentation for PotentialLearning.jl."/><meta property="og:description" content="Documentation for PotentialLearning.jl."/><meta property="twitter:description" content="Documentation for PotentialLearning.jl."/><meta property="og:url" content="https://cesmix-mit.github.io/PotentialLearning.jl/generated/DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2/"/><meta property="twitter:url" content="https://cesmix-mit.github.io/PotentialLearning.jl/generated/DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2/"/><link rel="canonical" href="https://cesmix-mit.github.io/PotentialLearning.jl/generated/DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2/"/><script data-outdated-warner src="../../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../search_index.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">PotentialLearning.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><a class="tocitem" href="../../../install-and-run-examples/">Install and run examples</a></li><li><span class="tocitem">Basic examples</span><ul><li><a class="tocitem" href="../../ACE-aHfO2/fit-ace-ahfo2/">Fit a-HfO2 dataset with ACE</a></li></ul></li><li><span class="tocitem">Intelligent subsampling</span><ul><li class="is-active"><a class="tocitem" href>Subsample a-HfO2 dataset with DPP and fit with ACE</a><ul class="internal"><li><a class="tocitem" href="#Setup-experiment"><span>Setup experiment</span></a></li><li><a class="tocitem" href="#Load-datasets"><span>Load datasets</span></a></li><li><a class="tocitem" href="#Subsample-dataset"><span>Subsample dataset</span></a></li><li><a class="tocitem" href="#Compute-descriptors"><span>Compute descriptors</span></a></li><li><a class="tocitem" href="#Learn-coefficients"><span>Learn coefficients</span></a></li><li><a class="tocitem" href="#Post-process-results"><span>Post-process results</span></a></li></ul></li><li><a class="tocitem" href="../../DPP-ACE-Na/fit-dpp-ace-na/">Subsample Na dataset with DPP and fit with ACE</a></li><li><a class="tocitem" href="../../DPP-ACE-Si/fit-dpp-ace-si/">Subsample Si dataset with DPP, fit with ACE, and cross validate</a></li></ul></li><li><span class="tocitem">Hyper-parameter optimization</span><ul><li><a class="tocitem" href="../../Opt-ACE-aHfO2/fit-opt-ace-ahfo2/">Optimize ACE hyper-parameters: minimize force time and fitting error</a></li></ul></li><li><span class="tocitem">Dimension reduction</span><ul><li><a class="tocitem" href="../../PCA-ACE-aHfO2/fit-pca-ace-ahfo2/">Reduce ACE descriptors with PCA and fit a-HfO2 dataset</a></li></ul></li><li><span class="tocitem">Misc</span><ul><li><a class="tocitem" href="../../LJ-Ar/lennard-jones-ar/">Load Ar+Lennard-Jones dataset and postprocess</a></li></ul></li><li><a class="tocitem" href="../../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Intelligent subsampling</a></li><li class="is-active"><a href>Subsample a-HfO2 dataset with DPP and fit with ACE</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Subsample a-HfO2 dataset with DPP and fit with ACE</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/cesmix-mit/PotentialLearning.jl/blob/main/examples/DPP-ACE-aHfO2-1/fit-dpp-ace-ahfo2.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Subsample-a-HfO2-dataset-and-fit-with-ACE"><a class="docs-heading-anchor" href="#Subsample-a-HfO2-dataset-and-fit-with-ACE">Subsample a-HfO2 dataset and fit with ACE</a><a id="Subsample-a-HfO2-dataset-and-fit-with-ACE-1"></a><a class="docs-heading-anchor-permalink" href="#Subsample-a-HfO2-dataset-and-fit-with-ACE" title="Permalink"></a></h1><h2 id="Setup-experiment"><a class="docs-heading-anchor" href="#Setup-experiment">Setup experiment</a><a id="Setup-experiment-1"></a><a class="docs-heading-anchor-permalink" href="#Setup-experiment" title="Permalink"></a></h2><p>Load packages.</p><pre><code class="language-julia hljs">using AtomsBase, InteratomicPotentials, PotentialLearning
+using Unitful, UnitfulAtomic
+using LinearAlgebra, Random, DisplayAs</code></pre><p>Define paths.</p><pre><code class="language-julia hljs">base_path = haskey(ENV, &quot;BASE_PATH&quot;) ? ENV[&quot;BASE_PATH&quot;] : &quot;../../&quot;
+ds_path   = &quot;$base_path/examples/data/a-HfO2/a-HfO2-300K-NVT-6000.extxyz&quot;
+res_path  = &quot;$base_path/examples/DPP-ACE-aHfO2-1/results/&quot;;</code></pre><p>Load utility functions.</p><pre><code class="language-julia hljs">include(&quot;$base_path/examples/utils/utils.jl&quot;);</code></pre><p>Create experiment folder.</p><pre><code class="language-julia hljs">run(`mkdir -p $res_path`);</code></pre><h2 id="Load-datasets"><a class="docs-heading-anchor" href="#Load-datasets">Load datasets</a><a id="Load-datasets-1"></a><a class="docs-heading-anchor-permalink" href="#Load-datasets" title="Permalink"></a></h2><p>Load atomistic dataset: atomistic configurations (atom positions, geometry, etc.) + DFT data (energies, forces, etc.)</p><pre><code class="language-julia hljs">ds = load_data(ds_path, uparse(&quot;eV&quot;), uparse(&quot;Å&quot;))[1:1000]; # Load first 1K samples.</code></pre><p>Split atomistic dataset into training and test</p><pre><code class="language-julia hljs">n_train, n_test = 100, 50 # Few samples per dataset are used in this example.
+conf_train, conf_test = split(ds, n_train, n_test)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(DataSet{num_configs = 100} 
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}
+	 ⋮
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}, DataSet{num_configs = 50} 
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy}
+	 ⋮
+	 Configuration{S, AtomsBase.FlexibleSystem{3, AtomsBase.Atom, Unitful.Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}}, Forces, Energy})</code></pre><h2 id="Subsample-dataset"><a class="docs-heading-anchor" href="#Subsample-dataset">Subsample dataset</a><a id="Subsample-dataset-1"></a><a class="docs-heading-anchor-permalink" href="#Subsample-dataset" title="Permalink"></a></h2><p>Compute ACE descriptors for energies to be used as subsampling input.</p><pre><code class="language-julia hljs">basis = ACE(species           = [:Hf, :O],
+            body_order        = 2,
+            polynomial_degree = 3,
+            rcutoff           = 5.0,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0)
+e_descr = compute_local_descriptors(conf_train,
+                                    basis,
+                                    pbar = false);</code></pre><p>Update subsampling dataset.</p><pre><code class="language-julia hljs">conf_train_kDPP = DataSet(conf_train .+ e_descr);</code></pre><p>Create DPP subselector.</p><pre><code class="language-julia hljs">dataset_selector = kDPP(  conf_train_kDPP,
+                          GlobalMean(),
+                          DotProduct();
+                          batch_size = 50)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">kDPP(L-Ensemble.
+Number of items in ground set : 100. Max. rank : 100. Rescaling constant α=1.6205223862933555e15
+, 50)</code></pre><p>Subsample trainig dataset.</p><pre><code class="language-julia hljs">inds = get_random_subset(dataset_selector)
+conf_train = @views conf_train[inds];</code></pre><h2 id="Compute-descriptors"><a class="docs-heading-anchor" href="#Compute-descriptors">Compute descriptors</a><a id="Compute-descriptors-1"></a><a class="docs-heading-anchor-permalink" href="#Compute-descriptors" title="Permalink"></a></h2><p>Create ACE basis.</p><pre><code class="language-julia hljs">basis = ACE(species           = [:Hf, :O],
+            body_order        = 3,
+            polynomial_degree = 4,
+            rcutoff           = 5.0,
+            wL                = 1.0,
+            csp               = 1.0,
+            r0                = 1.0)
+@save_var res_path basis;</code></pre><p>Compute ACE descriptors for energy and forces based on the atomistic training configurations.</p><pre><code class="language-julia hljs">println(&quot;Computing energy descriptors of training dataset...&quot;)
+e_descr_train = compute_local_descriptors(conf_train, basis;
+                                          pbar=false)
+println(&quot;Computing force descriptors of training dataset...&quot;)
+f_descr_train = compute_force_descriptors(conf_train, basis;
+                                          pbar=false)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">50-element Vector{ForceDescriptors}:
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ⋮
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}
+ ForceDescriptors{n = 96, d = 3}</code></pre><p>Update training dataset by adding energy and force descriptors.</p><pre><code class="language-julia hljs">ds_train = DataSet(conf_train .+ e_descr_train .+ f_descr_train);</code></pre><h2 id="Learn-coefficients"><a class="docs-heading-anchor" href="#Learn-coefficients">Learn coefficients</a><a id="Learn-coefficients-1"></a><a class="docs-heading-anchor-permalink" href="#Learn-coefficients" title="Permalink"></a></h2><p>Learn ACE coefficients based on ACE descriptors and DFT data.</p><pre><code class="language-julia hljs">println(&quot;Learning energies and forces...&quot;)
+lb = LBasisPotential(basis)
+ws, int = [1.0, 1.0], false
+learn!(lb, ds_train, ws, int)
+@save_var res_path lb.β
+@save_var res_path lb.β0
+lb.β, lb.β0</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">([641.5736161014385, 351.36173595213046, 137.35501043724184, 27.165809511742534, -1.4879033337000525e7, -669.0937725224418, 2.0804405772959902e6, -1.0414012988071209e6, 13654.066225211525, 7448.329169047152  …  165.3542250648637, 93.167683113066, -14285.39026844523, -2739.03212994967, -72.72319463307677, 1.2348492526449892e6, 634430.4046244883, 30784.53395338712, -1054.3320804595396, 28687.76662291943], [0.0])</code></pre><h2 id="Post-process-results"><a class="docs-heading-anchor" href="#Post-process-results">Post-process results</a><a id="Post-process-results-1"></a><a class="docs-heading-anchor-permalink" href="#Post-process-results" title="Permalink"></a></h2><p>Compute ACE descriptors for energy and forces based on the atomistic test configurations.</p><pre><code class="language-julia hljs">println(&quot;Computing energy descriptors of test dataset...&quot;)
+e_descr_test = compute_local_descriptors(conf_test, basis;
+                                         pbar = false)
+println(&quot;Computing force descriptors of test dataset...&quot;)
+f_descr_test = compute_force_descriptors(conf_test, basis;
+                                         pbar = false);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Computing energy descriptors of test dataset...
+Computing force descriptors of test dataset...</code></pre><p>Update test dataset by adding energy and force descriptors.</p><pre><code class="language-julia hljs">ds_test = DataSet(conf_test .+ e_descr_test .+ f_descr_test);</code></pre><p>Get and save true and predicted values for energies and forces.</p><pre><code class="language-julia hljs">n_atoms_train = length.(get_system.(ds_train))
+n_atoms_test = length.(get_system.(ds_test))
+
+e_train, e_train_pred = get_all_energies(ds_train) ./ n_atoms_train,
+                        get_all_energies(ds_train, lb) ./ n_atoms_train
+f_train, f_train_pred = get_all_forces(ds_train),
+                        get_all_forces(ds_train, lb)
+@save_var res_path e_train
+@save_var res_path e_train_pred
+@save_var res_path f_train
+@save_var res_path f_train_pred
+
+e_test, e_test_pred = get_all_energies(ds_test) ./ n_atoms_test,
+                      get_all_energies(ds_test, lb) ./ n_atoms_test
+f_test, f_test_pred = get_all_forces(ds_test),
+                      get_all_forces(ds_test, lb)
+@save_var res_path e_test
+@save_var res_path e_test_pred
+@save_var res_path f_test
+@save_var res_path f_test_pred;</code></pre><p>Compute and save training metrics.</p><pre><code class="language-julia hljs">e_train_metrics = get_metrics(e_train, e_train_pred,
+                              metrics = [mae, rmse, rsq],
+                              label = &quot;e_train&quot;)
+f_train_metrics = get_metrics(f_train, f_train_pred,
+                              metrics = [mae, rmse, rsq, mean_cos],
+                              label = &quot;f_train&quot;)
+train_metrics = merge(e_train_metrics, f_train_metrics)
+@save_dict res_path train_metrics
+train_metrics</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">OrderedCollections.OrderedDict{String, Float64} with 7 entries:
+  &quot;e_train_mae&quot;      =&gt; 0.00195509
+  &quot;e_train_rmse&quot;     =&gt; 0.00233895
+  &quot;e_train_rsq&quot;      =&gt; 0.576354
+  &quot;f_train_mae&quot;      =&gt; 0.168721
+  &quot;f_train_rmse&quot;     =&gt; 0.215887
+  &quot;f_train_rsq&quot;      =&gt; 0.857504
+  &quot;f_train_mean_cos&quot; =&gt; 0.891736</code></pre><p>Compute and save test metrics.</p><pre><code class="language-julia hljs">e_test_metrics = get_metrics(e_test, e_test_pred,
+                             metrics = [mae, rmse, rsq],
+                             label = &quot;e_test&quot;)
+f_test_metrics = get_metrics(f_test, f_test_pred,
+                             metrics = [mae, rmse, rsq, mean_cos],
+                             label = &quot;f_test&quot;)
+test_metrics = merge(e_test_metrics, f_test_metrics)
+@save_dict res_path test_metrics
+test_metrics</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">OrderedCollections.OrderedDict{String, Float64} with 7 entries:
+  &quot;e_test_mae&quot;      =&gt; 0.00115456
+  &quot;e_test_rmse&quot;     =&gt; 0.00137199
+  &quot;e_test_rsq&quot;      =&gt; 0.829379
+  &quot;f_test_mae&quot;      =&gt; 0.174246
+  &quot;f_test_rmse&quot;     =&gt; 0.218886
+  &quot;f_test_rsq&quot;      =&gt; 0.846951
+  &quot;f_test_mean_cos&quot; =&gt; 0.887214</code></pre><p>Plot and save energy results.</p><pre><code class="language-julia hljs">e_plot = plot_energy(e_train, e_train_pred,
+                     e_test, e_test_pred)
+@save_fig res_path e_plot
+DisplayAs.PNG(e_plot)</code></pre><img src="cb2b5901.png" alt="Example block output"/><p>Plot and save force results.</p><pre><code class="language-julia hljs">f_plot = plot_forces(f_train, f_train_pred,
+                     f_test, f_test_pred)
+@save_fig res_path f_plot
+DisplayAs.PNG(f_plot)</code></pre><img src="082c4a94.png" alt="Example block output"/><p>Plot and save training force cosine.</p><pre><code class="language-julia hljs">e_train_plot = plot_energy(e_train, e_train_pred)
+f_train_plot = plot_forces(f_train, f_train_pred)
+f_train_cos  = plot_cos(f_train, f_train_pred)
+@save_fig res_path e_train_plot
+@save_fig res_path f_train_plot
+@save_fig res_path f_train_cos
+DisplayAs.PNG(f_train_cos)</code></pre><img src="6568163e.png" alt="Example block output"/><p>Plot and save test force cosine.</p><pre><code class="language-julia hljs">e_test_plot = plot_energy(e_test, e_test_pred)
+f_test_plot = plot_forces(f_test, f_test_pred)
+f_test_cos  = plot_cos(f_test, f_test_pred)
+@save_fig res_path e_test_plot
+@save_fig res_path f_test_plot
+@save_fig res_path f_test_cos
+DisplayAs.PNG(f_test_cos)</code></pre><img src="db028614.png" alt="Example block output"/><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../ACE-aHfO2/fit-ace-ahfo2/">« Fit a-HfO2 dataset with ACE</a><a class="docs-footer-nextpage" href="../../DPP-ACE-Na/fit-dpp-ace-na/">Subsample Na dataset with DPP and fit with ACE »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 30 September 2024 19:32">Monday 30 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
